@@ -1,0 +1,70 @@
+<!-- Proactive Maintenance -->
+<div class="fade-in space-y-4">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+    <!-- Maintenance Calendar -->
+    <div class="pms-card">
+      <h4 class="section-title">Maintenance Calendar</h4>
+      <p class="text-xs text-muted mb-3">Upcoming inspections based on interval plans.</p>
+      <div class="overflow-x-auto">
+        <div class="min-w-[400px]">
+          <div class="grid grid-cols-7 bg-[#f4f9ff] border-b border-border">
+            <div *ngFor="let d of days" class="p-2 text-xs font-bold text-[#4f6f9a] text-center">{{ d }}</div>
+          </div>
+          <div class="grid grid-cols-7">
+            <div *ngFor="let cell of calCells"
+                 class="min-h-[70px] border-r border-b border-[#eef4ff] p-1.5 text-xs text-[#415f89] bg-white">
+              {{ cell.day }}
+              <div *ngFor="let tag of cell.tags" class="cal-tag">{{ tag }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- High Risk Alert -->
+    <div class="pms-card space-y-3">
+      <h4 class="section-title">⚠️ High-Risk Asset Alert</h4>
+      <table class="pms-table">
+        <thead><tr><th>Asset</th><th>Risk Score</th><th>Level</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let a of riskAssets">
+            <td class="font-semibold">{{ a.assetName }}</td>
+            <td class="font-bold" [class.text-danger]="a.riskScore >= 80">{{ a.riskScore }}</td>
+            <td><app-status-badge [status]="a.riskLevel"></app-status-badge></td>
+          </tr>
+          <ng-container *ngIf="riskAssets.length === 0">
+            <tr>
+              <td class="font-semibold">Main Chiller</td>
+              <td class="font-bold text-danger">82.5</td>
+              <td><app-status-badge status="High"></app-status-badge></td>
+            </tr>
+            <tr>
+              <td class="font-semibold">Lift B</td>
+              <td class="font-bold text-warning">68.0</td>
+              <td><app-status-badge status="Medium"></app-status-badge></td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+      <div class="form-actions">
+        <button class="btn-outline">📅 Reschedule Plan</button>
+        <button class="btn-primary">🔧 Create Work Order</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generate Report -->
+  <div class="pms-card">
+    <h4 class="section-title">Generate Asset Maintenance Report</h4>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="space-y-1"><label class="pms-label">Date From</label>
+        <input type="date" [(ngModel)]="dateFrom" class="pms-input"/></div>
+      <div class="space-y-1"><label class="pms-label">Date To</label>
+        <input type="date" [(ngModel)]="dateTo" class="pms-input"/></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" (click)="exportReport()">📊 Export Structured Report</button>
+    </div>
+  </div>
+</div>

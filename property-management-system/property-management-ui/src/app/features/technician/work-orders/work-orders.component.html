@@ -1,0 +1,102 @@
+<!-- View Work Orders (Technician) -->
+<div class="fade-in space-y-4">
+
+  <!-- Filters -->
+  <div class="pms-card">
+    <div class="flex flex-wrap gap-3 items-end">
+      <div class="space-y-1">
+        <label class="pms-label">Calendar View</label>
+        <select [(ngModel)]="calView" class="pms-select w-32">
+          <option>Daily</option><option>Weekly</option><option>Monthly</option>
+        </select>
+      </div>
+      <div class="space-y-1">
+        <label class="pms-label">Filter Status</label>
+        <select [(ngModel)]="statusFilter" (change)="loadOrders()" class="pms-select w-36">
+          <option>All</option><option>Assigned</option><option>InProgress</option><option>Completed</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendar grid -->
+  <div class="pms-card overflow-x-auto">
+    <h4 class="section-title">Schedule Calendar</h4>
+    <div class="min-w-[600px]">
+      <div class="grid grid-cols-7 bg-[#f4f9ff] border-b border-border">
+        <div *ngFor="let d of days" class="px-2 py-2 text-xs font-bold text-[#4f6f9a] text-center">{{ d }}</div>
+      </div>
+      <div class="grid grid-cols-7">
+        <div *ngFor="let cell of calCells; let i = index"
+             class="min-h-[90px] border-r border-b border-[#eef4ff] p-2 text-xs text-[#415f89] bg-white">
+          {{ cell.day }}
+          <div *ngFor="let wo of cell.orders" class="cal-tag">{{ wo }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Work Order List -->
+  <div class="pms-card">
+    <h4 class="section-title">Work Order List</h4>
+    <table class="pms-table">
+      <thead>
+        <tr><th>WO ID</th><th>Case ID</th><th>Issue</th><th>Schedule</th><th>Priority</th><th>Status</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let wo of workOrders">
+          <td class="font-mono text-xs text-blue">WO-{{ wo.workOrderID }}</td>
+          <td class="font-mono text-xs text-muted">REQ-{{ wo.requestID }}</td>
+          <td>{{ wo.issueTitle }}</td>
+          <td class="text-muted text-xs">{{ wo.scheduledDate | date:'dd MMM yyyy, HH:mm' }}</td>
+          <td><app-status-badge [status]="wo.priorityLevel"></app-status-badge></td>
+          <td><app-status-badge [status]="wo.status"></app-status-badge></td>
+          <td><button class="btn-outline text-xs px-2 py-1" (click)="select(wo)">View Details</button></td>
+        </tr>
+        <ng-container *ngIf="workOrders.length === 0">
+          <tr>
+            <td class="font-mono text-xs text-blue">WO-145</td>
+            <td class="font-mono text-xs text-muted">REQ-0012</td>
+            <td>Aircond leaking</td>
+            <td class="text-muted text-xs">10 Apr 2026, 10:00</td>
+            <td><app-status-badge status="High"></app-status-badge></td>
+            <td><app-status-badge status="Assigned"></app-status-badge></td>
+            <td><button class="btn-outline text-xs px-2 py-1">View Details</button></td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Work Order Detail + Acknowledge -->
+  <div class="pms-card" *ngIf="selected">
+    <h4 class="section-title">Work Order Detail — WO-{{ selected.workOrderID }}</h4>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
+      <div class="space-y-1.5">
+        <p><strong>Issue:</strong> {{ selected.issueTitle }}</p>
+        <p><strong>Location:</strong> {{ selected.unitNumber }}</p>
+        <p><strong>Priority:</strong> {{ selected.priorityLevel }}</p>
+      </div>
+      <div class="space-y-1.5">
+        <p><strong>Scheduled:</strong> {{ selected.scheduledDate | date:'dd MMM yyyy HH:mm' }}</p>
+        <p><strong>Status:</strong> <app-status-badge [status]="selected.status"></app-status-badge></p>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="space-y-1">
+        <label class="pms-label">Decision</label>
+        <select [(ngModel)]="decision" class="pms-select">
+          <option value="Accept">Accept</option>
+          <option value="Decline">Decline</option>
+        </select>
+      </div>
+      <div class="space-y-1" *ngIf="decision === 'Decline'">
+        <label class="pms-label">Decline Reason</label>
+        <input [(ngModel)]="declineReason" class="pms-input" placeholder="e.g. Emergency task conflict"/>
+      </div>
+    </div>
+    <div class="form-actions mt-3">
+      <button class="btn-primary" (click)="acknowledge()">✅ Acknowledge Request</button>
+    </div>
+  </div>
+</div>

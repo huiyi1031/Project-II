@@ -1,0 +1,105 @@
+<!-- Create Maintenance Request -->
+<div class="fade-in max-w-3xl">
+  <div class="pms-card">
+    <h4 class="section-title">Create Maintenance Request</h4>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
+      <div class="form-grid">
+
+        <!-- Request Title -->
+        <div class="space-y-1.5">
+          <label class="pms-label">Request Title *</label>
+          <input formControlName="requestTitle" class="pms-input"
+                 placeholder="e.g. Aircond leaking in bedroom"/>
+          <div *ngIf="f['requestTitle'].invalid && f['requestTitle'].touched"
+               class="text-red-500 text-xs">Title is required.</div>
+        </div>
+
+        <!-- Issue Category -->
+        <div class="space-y-1.5">
+          <label class="pms-label">Issue Category *</label>
+          <select formControlName="issueCategory" class="pms-select">
+            <option value="">Select category</option>
+            <option>HVAC</option>
+            <option>Plumbing</option>
+            <option>Electrical</option>
+            <option>Cleaning</option>
+            <option>Structural</option>
+            <option>General Maintenance</option>
+          </select>
+        </div>
+
+        <!-- Location -->
+        <div class="space-y-1.5">
+          <label class="pms-label">Location (Unit / Area) *</label>
+          <select formControlName="unitID" class="pms-select">
+            <option value="">Select unit</option>
+            <option *ngFor="let u of units" [value]="u.unitID">
+              {{ u.unitNumber }} — Block {{ u.block }}
+            </option>
+            <!-- Fallback option when API not connected -->
+            <option value="1">Unit A-12-05 (default)</option>
+          </select>
+        </div>
+
+        <!-- Priority -->
+        <div class="space-y-1.5">
+          <label class="pms-label">Priority *</label>
+          <select formControlName="priorityLevel" class="pms-select">
+            <option value="Low">Low</option>
+            <option value="Medium" selected>Medium</option>
+            <option value="High">High</option>
+          </select>
+        </div>
+
+        <!-- Description (full width) -->
+        <div class="space-y-1.5 md:col-span-2">
+          <label class="pms-label">Description *</label>
+          <textarea formControlName="description" class="pms-textarea"
+                    placeholder="Describe the issue in detail..."></textarea>
+          <div *ngIf="f['description'].invalid && f['description'].touched"
+               class="text-red-500 text-xs">Description is required.</div>
+        </div>
+
+        <!-- Preferred Schedule -->
+        <div class="space-y-1.5">
+          <label class="pms-label">Preferred Schedule Date (optional)</label>
+          <input type="date" formControlName="preferredScheduleDate" class="pms-input"/>
+        </div>
+
+        <!-- Attachment -->
+        <div class="space-y-1.5">
+          <label class="pms-label">Attachment (optional)</label>
+          <div class="upload-box" (click)="fileInput.click()">
+            <div>
+              <div class="text-2xl mb-1">🖼️</div>
+              <div class="text-sm">Click to upload image</div>
+              <div class="text-xs text-muted mt-0.5">JPG, PNG up to 10MB</div>
+              <div *ngIf="fileName" class="text-xs text-blue font-medium mt-1">📎 {{ fileName }}</div>
+            </div>
+          </div>
+          <input #fileInput type="file" class="hidden" accept="image/*"
+                 (change)="onFileSelected($event)"/>
+        </div>
+      </div>
+
+      <!-- Success / Error Messages -->
+      <div *ngIf="successMsg" class="bg-[#e7f8ef] border border-[#a3e4c8] text-[#157347]
+                                     rounded-xl px-4 py-2.5 text-sm">
+        ✅ {{ successMsg }}
+      </div>
+      <div *ngIf="errorMsg" class="bg-red-50 border border-red-200 text-red-700
+                                   rounded-xl px-4 py-2.5 text-sm">
+        {{ errorMsg }}
+      </div>
+
+      <!-- Actions -->
+      <div class="form-actions">
+        <button type="button" class="btn-outline" (click)="resetForm()">Save Draft</button>
+        <button type="submit" class="btn-primary" [disabled]="form.invalid || isLoading">
+          {{ isLoading ? 'Submitting...' : '📤 Submit Request' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

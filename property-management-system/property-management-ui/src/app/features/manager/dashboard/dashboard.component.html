@@ -1,0 +1,100 @@
+<!-- Manager Dashboard -->
+<div class="space-y-4 fade-in">
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div class="kpi-card border-l-4 border-blue">
+      <div class="kpi-title">Open Requests</div>
+      <div class="kpi-value text-blue">24</div>
+    </div>
+    <div class="kpi-card border-l-4 border-[#0b5f6e]">
+      <div class="kpi-title">In Progress</div>
+      <div class="kpi-value text-[#0b5f6e]">11</div>
+    </div>
+    <div class="kpi-card border-l-4 border-success">
+      <div class="kpi-title">Completed (Month)</div>
+      <div class="kpi-value text-success">134</div>
+    </div>
+    <div class="kpi-card border-l-4 border-danger">
+      <div class="kpi-title">High Risk Assets</div>
+      <div class="kpi-value text-danger">8</div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-[1.4fr_0.6fr] gap-4">
+    <!-- Recent Requests -->
+    <div class="pms-card">
+      <div class="flex justify-between items-center mb-3">
+        <h4 class="section-title mb-0">Recent Maintenance Requests</h4>
+        <div class="flex gap-2">
+          <button class="btn-outline text-xs" routerLink="../requests">View All</button>
+          <button class="btn-primary text-xs" routerLink="../work-orders">Work Orders</button>
+        </div>
+      </div>
+      <table class="pms-table">
+        <thead>
+          <tr><th>Case ID</th><th>Issue Type</th><th>Location</th><th>Priority</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of requests">
+            <td class="font-mono text-xs text-blue">REQ-{{ r.requestID | number:'4.0-0' }}</td>
+            <td>{{ r.issueCategory }}</td>
+            <td class="text-muted">{{ r.unitNumber }}</td>
+            <td><app-status-badge [status]="r.priorityLevel"></app-status-badge></td>
+            <td><app-status-badge [status]="r.status"></app-status-badge></td>
+            <td>
+              <button class="btn-outline text-xs px-2 py-1">Manage</button>
+            </td>
+          </tr>
+          <ng-container *ngIf="requests.length === 0">
+            <tr>
+              <td class="font-mono text-xs text-blue">REQ-2026-0012</td>
+              <td>HVAC</td><td class="text-muted">A-12-05</td>
+              <td><app-status-badge status="High"></app-status-badge></td>
+              <td><app-status-badge status="Pending"></app-status-badge></td>
+              <td><button class="btn-outline text-xs px-2 py-1">Manage</button></td>
+            </tr>
+            <tr>
+              <td class="font-mono text-xs text-blue">REQ-2026-0011</td>
+              <td>Plumbing</td><td class="text-muted">B-08-12</td>
+              <td><app-status-badge status="Medium"></app-status-badge></td>
+              <td><app-status-badge status="Assigned"></app-status-badge></td>
+              <td><button class="btn-outline text-xs px-2 py-1">View</button></td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- High Risk Assets -->
+    <div class="pms-card space-y-3">
+      <h4 class="section-title">⚠️ High Risk Assets</h4>
+      <div *ngFor="let a of riskAssets"
+           class="bg-[#fff8f0] border border-[#ffdbb5] rounded-xl p-3 text-sm">
+        <div class="font-semibold text-navy">{{ a.assetName }}</div>
+        <div class="text-muted text-xs">{{ a.location }}</div>
+        <div class="flex justify-between items-center mt-2">
+          <app-status-badge [status]="a.riskLevel"></app-status-badge>
+          <span class="font-bold text-danger">{{ a.riskScore }}</span>
+        </div>
+      </div>
+      <ng-container *ngIf="riskAssets.length === 0">
+        <div class="bg-[#fff8f0] border border-[#ffdbb5] rounded-xl p-3 text-sm">
+          <div class="font-semibold text-navy">Main Chiller</div>
+          <div class="text-muted text-xs">Roof · HVAC</div>
+          <div class="flex justify-between mt-2">
+            <app-status-badge status="High"></app-status-badge>
+            <span class="font-bold text-danger">82.5</span>
+          </div>
+        </div>
+        <div class="bg-[#fffbeb] border border-[#fde68a] rounded-xl p-3 text-sm">
+          <div class="font-semibold text-navy">Lift B</div>
+          <div class="text-muted text-xs">Block B</div>
+          <div class="flex justify-between mt-2">
+            <app-status-badge status="Medium"></app-status-badge>
+            <span class="font-bold text-warning">68.0</span>
+          </div>
+        </div>
+      </ng-container>
+      <button class="btn-outline w-full text-xs" routerLink="../assets">View All Assets</button>
+    </div>
+  </div>
+</div>

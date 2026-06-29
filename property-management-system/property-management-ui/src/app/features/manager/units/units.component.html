@@ -1,0 +1,62 @@
+<!-- Property Unit Management -->
+<div class="fade-in space-y-4">
+  <div class="pms-card">
+    <div class="flex flex-wrap gap-3 items-end mb-3">
+      <h4 class="section-title mb-0 flex-1">Property Unit Management</h4>
+      <input [(ngModel)]="search" placeholder="Unit no / Floor / Block" class="pms-input w-48"/>
+      <select [(ngModel)]="statusFilter" class="pms-select w-32">
+        <option>All</option><option>Occupied</option><option>Vacant</option>
+      </select>
+    </div>
+    <table class="pms-table">
+      <thead><tr><th>Unit</th><th>Floor</th><th>Block</th><th>Type</th><th>Size</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let u of units">
+          <td class="font-semibold text-navy">{{ u.unitNumber }}</td>
+          <td>{{ u.floor }}</td><td>{{ u.block }}</td><td>{{ u.unitType }}</td>
+          <td class="text-muted">{{ u.size }} sqft</td>
+          <td><app-status-badge [status]="u.status"></app-status-badge></td>
+          <td><button class="btn-outline text-xs px-2 py-1" (click)="editUnit(u)">Edit</button></td>
+        </tr>
+        <ng-container *ngIf="units.length === 0">
+          <tr>
+            <td class="font-semibold text-navy">A-12-05</td>
+            <td>12</td><td>A</td><td>Apartment</td><td class="text-muted">850 sqft</td>
+            <td><app-status-badge status="Occupied"></app-status-badge></td>
+            <td><button class="btn-outline text-xs px-2 py-1">Edit</button></td>
+          </tr>
+          <tr>
+            <td class="font-semibold text-navy">B-08-12</td>
+            <td>8</td><td>B</td><td>Apartment</td><td class="text-muted">1050 sqft</td>
+            <td><app-status-badge status="Vacant"></app-status-badge></td>
+            <td><button class="btn-outline text-xs px-2 py-1">Edit</button></td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+  </div>
+  <div class="pms-card">
+    <h4 class="section-title">{{ editMode ? 'Update' : 'Create' }} Unit</h4>
+    <div class="form-grid">
+      <div class="space-y-1"><label class="pms-label">Unit Number</label>
+        <input [(ngModel)]="form.unitNumber" class="pms-input"/></div>
+      <div class="space-y-1"><label class="pms-label">Floor Level</label>
+        <input [(ngModel)]="form.floor" type="number" class="pms-input"/></div>
+      <div class="space-y-1"><label class="pms-label">Block</label>
+        <input [(ngModel)]="form.block" class="pms-input"/></div>
+      <div class="space-y-1"><label class="pms-label">Unit Type</label>
+        <input [(ngModel)]="form.unitType" class="pms-input" placeholder="e.g. Apartment"/></div>
+      <div class="space-y-1"><label class="pms-label">Size (sqft)</label>
+        <input [(ngModel)]="form.size" type="number" class="pms-input"/></div>
+      <div class="space-y-1"><label class="pms-label">Status</label>
+        <select [(ngModel)]="form.status" class="pms-select">
+          <option>Occupied</option><option>Vacant</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-outline" (click)="resetForm()">Cancel</button>
+      <button class="btn-primary" (click)="saveUnit()">💾 Save Unit</button>
+    </div>
+  </div>
+</div>

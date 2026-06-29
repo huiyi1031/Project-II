@@ -1,0 +1,70 @@
+<!-- Work Order Management (Manager) -->
+<div class="fade-in space-y-4">
+  <div class="pms-card">
+    <h4 class="section-title">Work Order Management</h4>
+    <table class="pms-table">
+      <thead>
+        <tr><th>WO ID</th><th>Request ID</th><th>Technician</th><th>Schedule</th><th>Priority</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let wo of workOrders">
+          <td class="font-mono text-xs text-blue">WO-{{ wo.workOrderID }}</td>
+          <td class="font-mono text-xs text-muted">REQ-{{ wo.requestID }}</td>
+          <td>{{ wo.technicianName }}</td>
+          <td class="text-muted text-xs">{{ wo.scheduledDate | date:'dd MMM, HH:mm' }}</td>
+          <td><app-status-badge [status]="wo.priorityLevel"></app-status-badge></td>
+          <td><app-status-badge [status]="wo.status"></app-status-badge></td>
+        </tr>
+        <ng-container *ngIf="workOrders.length === 0">
+          <tr>
+            <td class="font-mono text-xs text-blue">WO-145</td>
+            <td class="font-mono text-xs text-muted">REQ-0012</td>
+            <td>Daniel Tan</td>
+            <td class="text-muted text-xs">10 Apr, 10:00</td>
+            <td><app-status-badge status="High"></app-status-badge></td>
+            <td><app-status-badge status="Assigned"></app-status-badge></td>
+          </tr>
+          <tr>
+            <td class="font-mono text-xs text-blue">WO-144</td>
+            <td class="font-mono text-xs text-muted">REQ-0010</td>
+            <td>Farid Hassan</td>
+            <td class="text-muted text-xs">10 Apr, 14:00</td>
+            <td><app-status-badge status="Medium"></app-status-badge></td>
+            <td><app-status-badge status="InProgress"></app-status-badge></td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Generate / Update Work Order -->
+  <div class="pms-card">
+    <h4 class="section-title">Generate / Update Work Order</h4>
+    <div class="form-grid">
+      <div class="space-y-1">
+        <label class="pms-label">Request ID</label>
+        <input [(ngModel)]="form.requestID" class="pms-input" placeholder="e.g. REQ-2026-0012"/>
+      </div>
+      <div class="space-y-1">
+        <label class="pms-label">Assign Technician</label>
+        <select [(ngModel)]="form.technicianID" class="pms-select">
+          <option value="1">Daniel Tan (HVAC · Rank 1)</option>
+          <option value="2">Farid Hassan (Plumbing · Rank 2)</option>
+        </select>
+      </div>
+      <div class="space-y-1">
+        <label class="pms-label">Schedule Date & Time</label>
+        <input type="datetime-local" [(ngModel)]="form.scheduledDate" class="pms-input"/>
+      </div>
+      <div class="space-y-1">
+        <label class="pms-label">Priority</label>
+        <select [(ngModel)]="form.priorityLevel" class="pms-select">
+          <option>High</option><option>Medium</option><option>Low</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" (click)="saveWorkOrder()">💾 Save Work Order</button>
+    </div>
+  </div>
+</div>

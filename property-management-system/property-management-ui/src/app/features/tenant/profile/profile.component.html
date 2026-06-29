@@ -1,0 +1,139 @@
+<div class="fade-in space-y-4">
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="pms-card flex items-center gap-3 text-[#6b7a90]">
+    <div class="animate-spin w-5 h-5 border-2 border-[#1f5fae] border-t-transparent rounded-full"></div>
+    Loading profile...
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <!-- Profile header card -->
+    <div class="pms-card flex items-center gap-4">
+      <div class="w-16 h-16 rounded-full bg-gradient-to-br from-[#1f5fae] to-[#2f7de0] text-white text-2xl flex items-center justify-center font-bold shadow-md">
+        {{ profile?.fullName?.[0]?.toUpperCase() || '?' }}
+      </div>
+      <div>
+        <h3 class="text-lg font-bold text-[#0b2d5c]">{{ profile?.fullName }}</h3>
+        <p class="text-sm text-[#6b7a90]">{{ profile?.email }}</p>
+        <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#eaf3ff] text-[#1f5fae]">{{ profile?.occupantType || 'Occupant' }}</span>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex border-b border-[#dbe7fb]">
+      <button (click)="activeTab='info'" class="px-5 py-3 text-sm font-semibold border-b-2 transition-colors"
+              [class.border-[#1f5fae]]="activeTab==='info'" [class.text-[#1f5fae]]="activeTab==='info'"
+              [class.border-transparent]="activeTab!=='info'" [class.text-[#6b7a90]]="activeTab!=='info'">
+        👤 Personal Information
+      </button>
+      <button (click)="activeTab='password'" class="px-5 py-3 text-sm font-semibold border-b-2 transition-colors"
+              [class.border-[#1f5fae]]="activeTab==='password'" [class.text-[#1f5fae]]="activeTab==='password'"
+              [class.border-transparent]="activeTab!=='password'" [class.text-[#6b7a90]]="activeTab!=='password'">
+        🔒 Change Password
+      </button>
+    </div>
+
+    <!-- Success / Error toast -->
+    <div *ngIf="successMsg" class="flex gap-2 items-center bg-green-50 border border-green-200 text-green-800 px-4 py-2.5 rounded-xl text-sm">
+      <span>✅</span><span>{{ successMsg }}</span>
+    </div>
+    <div *ngIf="errorMsg" class="flex gap-2 items-center bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-xl text-sm">
+      <span>⚠️</span><span>{{ errorMsg }}</span>
+    </div>
+
+    <!-- ── TAB 1: Personal Info ─────────────────────────────────────── -->
+    <div *ngIf="activeTab==='info'" class="pms-card">
+      <h4 class="section-title">Edit Personal Information</h4>
+      <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="space-y-4">
+        <div class="form-grid">
+          <div class="space-y-1.5">
+            <label class="pms-label">Full Name</label>
+            <input formControlName="fullName" class="pms-input"
+                   [class.border-red-400]="profileForm.get('fullName')?.invalid && profileForm.get('fullName')?.touched"/>
+            <p *ngIf="profileForm.get('fullName')?.invalid && profileForm.get('fullName')?.touched" class="text-xs text-red-500">Full name is required.</p>
+          </div>
+          <div class="space-y-1.5">
+            <label class="pms-label">Contact Number</label>
+            <input formControlName="contactNumber" placeholder="e.g. 012-3456789" class="pms-input"
+                   [class.border-red-400]="profileForm.get('contactNumber')?.invalid && profileForm.get('contactNumber')?.touched"/>
+            <p *ngIf="profileForm.get('contactNumber')?.invalid && profileForm.get('contactNumber')?.touched" class="text-xs text-red-500">Enter a valid phone number (8–15 digits).</p>
+          </div>
+          <div class="space-y-1.5">
+            <label class="pms-label">Email Address</label>
+            <input [value]="profile?.email" disabled class="pms-input bg-[#f5f8ff] text-[#6b7a90] cursor-not-allowed"/>
+            <p class="text-xs text-[#6b7a90]">Email cannot be changed here. Contact your manager.</p>
+          </div>
+          <div class="space-y-1.5">
+            <label class="pms-label">Gender</label>
+            <select formControlName="gender" class="pms-select">
+              <option value="">Select gender</option>
+              <option>Male</option><option>Female</option><option>Prefer not to say</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" (click)="ngOnInit()" class="btn-outline">↺ Reset</button>
+          <button type="submit" [disabled]="isSaving" class="btn-primary">
+            {{ isSaving ? 'Saving...' : '💾 Save Changes' }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ── TAB 2: Change Password ───────────────────────────────────── -->
+    <div *ngIf="activeTab==='password'" class="pms-card">
+      <h4 class="section-title">Change Password</h4>
+      <p class="text-sm text-[#6b7a90] mb-4">For security, you must enter your current password before setting a new one.</p>
+      <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="space-y-4 max-w-md">
+        <!-- Current Password -->
+        <div class="space-y-1.5">
+          <label class="pms-label">Current Password</label>
+          <div class="relative">
+            <input [type]="showCurrent ? 'text' : 'password'" formControlName="currentPassword" placeholder="Enter current password" class="pms-input pr-10"/>
+            <button type="button" (click)="showCurrent=!showCurrent" class="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7a90] hover:text-[#1f5fae]">{{ showCurrent ? '🙈' : '👁️' }}</button>
+          </div>
+        </div>
+        <!-- New Password -->
+        <div class="space-y-1.5">
+          <label class="pms-label">New Password</label>
+          <div class="relative">
+            <input [type]="showNew ? 'text' : 'password'" formControlName="newPassword" placeholder="Min 8 chars, uppercase, number, special" class="pms-input pr-10"
+                   [class.border-red-400]="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched"/>
+            <button type="button" (click)="showNew=!showNew" class="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7a90] hover:text-[#1f5fae]">{{ showNew ? '🙈' : '👁️' }}</button>
+          </div>
+          <!-- Strength bar -->
+          <div *ngIf="passwordForm.get('newPassword')?.value" class="space-y-1">
+            <div class="flex gap-1">
+              <div *ngFor="let i of [1,2,3,4]" class="h-1.5 flex-1 rounded"
+                   [ngClass]="pwStrength >= i ? strengthColors[pwStrength] : 'bg-gray-200'"></div>
+            </div>
+            <p class="text-xs" [class.text-red-500]="pwStrength<=1" [class.text-orange-500]="pwStrength===2"
+               [class.text-yellow-600]="pwStrength===3" [class.text-green-600]="pwStrength===4">{{ strengthLabels[pwStrength] }}</p>
+          </div>
+          <!-- Requirements -->
+          <ul class="text-xs text-[#6b7a90] space-y-0.5">
+            <li [class.text-green-600]="pwLen(8)">{{ pwLen(8) ? '✅' : '○' }} At least 8 characters</li>
+            <li [class.text-green-600]="pwHas('upper')">{{ pwHas('upper') ? '✅' : '○' }} 1 uppercase letter</li>
+            <li [class.text-green-600]="pwHas('number')">{{ pwHas('number') ? '✅' : '○' }} 1 number</li>
+            <li [class.text-green-600]="pwHas('special')">{{ pwHas('special') ? '✅' : '○' }} 1 special character</li>
+          </ul>
+        </div>
+        <!-- Confirm Password -->
+        <div class="space-y-1.5">
+          <label class="pms-label">Confirm New Password</label>
+          <div class="relative">
+            <input [type]="showConfirm ? 'text' : 'password'" formControlName="confirmPassword" placeholder="Re-enter new password" class="pms-input pr-10"
+                   [class.border-red-400]="passwordForm.hasError('mismatch') && passwordForm.get('confirmPassword')?.touched"/>
+            <button type="button" (click)="showConfirm=!showConfirm" class="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7a90] hover:text-[#1f5fae]">{{ showConfirm ? '🙈' : '👁️' }}</button>
+          </div>
+          <p *ngIf="passwordForm.hasError('mismatch') && passwordForm.get('confirmPassword')?.touched" class="text-xs text-red-500">Passwords do not match.</p>
+        </div>
+        <div class="form-actions">
+          <button type="button" (click)="passwordForm.reset()" class="btn-outline">↺ Clear</button>
+          <button type="submit" [disabled]="isSaving || passwordForm.invalid" class="btn-primary">
+            {{ isSaving ? 'Updating...' : '🔒 Update Password' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </ng-container>
+</div>

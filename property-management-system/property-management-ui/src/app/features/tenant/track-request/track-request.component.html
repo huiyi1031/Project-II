@@ -1,0 +1,92 @@
+<!-- Track Maintenance Request -->
+<div class="fade-in space-y-4">
+  <div class="pms-card">
+    <div class="flex flex-wrap gap-3 items-end mb-4">
+      <h4 class="section-title mb-0 flex-1">Track Maintenance Request</h4>
+      <div class="flex gap-3">
+        <div class="space-y-1">
+          <label class="pms-label">Filter by Status</label>
+          <select [(ngModel)]="statusFilter" (change)="loadRequests()" class="pms-select w-40">
+            <option>All</option>
+            <option>Pending</option>
+            <option>Assigned</option>
+            <option>InProgress</option>
+            <option>Completed</option>
+            <option>Cancelled</option>
+          </select>
+        </div>
+        <div class="space-y-1">
+          <label class="pms-label">Date</label>
+          <input type="date" [(ngModel)]="dateFilter" (change)="loadRequests()" class="pms-input w-40"/>
+        </div>
+      </div>
+    </div>
+
+    <table class="pms-table">
+      <thead>
+        <tr>
+          <th>Case ID</th><th>Issue</th><th>Technician</th>
+          <th>Scheduled</th><th>Status</th><th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of requests" (click)="selectRequest(r)"
+            class="cursor-pointer" [class.bg-light-blue]="selected?.requestID === r.requestID">
+          <td class="font-mono text-xs text-blue">REQ-{{ r.requestID | number:'4.0-0' }}</td>
+          <td class="font-medium">{{ r.requestTitle }}</td>
+          <td class="text-muted">{{ r.assignedTechnicianName || '—' }}</td>
+          <td class="text-muted text-xs">{{ r.scheduledDate ? (r.scheduledDate | date:'dd MMM yyyy, HH:mm') : '—' }}</td>
+          <td><app-status-badge [status]="r.status"></app-status-badge></td>
+          <td>
+            <button class="btn-outline text-xs px-2 py-1" (click)="selectRequest(r); $event.stopPropagation()">
+              Details
+            </button>
+          </td>
+        </tr>
+        <!-- Mock fallback -->
+        <ng-container *ngIf="requests.length === 0">
+          <tr (click)="selectMock()">
+            <td class="font-mono text-xs text-blue cursor-pointer">REQ-2026-0012</td>
+            <td>Aircond leaking</td><td class="text-muted">Mr. Daniel</td>
+            <td class="text-muted text-xs">10 Apr 2026, 10:00</td>
+            <td><app-status-badge status="InProgress"></app-status-badge></td>
+            <td><button class="btn-outline text-xs px-2 py-1">Details</button></td>
+          </tr>
+          <tr>
+            <td class="font-mono text-xs text-blue">REQ-2026-0009</td>
+            <td>Toilet clogging</td><td class="text-muted">Mr. Farid</td>
+            <td class="text-muted text-xs">08 Apr 2026, 14:00</td>
+            <td><app-status-badge status="Completed"></app-status-badge></td>
+            <td><button class="btn-outline text-xs px-2 py-1">Details</button></td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Progress Detail (shows when a row is selected) -->
+  <div *ngIf="showProgress" class="pms-card">
+    <h4 class="section-title">Progress Detail — {{ selectedTitle }}</h4>
+    <div class="text-xs text-muted mb-3">{{ selectedId }}</div>
+
+    <!-- Shopee-style progress bar -->
+    <div class="mb-3">
+      <div class="progress-track">
+        <div class="progress-fill" [style.width]="progressWidth"></div>
+      </div>
+      <div class="flex justify-between text-[10px] text-[#58739b] mt-1.5">
+        <span>Submitted</span><span>Assigned</span><span>Scheduled</span>
+        <span>In Progress</span><span>Completed</span>
+      </div>
+    </div>
+
+    <!-- Step indicators -->
+    <div class="flex flex-wrap gap-4 mt-3">
+      <div *ngFor="let step of steps; let i = index" class="flex items-center gap-2 text-xs">
+        <span [class]="step.done ? 'w-2.5 h-2.5 rounded-full bg-success flex-shrink-0'
+                                 : 'w-2.5 h-2.5 rounded-full bg-[#dbe7fb] flex-shrink-0'"></span>
+        <span [class]="step.done ? 'text-navy font-medium' : 'text-muted'">{{ step.label }}</span>
+      </div>
+    </div>
+  </div>
+</div>

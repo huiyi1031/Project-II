@@ -1,0 +1,189 @@
+/* ─── Google Font — must be first ─── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── CSS Variables (kept for any inline use) ─── */
+:root {
+  --navy:       #0b2d5c;
+  --blue:       #1f5fae;
+  --light-blue: #eaf3ff;
+  --mid-blue:   #cfe3ff;
+  --text:       #1b2a41;
+  --muted:      #6b7a90;
+  --success:    #22a06b;
+  --warning:    #e2a400;
+  --danger:     #d64545;
+  --card:       #ffffff;
+  --bg:         #f5f9ff;
+  --border:     #dbe7fb;
+  --shadow:     0 8px 24px rgba(11,45,92,.08);
+  --radius:     14px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Inter', "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--text);
+  background: linear-gradient(135deg, #f6fbff 0%, #ebf4ff 100%);
+  min-height: 100vh;
+}
+
+/* ─── Scrollbar styling ─── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f0f6ff; }
+::-webkit-scrollbar-thumb { background: #b8d0f5; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #7ca9e8; }
+
+/* ─── Shared component classes ─── */
+@layer components {
+
+  /* Cards */
+  .pms-card {
+    @apply bg-white border border-border rounded-card shadow-card p-4;
+  }
+
+  /* Form fields */
+  .pms-label {
+    @apply block text-xs font-semibold text-[#2d4468] mb-1.5;
+  }
+  .pms-input {
+    @apply w-full border border-[#cfe0fb] bg-white text-pms-text rounded-xl px-3 py-2.5
+           text-sm outline-none transition-all
+           focus:border-[#7ca9e8] focus:ring-2 focus:ring-[#1f5fae]/20;
+  }
+  .pms-textarea {
+    @apply pms-input min-h-[90px] resize-y;
+  }
+  .pms-select {
+    @apply pms-input appearance-none cursor-pointer;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center gap-1.5 border-none rounded-xl px-4 py-2.5 font-semibold text-sm
+           bg-btn-gradient text-white cursor-pointer transition-all
+           hover:-translate-y-px hover:shadow-md active:translate-y-0;
+  }
+  .btn-outline {
+    @apply inline-flex items-center gap-1.5 border border-[#9fc1f5] rounded-xl px-4 py-2.5
+           font-semibold text-sm bg-white text-blue cursor-pointer transition-all
+           hover:bg-light-blue;
+  }
+  .btn-danger {
+    @apply inline-flex items-center gap-1.5 border border-[#ffc4c4] rounded-xl px-4 py-2.5
+           font-semibold text-sm bg-[#ffe9e9] text-[#a12424] cursor-pointer transition-all
+           hover:bg-[#ffd5d5];
+  }
+  .btn-success {
+    @apply inline-flex items-center gap-1.5 border border-[#a3e4c8] rounded-xl px-4 py-2.5
+           font-semibold text-sm bg-[#e7f8ef] text-[#157347] cursor-pointer transition-all
+           hover:bg-[#d0f2e3];
+  }
+
+  /* Status badges */
+  .badge-pending  { @apply inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-status-pending-bg  text-status-pending-text;  }
+  .badge-assigned { @apply inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-status-assigned-bg text-status-assigned-text; }
+  .badge-progress { @apply inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-status-progress-bg text-status-progress-text; }
+  .badge-complete { @apply inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-status-complete-bg text-status-complete-text; }
+  .badge-cancel   { @apply inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-status-cancel-bg   text-status-cancel-text;   }
+  .badge-medium   { @apply inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#fff4da] text-[#925e00]; }
+  .badge-high     { @apply inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#ffe7e7] text-[#a32626]; }
+  .badge-low      { @apply inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-[#e7f8ef] text-[#157347]; }
+  .badge-active   { @apply inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-status-complete-bg text-status-complete-text; }
+  .badge-inactive { @apply inline-block px-2 py-0.5 rounded-full text-[11px] font-bold bg-status-cancel-bg text-status-cancel-text; }
+
+  /* Table */
+  .pms-table { @apply w-full border-collapse text-sm; }
+  .pms-table th {
+    @apply text-[#3f5c85] bg-[#f7fbff] border-b border-[#edf3ff]
+           px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide;
+  }
+  .pms-table td {
+    @apply border-b border-[#edf3ff] px-3 py-2.5 text-sm text-pms-text align-top;
+  }
+  .pms-table tr:last-child td { @apply border-b-0; }
+  .pms-table tr:hover td { @apply bg-[#f9fcff]; }
+
+  /* Section title */
+  .section-title { @apply text-base font-bold text-navy mb-3; }
+
+  /* Upload box */
+  .upload-box {
+    @apply border-2 border-dashed border-[#9ec0f1] rounded-xl bg-[#f6fbff]
+           p-4 text-center text-[#496a97] min-h-[100px] grid place-items-center
+           text-sm cursor-pointer hover:border-blue hover:bg-light-blue transition-all;
+  }
+
+  /* KPI Card */
+  .kpi-card {
+    @apply pms-card flex flex-col gap-1;
+  }
+  .kpi-title { @apply text-xs text-[#567299] font-medium; }
+  .kpi-value { @apply text-2xl font-bold text-navy; }
+
+  /* Sidebar menu button */
+  .menu-btn {
+    @apply w-full text-left border-none bg-transparent text-[#eef5ff]
+           px-3 py-2.5 rounded-xl text-sm cursor-pointer transition-all
+           hover:bg-white/20 flex items-center gap-2.5;
+  }
+  .menu-btn.active { @apply bg-white/20 font-semibold; }
+
+  /* Form grid */
+  .form-grid { @apply grid grid-cols-1 md:grid-cols-2 gap-4; }
+  .form-actions { @apply flex gap-2.5 justify-end mt-4; }
+
+  /* Chat bubble */
+  .bubble {
+    @apply max-w-[72%] rounded-2xl px-3 py-2.5 text-sm leading-snug
+           border border-[#dce8fb] bg-white;
+  }
+  .bubble-mine {
+    @apply bubble ml-auto bg-[#dff0ff] border-[#b9d9ff];
+  }
+
+  /* Page header */
+  .topbar {
+    @apply bg-white border border-border rounded-card shadow-card
+           px-4 py-3 flex justify-between items-center mb-4;
+  }
+
+  /* Calendar cell tag */
+  .cal-tag {
+    @apply inline-block mt-1 bg-[#e9f2ff] text-[#144486] border border-[#c8dcff]
+           px-1.5 py-0.5 rounded text-[10px];
+  }
+}
+
+/* ─── Animations ─── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeIn 0.25s ease both; }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.slide-in { animation: slideIn 0.2s ease both; }
+
+/* Progress bar */
+.progress-track {
+  background: #edf4ff;
+  border: 1px solid #d6e6ff;
+  border-radius: 999px;
+  height: 12px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3e86df, #7ab0f0);
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}

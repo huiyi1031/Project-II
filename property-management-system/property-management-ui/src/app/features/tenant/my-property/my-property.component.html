@@ -1,0 +1,59 @@
+<!-- My Property -->
+<div class="fade-in space-y-4 max-w-3xl">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <!-- Current unit -->
+    <div class="pms-card">
+      <h4 class="section-title">Current Unit</h4>
+      <div class="bg-light-blue border border-border rounded-xl p-4 space-y-2">
+        <div class="font-bold text-navy text-xl">{{ currentUnit?.unitNumber || 'A-12-05' }}</div>
+        <div class="text-muted text-sm">BlueBay Residence · Block {{ currentUnit?.block || 'A' }}</div>
+        <app-status-badge [status]="currentUnit?.status || 'Occupied'"></app-status-badge>
+      </div>
+    </div>
+
+    <!-- Navigate -->
+    <div class="pms-card space-y-3">
+      <h4 class="section-title">Navigate Properties</h4>
+      <div class="space-y-1">
+        <label class="pms-label">Select Property Unit</label>
+        <select [(ngModel)]="selectedUnitId" class="pms-select">
+          <option *ngFor="let c of contracts" [value]="c.unitID">
+            {{ c.unitNumber }} {{ c.isPrimaryOccupant ? '(Primary)' : '' }}
+          </option>
+          <option value="1">A-12-05 (Primary)</option>
+          <option value="2">B-08-12</option>
+        </select>
+      </div>
+      <button class="btn-primary w-full">Switch Unit</button>
+    </div>
+  </div>
+
+  <!-- Contracts table -->
+  <div class="pms-card">
+    <h4 class="section-title">My Contracts</h4>
+    <table class="pms-table">
+      <thead>
+        <tr><th>Unit</th><th>Property</th><th>Block</th><th>Type</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of contracts">
+          <td>{{ c.unitNumber }}</td>
+          <td>BlueBay Residence</td>
+          <td>A</td>
+          <td>{{ c.contractType }}</td>
+          <td><app-status-badge [status]="c.status"></app-status-badge></td>
+        </tr>
+        <ng-container *ngIf="contracts.length === 0">
+          <tr>
+            <td>A-12-05</td><td>BlueBay Residence</td><td>A</td><td>Tenancy</td>
+            <td><app-status-badge status="Active"></app-status-badge></td>
+          </tr>
+          <tr>
+            <td>B-08-12</td><td>BlueBay Residence</td><td>B</td><td>Ownership</td>
+            <td><app-status-badge status="Active"></app-status-badge></td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+  </div>
+</div>

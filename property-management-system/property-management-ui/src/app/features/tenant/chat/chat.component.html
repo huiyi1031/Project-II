@@ -1,0 +1,97 @@
+<!-- Maintenance Chat Room -->
+<div class="fade-in grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4">
+
+  <!-- Chat list -->
+  <div class="pms-card space-y-2">
+    <h4 class="section-title">Communication — Case Chats</h4>
+    <div
+      *ngFor="let chat of chats"
+      (click)="selectChat(chat)"
+      [class.border-blue]="selectedChat?.chatID === chat.chatID"
+      [class.bg-light-blue]="selectedChat?.chatID === chat.chatID"
+      class="border border-border rounded-xl p-3 cursor-pointer hover:bg-light-blue
+             hover:border-blue transition-all">
+      <div class="font-semibold text-sm text-navy">
+        REQ-{{ chat.requestID | number:'4.0-0' }}
+      </div>
+      <div class="text-xs text-muted mt-0.5">{{ chat.requestTitle }}</div>
+      <div class="flex items-center gap-1.5 mt-1">
+        <app-status-badge [status]="chat.requestStatus || 'Pending'"></app-status-badge>
+      </div>
+    </div>
+
+    <!-- Mock chat list when no data -->
+    <ng-container *ngIf="chats.length === 0">
+      <div (click)="selectMockChat()" [class.bg-light-blue]="showMock"
+           class="border border-border rounded-xl p-3 cursor-pointer hover:bg-light-blue transition-all">
+        <div class="font-semibold text-sm text-navy">REQ-2026-0012</div>
+        <div class="text-xs text-muted">Aircond leaking</div>
+        <app-status-badge status="InProgress"></app-status-badge>
+      </div>
+      <div class="border border-border rounded-xl p-3 cursor-pointer hover:bg-light-blue transition-all">
+        <div class="font-semibold text-sm text-navy">REQ-2026-0009</div>
+        <div class="text-xs text-muted">Toilet clogging</div>
+        <app-status-badge status="Completed"></app-status-badge>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- Chat Window -->
+  <div class="pms-card flex flex-col" *ngIf="selectedChat || showMock; else noChatSelected">
+    <h4 class="section-title">
+      Chat Room: {{ selectedChat ? 'REQ-' + (selectedChat.requestID | number:'4.0-0') : 'REQ-2026-0012' }}
+    </h4>
+    <div class="text-xs text-muted mb-3">
+      Participants: Requestor · Property Manager · Technician
+    </div>
+
+    <!-- Messages -->
+    <div #chatContainer class="flex-1 overflow-y-auto space-y-3 max-h-[420px] pr-1 mb-3">
+      <ng-container *ngIf="messages.length > 0; else mockMessages">
+        <div *ngFor="let msg of messages"
+             [class]="msg.isOwn ? 'flex justify-end' : 'flex justify-start'">
+          <div>
+            <div class="text-[10px] text-muted mb-1 px-1" *ngIf="!msg.isOwn">{{ msg.senderName }}</div>
+            <div [class]="msg.isOwn ? 'bubble-mine' : 'bubble'">{{ msg.content }}</div>
+            <div class="text-[10px] text-muted mt-1 px-1 text-right">
+              {{ msg.sentAt | date:'HH:mm' }}
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-template #mockMessages>
+        <div class="flex justify-start">
+          <div class="bubble">Hi, I submitted photo of leaking aircond yesterday.</div>
+        </div>
+        <div class="flex justify-end">
+          <div class="bubble-mine">Noted, technician assigned and scheduled for tomorrow 10:00 AM.</div>
+        </div>
+        <div class="flex justify-start">
+          <div class="bubble">I will arrive around 9:50 AM. Please allow unit access.</div>
+        </div>
+        <div class="flex justify-end">
+          <div class="bubble-mine">Sure, thank you.</div>
+        </div>
+      </ng-template>
+    </div>
+
+    <!-- Input bar -->
+    <div class="flex gap-2 border-t border-border pt-3">
+      <input [(ngModel)]="newMessage" (keyup.enter)="sendMessage()"
+             placeholder="Type a message..."
+             class="pms-input flex-1"/>
+      <button class="btn-outline px-3" title="Attach file">📎</button>
+      <button class="btn-primary px-4" (click)="sendMessage()"
+              [disabled]="!newMessage.trim()">Send</button>
+    </div>
+  </div>
+
+  <!-- Placeholder when no chat selected -->
+  <ng-template #noChatSelected>
+    <div class="pms-card grid place-items-center text-center text-muted py-16">
+      <div class="text-4xl mb-3">💬</div>
+      <div>Select a case chat from the left panel</div>
+    </div>
+  </ng-template>
+</div>
