@@ -1,0 +1,38 @@
+# ── Dependencies ──────────────────────────────────────────────────────────────
+**/node_modules/
+
+# ── Build & Cache output ───────────────────────────────────────────────────────
+**/dist/
+**/out-tsc/
+**/tmp/
+**/coverage/
+**/.angular/
+**/artifacts/
+
+# ── .NET Build output ─────────────────────────────────────────────────────────
+**/bin/
+**/obj/
+*.user
+*.suo
+.vs/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json.bak
+
+# ── IDE and editor ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.history/
+
+# ── OS files ───────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Environment / Secrets (NEVER commit these) ────────────────────────────────
+**/*.env
+**/*.env.local
+**/appsettings.Development.json
