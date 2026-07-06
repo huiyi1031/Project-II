@@ -4,6 +4,7 @@ import { AuthService } from '../../core/services/auth.service';
 
 type LoginStep =
   | 'login'           // Enter email & password
+  | 'help'            // "Need help?" — role selector panel
   | 'ic-entry'        // Owner: Enter IC/Passport
   | 'ic-not-found'    // IC not found
   | 'ic-found-email'  // IC found → update email
@@ -24,18 +25,17 @@ export class LoginComponent {
   newEmailForm:    FormGroup;
 
   // State carried across steps
-  email          = '';
-  roleType       = '';
-  maskedEmail    = '';
-  updateToken    = '';
+  email       = '';
+  maskedEmail = '';
+  updateToken = '';
 
-  isLoading = false;
+  isLoading    = false;
   errorMessage = '';
 
   // UI state
-  showPassword     = false;
-  showNewPassword  = false;
-  showConfirmPw    = false;
+  showPassword    = false;
+  showNewPassword = false;
+  showConfirmPw   = false;
 
   // Password strength
   get pwStrength(): number { return this._calcStrength(this.setPasswordForm.get('newPassword')?.value || ''); }
@@ -44,7 +44,7 @@ export class LoginComponent {
 
   constructor(private fb: FormBuilder, private auth: AuthService) {
     this.loginForm = fb.group({
-      email: ['', [Validators.required, Validators.email]],
+      email:    ['', [Validators.required, Validators.email]],
       password: ['', Validators.required],
     });
     this.setPasswordForm = fb.group({
@@ -59,18 +59,14 @@ export class LoginComponent {
     });
   }
 
-  // ── Step 1: Submit Login ────────────────────────────────────────────────────
+  // ── Main Login ───────────────────────────────────────────────────────────────
   submitLogin(): void {
     if (this.loginForm.invalid) { this.loginForm.markAllAsTouched(); return; }
-    
-    this.email = this.loginForm.value.email.toLowerCase();
+    this.email = this.loginForm.value.email.toLowerCase().trim();
     this.isLoading = true;
     this.errorMessage = '';
 
-    this.auth.login({ 
-      email: this.email, 
-      password: this.loginForm.value.password 
-    }).subscribe({
+    this.auth.login({ email: this.email, password: this.loginForm.value.password }).subscribe({
       next: (resp) => {
         this.isLoading = false;
         if (resp.requiresPasswordChange) {
@@ -80,17 +76,24 @@ export class LoginComponent {
           this.auth.navigateToDashboard(resp.role, resp.occupantType);
         }
       },
-      error: (err) => { 
-        this.isLoading = false; 
-        this.errorMessage = err.error?.message || 'Incorrect email or password. Please try again.'; 
+      error: (err) => {
+        this.isLoading = false;
+        this.errorMessage = err.error?.message || 'Incorrect email or password. Please try again.';
       }
     });
   }
 
-  // ── Step 2-IC: Owner Verification ──────────────────────────────────────────
+  // ── Help / "Need help?" panel ─────────────────────────────────────────────────
+  openHelp(): void {
+    this.step = 'help';
+    this.errorMessage = '';
+  }
+
+  // Only Owner gets the IC option from the help panel
   startOwnerVerification(): void {
     this.step = 'ic-entry';
     this.errorMessage = '';
+    this.icForm.reset();
   }
 
   goBackToLogin(): void {
@@ -98,6 +101,12 @@ export class LoginComponent {
     this.errorMessage = '';
   }
 
+  goBackToHelp(): void {
+    this.step = 'help';
+    this.errorMessage = '';
+  }
+
+  // ── Owner IC Path ─────────────────────────────────────────────────────────────
   submitIc(): void {
     if (this.icForm.invalid) { this.icForm.markAllAsTouched(); return; }
     this.isLoading = true;
@@ -112,29 +121,28 @@ export class LoginComponent {
           this.step = 'ic-not-found';
         }
       },
-      error: () => { this.isLoading = false; this.errorMessage = 'Verification failed. Try again.'; }
+      error: () => { this.isLoading = false; this.errorMessage = 'Verification failed. Please try again.'; }
     });
   }
 
-  // ── IC found — update email, then set password ───────────────────────────────
   submitNewEmail(): void {
     if (this.newEmailForm.invalid) { this.newEmailForm.markAllAsTouched(); return; }
     this.isLoading = true;
-    const newEmail = this.newEmailForm.value.newEmail;
+    const newEmail = this.newEmailForm.value.newEmail.toLowerCase().trim();
     this.auth.updateEmailByIc(this.updateToken, newEmail).subscribe({
       next: () => {
         this.isLoading = false;
         this.email = newEmail;
         this.step = 'set-password';
       },
-      error: (err) => { 
-        this.isLoading = false; 
-        this.errorMessage = err.error?.message || 'Failed to update email.'; 
+      error: (err) => {
+        this.isLoading = false;
+        this.errorMessage = err.error?.message || 'Failed to update email. Please try again.';
       }
     });
   }
 
-  // ── Step 3 / Set new password (first login or after IC) ────────────────────
+  // ── Set New Password (first-time login or after IC bypass) ───────────────────
   submitSetPassword(): void {
     if (this.setPasswordForm.invalid) { this.setPasswordForm.markAllAsTouched(); return; }
     this.isLoading = true;
@@ -148,48 +156,14 @@ export class LoginComponent {
         this.isLoading = false;
         this.auth.navigateToDashboard(resp.role, resp.occupantType);
       },
-      error: (err) => { 
-        this.isLoading = false; 
-        this.errorMessage = err.error?.message || 'Failed to set password. Try again.'; 
+      error: (err) => {
+        this.isLoading = false;
+        this.errorMessage = err.error?.message || 'Failed to set password. Please try again.';
       }
     });
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────────
-  getStepNumber(): number {
-    const map: Partial<Record<LoginStep, number>> = {
-      'login': 1,
-      'ic-entry': 2, 'ic-not-found': 2, 'ic-found-email': 2,
-      'set-password': 3
-    };
-    return map[this.step] || 1;
-  }
-
-  private _calcStrength(pw: string): number {
-    if (!pw) return 0;
-    let score = 0;
-    if (pw.length >= 8)         score++;
-    if (/[A-Z]/.test(pw))       score++;
-    if (/[0-9]/.test(pw))       score++;
-    if (/[^A-Za-z0-9]/.test(pw)) score++;
-    return score;
-  }
-
-  private _pwComplexity(ctrl: AbstractControl): { [key: string]: boolean } | null {
-    const v = ctrl.value || '';
-    const errors: Record<string, boolean> = {};
-    if (!/[A-Z]/.test(v))       errors['noUppercase'] = true;
-    if (!/[0-9]/.test(v))       errors['noNumber']    = true;
-    if (!/[^A-Za-z0-9]/.test(v)) errors['noSpecial']  = true;
-    return Object.keys(errors).length ? errors : null;
-  }
-
-  private _pwMatch(group: AbstractControl): { [key: string]: boolean } | null {
-    const np = group.get('newPassword')?.value;
-    const cp = group.get('confirmPassword')?.value;
-    return np && cp && np !== cp ? { mismatch: true } : null;
-  }
-
+  // ── Password helpers ──────────────────────────────────────────────────────────
   spLen(n: number): boolean { return (this.setPasswordForm.get('newPassword')?.value || '').length >= n; }
   spHas(pattern: 'upper' | 'number' | 'special'): boolean {
     const v = this.setPasswordForm.get('newPassword')?.value || '';
@@ -197,5 +171,30 @@ export class LoginComponent {
     if (pattern === 'number')  return /[0-9]/.test(v);
     if (pattern === 'special') return /[^A-Za-z0-9]/.test(v);
     return false;
+  }
+
+  private _calcStrength(pw: string): number {
+    if (!pw) return 0;
+    let score = 0;
+    if (pw.length >= 8)          score++;
+    if (/[A-Z]/.test(pw))        score++;
+    if (/[0-9]/.test(pw))        score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    return score;
+  }
+
+  private _pwComplexity(ctrl: AbstractControl): { [key: string]: boolean } | null {
+    const v = ctrl.value || '';
+    const errors: Record<string, boolean> = {};
+    if (!/[A-Z]/.test(v))        errors['noUppercase'] = true;
+    if (!/[0-9]/.test(v))        errors['noNumber']    = true;
+    if (!/[^A-Za-z0-9]/.test(v)) errors['noSpecial']   = true;
+    return Object.keys(errors).length ? errors : null;
+  }
+
+  private _pwMatch(group: AbstractControl): { [key: string]: boolean } | null {
+    const np = group.get('newPassword')?.value;
+    const cp = group.get('confirmPassword')?.value;
+    return np && cp && np !== cp ? { mismatch: true } : null;
   }
 }
