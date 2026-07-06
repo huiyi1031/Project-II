@@ -61,17 +61,56 @@ namespace PropertyManagement.API.Controllers
             }
         }
 
-        [HttpPost("verify-owner")]
+        [HttpPost("verify-ic")]
         public async Task<IActionResult> VerifyOwner([FromBody] OwnerVerificationRequestDto request)
         {
             try
             {
-                var result = await _authService.VerifyOwnerAsync(request);
-                if (result)
-                {
-                    return Ok(new { message = "Owner verified successfully" });
-                }
-                return BadRequest(new { message = "Invalid identification number" });
+                var result = await _authService.VerifyIcAsync(request.IdentificationNo);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPatch("update-email")]
+        public async Task<IActionResult> UpdateEmail([FromHeader(Name = "X-Update-Token")] string updateToken, [FromBody] UpdateEmailRequestDto request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(updateToken)) return Unauthorized(new { message = "Missing update token." });
+                await _authService.UpdateEmailByIcAsync(updateToken, request.Email);
+                return Ok(new { message = "Email updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("verify-temp-password")]
+        public async Task<IActionResult> VerifyTempPassword([FromBody] VerifyTempPasswordRequestDto request)
+        {
+            try
+            {
+                var token = await _authService.VerifyTempPasswordAsync(request);
+                return Ok(new { tempVerifiedToken = token });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("set-password")]
+        public async Task<IActionResult> SetPassword([FromBody] SetPasswordRequestDto request)
+        {
+            try
+            {
+                var result = await _authService.SetPasswordAsync(request);
+                return Ok(result);
             }
             catch (Exception ex)
             {

@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -14,44 +15,57 @@ namespace PropertyManagement.API.Services
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly IEmailService _emailService;
 
-        public AuthService(AppDbContext context, IConfiguration configuration)
+        public AuthService(AppDbContext context, IConfiguration configuration, IEmailService emailService)
         {
             _context = context;
             _configuration = configuration;
+            _emailService = emailService;
         }
 
         public async Task<LoginResponseDto> LoginAsync(LoginRequestDto request)
         {
-            // Find user by email
             var user = await _context.UserAccounts
                 .FirstOrDefaultAsync(u => u.Email == request.Email);
 
-            if (user == null)
+            // Generic error for both not found and wrong password (security: never reveal which)
+            if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             {
-                throw new Exception("User not found");
+                throw new Exception("Incorrect email or password. Please try again.");
             }
 
-            // Verify password (using BCrypt)
-            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+            if (user.AccountStatus == AccountStatus.Suspended)
             {
-                throw new Exception("Invalid password");
+                throw new Exception("Account is suspended. Please contact the property management office.");
             }
 
-            // Check account status
-            if (user.AccountStatus != AccountStatus.Active)
+            // Password is correct. Check if first-time login (Pending = must set permanent password)
+            if (user.AccountStatus == AccountStatus.Pending)
             {
-                throw new Exception("Account is not active");
+                var updateToken = GenerateUpdateToken(user);
+                return new LoginResponseDto
+                {
+                    UserId = user.Id,
+                    Email = user.Email,
+                    Role = user.RoleType.ToString(),
+                    RequiresPasswordChange = true,
+                    UpdateToken = updateToken
+                };
             }
 
-            // Update last login
+            // Normal active login
             user.LastLogin = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            // Get full name based on role
             string fullName = await GetUserFullName(user);
+            string? occupantType = null;
+            if (user.RoleType == RoleType.Occupant)
+            {
+                var occ = await _context.Occupants.FirstOrDefaultAsync(o => o.UserAccountId == user.Id);
+                occupantType = occ?.OccupantType.ToString();
+            }
 
-            // Generate JWT token
             var token = GenerateJwtToken(user);
 
             return new LoginResponseDto
@@ -61,13 +75,14 @@ namespace PropertyManagement.API.Services
                 Email = user.Email,
                 Role = user.RoleType.ToString(),
                 FullName = fullName,
-                AccountStatus = user.AccountStatus.ToString()
+                AccountStatus = user.AccountStatus.ToString(),
+                OccupantType = occupantType,
+                RequiresPasswordChange = false
             };
         }
 
         public async Task<RegisterResponseDto> RegisterAsync(RegisterRequestDto request)
         {
-            // Check if email already exists
             var existingUser = await _context.UserAccounts
                 .FirstOrDefaultAsync(u => u.Email == request.Email);
 
@@ -76,10 +91,10 @@ namespace PropertyManagement.API.Services
                 throw new Exception("Email already registered");
             }
 
-            // Hash password
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            // Generate a temporary password (e.g. TEMP-A8B9)
+            var tempPassword = GenerateTemporaryPassword();
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
 
-            // Create user account
             var user = new UserAccount
             {
                 Email = request.Email,
@@ -91,93 +106,165 @@ namespace PropertyManagement.API.Services
             _context.UserAccounts.Add(user);
             await _context.SaveChangesAsync();
 
-            // Create role-specific record
             if (request.RoleType == RoleType.Occupant)
             {
-                var occupant = new Occupant
+                _context.Occupants.Add(new Occupant
                 {
                     UserAccountId = user.Id,
                     FullName = request.FullName,
                     OccupantType = OccupantType.Tenant,
                     OccupantStatus = "Pending"
-                };
-                _context.Occupants.Add(occupant);
+                });
             }
             else if (request.RoleType == RoleType.Technician)
             {
-                var technician = new Technician
+                _context.Technicians.Add(new Technician
                 {
                     UserAccountId = user.Id,
                     FullName = request.FullName,
                     AvailabilityStatus = "Available"
-                };
-                _context.Technicians.Add(technician);
+                });
             }
             else if (request.RoleType == RoleType.PropertyManager)
             {
-                var manager = new PropertyManager
+                _context.PropertyManagers.Add(new PropertyManager
                 {
                     UserAccountId = user.Id,
                     FullName = request.FullName
-                };
-                _context.PropertyManagers.Add(manager);
+                });
             }
 
             await _context.SaveChangesAsync();
+
+            // Send Email
+            var subject = "Welcome to Property Management System - Activation Required";
+            var body = $@"
+                <h3>Welcome {request.FullName}!</h3>
+                <p>Your account has been created.</p>
+                <p>Your temporary password is: <strong>{tempPassword}</strong></p>
+                <p>Please log in using this temporary password. You will be required to set a new permanent password immediately.</p>";
+            
+            await _emailService.SendEmailAsync(user.Email, subject, body);
 
             return new RegisterResponseDto
             {
                 UserId = user.Id,
                 Email = user.Email,
-                Message = "Registration successful. Please wait for account activation."
+                Message = "Registration successful. Temporary password sent via email."
             };
         }
 
         public async Task<bool> ChangePasswordAsync(ChangePasswordRequestDto request)
         {
-            var user = await _context.UserAccounts
-                .FirstOrDefaultAsync(u => u.Email == request.Email);
-
-            if (user == null)
+            var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Email == request.Email);
+            if (user == null || !BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
             {
                 return false;
             }
 
-            // Verify current password
-            if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
-            {
-                return false;
-            }
-
-            // Update to new password
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
             user.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
-
             return true;
         }
 
-        public async Task<bool> VerifyOwnerAsync(OwnerVerificationRequestDto request)
+        public async Task<VerifyIcResponseDto> VerifyIcAsync(string identificationNo)
         {
             var occupant = await _context.Occupants
-                .FirstOrDefaultAsync(o => o.IdentificationNo == request.IdentificationNo 
-                    && o.OccupantType == OccupantType.Owner);
+                .Include(o => o.UserAccount)
+                .FirstOrDefaultAsync(o => o.IdentificationNo == identificationNo && o.OccupantType == OccupantType.Owner);
 
-            if (occupant == null)
+            if (occupant == null || occupant.UserAccount == null)
             {
-                return false;
+                return new VerifyIcResponseDto { Found = false };
             }
 
-            var user = await _context.UserAccounts
-                .FirstOrDefaultAsync(u => u.Id == occupant.UserAccountId);
+            // Generate an update token (short lived, specific to email updates)
+            var updateToken = GenerateUpdateToken(occupant.UserAccount);
 
-            if (user != null)
+            return new VerifyIcResponseDto
             {
-                user.LastLogin = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
+                Found = true,
+                MaskedEmail = MaskEmail(occupant.UserAccount.Email),
+                UpdateToken = updateToken
+            };
+        }
+
+        public async Task UpdateEmailByIcAsync(string updateToken, string newEmail)
+        {
+            var userId = ValidateUpdateToken(updateToken);
+            var user = await _context.UserAccounts.FindAsync(userId);
+            if (user == null) throw new Exception("Invalid token or user not found.");
+
+            // Check if new email is taken
+            var existing = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Email == newEmail);
+            if (existing != null && existing.Id != user.Id) throw new Exception("Email is already in use.");
+
+            user.Email = newEmail;
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<string> VerifyTempPasswordAsync(VerifyTempPasswordRequestDto request)
+        {
+            var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Email == request.Email);
+            if (user == null || !BCrypt.Net.BCrypt.Verify(request.TemporaryPassword, user.PasswordHash))
+            {
+                throw new Exception("Invalid temporary password.");
+            }
+            if (user.AccountStatus != AccountStatus.Pending)
+            {
+                throw new Exception("Account is already active.");
             }
 
-            return true;
+            return GenerateUpdateToken(user);
+        }
+
+        public async Task<LoginResponseDto> SetPasswordAsync(SetPasswordRequestDto request)
+        {
+            if (request.NewPassword != request.ConfirmPassword)
+                throw new Exception("Passwords do not match.");
+
+            UserAccount? user = null;
+
+            if (!string.IsNullOrEmpty(request.UpdateToken))
+            {
+                var userId = ValidateUpdateToken(request.UpdateToken);
+                user = await _context.UserAccounts.FindAsync(userId);
+            }
+            else
+            {
+                user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Email == request.Email);
+            }
+
+            if (user == null) throw new Exception("User not found.");
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            user.AccountStatus = AccountStatus.Active;
+            user.UpdatedAt = DateTime.UtcNow;
+            user.LastLogin = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            var token = GenerateJwtToken(user);
+            string fullName = await GetUserFullName(user);
+            string? occupantType = null;
+            if (user.RoleType == RoleType.Occupant)
+            {
+                var occ = await _context.Occupants.FirstOrDefaultAsync(o => o.UserAccountId == user.Id);
+                occupantType = occ?.OccupantType.ToString();
+            }
+
+            return new LoginResponseDto
+            {
+                Token = token,
+                UserId = user.Id,
+                Email = user.Email,
+                Role = user.RoleType.ToString(),
+                FullName = fullName,
+                AccountStatus = user.AccountStatus.ToString(),
+                OccupantType = occupantType,
+                RequiresPasswordChange = false
+            };
         }
 
         private string GenerateJwtToken(UserAccount user)
@@ -207,24 +294,92 @@ namespace PropertyManagement.API.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        private string GenerateUpdateToken(UserAccount user)
+        {
+            // Reusing JWT mechanism but with a different claim/scope
+            var jwtSettings = _configuration.GetSection("JwtSettings");
+            var secretKey = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"] ?? "fallback-secret-key-too-short");
+
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim("scope", "password-update")
+            };
+
+            var key = new SymmetricSecurityKey(secretKey);
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var token = new JwtSecurityToken(
+                claims: claims,
+                expires: DateTime.Now.AddMinutes(15),
+                signingCredentials: creds
+            );
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private long ValidateUpdateToken(string token)
+        {
+            var jwtSettings = _configuration.GetSection("JwtSettings");
+            var secretKey = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"] ?? "");
+            var handler = new JwtSecurityTokenHandler();
+            
+            try
+            {
+                handler.ValidateToken(token, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(secretKey),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                }, out var validatedToken);
+
+                var jwtToken = (JwtSecurityToken)validatedToken;
+                var scope = jwtToken.Claims.FirstOrDefault(x => x.Type == "scope")?.Value;
+                if (scope != "password-update") throw new Exception("Invalid token scope.");
+
+                return long.Parse(jwtToken.Claims.First(x => x.Type == ClaimTypes.NameIdentifier).Value);
+            }
+            catch
+            {
+                throw new Exception("Invalid or expired update token.");
+            }
+        }
+
+        private string MaskEmail(string email)
+        {
+            if (string.IsNullOrEmpty(email) || !email.Contains("@")) return email;
+            var parts = email.Split('@');
+            if (parts[0].Length <= 1) return email;
+            return parts[0][0] + new string('*', parts[0].Length - 1) + "@" + parts[1];
+        }
+
+        private string GenerateTemporaryPassword()
+        {
+            var bytes = new byte[4];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(bytes);
+            }
+            var hex = BitConverter.ToString(bytes).Replace("-", "");
+            return $"TEMP-{hex}";
+        }
+
         private async Task<string> GetUserFullName(UserAccount user)
         {
             if (user.RoleType == RoleType.Occupant)
             {
-                var occupant = await _context.Occupants
-                    .FirstOrDefaultAsync(o => o.UserAccountId == user.Id);
+                var occupant = await _context.Occupants.FirstOrDefaultAsync(o => o.UserAccountId == user.Id);
                 return occupant?.FullName ?? "Occupant";
             }
             else if (user.RoleType == RoleType.Technician)
             {
-                var technician = await _context.Technicians
-                    .FirstOrDefaultAsync(t => t.UserAccountId == user.Id);
+                var technician = await _context.Technicians.FirstOrDefaultAsync(t => t.UserAccountId == user.Id);
                 return technician?.FullName ?? "Technician";
             }
             else if (user.RoleType == RoleType.PropertyManager)
             {
-                var manager = await _context.PropertyManagers
-                    .FirstOrDefaultAsync(pm => pm.UserAccountId == user.Id);
+                var manager = await _context.PropertyManagers.FirstOrDefaultAsync(pm => pm.UserAccountId == user.Id);
                 return manager?.FullName ?? "Property Manager";
             }
             return "User";
