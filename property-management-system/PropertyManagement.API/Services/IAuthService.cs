@@ -7,6 +7,9 @@ namespace PropertyManagement.API.Services
         Task<LoginResponseDto> LoginAsync(LoginRequestDto request);
         Task<RegisterResponseDto> RegisterAsync(RegisterRequestDto request);
         Task<bool> ChangePasswordAsync(ChangePasswordRequestDto request);
-        Task<bool> VerifyOwnerAsync(OwnerVerificationRequestDto request);
+        Task<VerifyIcResponseDto> VerifyIcAsync(string identificationNo);
+        Task UpdateEmailByIcAsync(string updateToken, string newEmail);
+        Task<string> VerifyTempPasswordAsync(VerifyTempPasswordRequestDto request);
+        Task<LoginResponseDto> SetPasswordAsync(SetPasswordRequestDto request);
     }
 }

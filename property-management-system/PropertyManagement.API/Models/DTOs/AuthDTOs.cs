@@ -1,4 +1,4 @@
-﻿using PropertyManagement.API.Models.Enums;
+using PropertyManagement.API.Models.Enums;
 
 namespace PropertyManagement.API.Models.DTOs
 {
@@ -16,6 +16,10 @@ namespace PropertyManagement.API.Models.DTOs
         public string Role { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public string AccountStatus { get; set; } = string.Empty;
+        /// <summary>Only set for Occupant role: "Owner" | "Tenant" | "Resident"</summary>
+        public string? OccupantType { get; set; }
+        public bool RequiresPasswordChange { get; set; }
+        public string? UpdateToken { get; set; }
     }
 
     public class RegisterRequestDto
@@ -43,5 +47,31 @@ namespace PropertyManagement.API.Models.DTOs
     public class OwnerVerificationRequestDto
     {
         public string IdentificationNo { get; set; } = string.Empty;
+    }
+
+    public class VerifyIcResponseDto
+    {
+        public bool Found { get; set; }
+        public string MaskedEmail { get; set; } = string.Empty;
+        public string UpdateToken { get; set; } = string.Empty;
+    }
+
+    public class UpdateEmailRequestDto
+    {
+        public string Email { get; set; } = string.Empty;
+    }
+
+    public class VerifyTempPasswordRequestDto
+    {
+        public string Email { get; set; } = string.Empty;
+        public string TemporaryPassword { get; set; } = string.Empty;
+    }
+
+    public class SetPasswordRequestDto
+    {
+        public string Email { get; set; } = string.Empty;
+        public string NewPassword { get; set; } = string.Empty;
+        public string ConfirmPassword { get; set; } = string.Empty;
+        public string? UpdateToken { get; set; }
     }
 }

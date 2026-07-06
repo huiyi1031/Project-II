@@ -1,7 +1,7 @@
 <div class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#f0f6ff] via-[#e8f2ff] to-[#dbeeff]">
   <div class="w-full max-w-4xl bg-white border border-[#dbe7fb] rounded-2xl shadow-2xl overflow-hidden grid grid-cols-1 md:grid-cols-[1fr_1fr]">
 
-    <!-- ── LEFT PANEL ── Branding ─────────────────────────────────────────── -->
+    <!-- ── LEFT PANEL — Branding ────────────────────────────────────────── -->
     <div class="bg-gradient-to-br from-[#0b2d5c] to-[#1f5fae] text-white p-10 flex flex-col justify-between">
       <div>
         <div class="inline-block bg-white/15 border border-white/25 rounded-full px-3 py-1.5 text-[11px] tracking-widest uppercase mb-6 w-fit">
@@ -9,7 +9,7 @@
         </div>
         <h1 class="text-3xl font-extrabold leading-tight mb-3">Maintenance<br/>Portal</h1>
         <p class="text-[#cde0ff] text-sm leading-relaxed mb-8">
-          Secure, role-based access for all property stakeholders — from tenants to managers.
+          Secure, role-based access for all property stakeholders.
         </p>
         <!-- Role cards -->
         <div class="space-y-2">
@@ -24,247 +24,240 @@
           </div>
         </div>
       </div>
-      <!-- Demo hint at bottom -->
       <div class="mt-8 border-t border-white/20 pt-5 text-[10px] text-white/60 leading-relaxed space-y-1">
-        <p class="font-semibold text-white/80 text-xs mb-1">Demo Accounts (Password: Test123!)</p>
-        <p>owner&#64;demo.com &nbsp;|&nbsp; tenant&#64;demo.com</p>
-        <p>tech&#64;demo.com &nbsp;|&nbsp; admin&#64;demo.com</p>
-        <p class="mt-2 italic">First login (no pw): new.tenant&#64;demo.com</p>
-        <p class="italic">Temp pw demo: new.staff&#64;demo.com (temp: TEMP9999)</p>
-        <p class="italic">IC bypass: 900101-10-1234</p>
+        <p class="font-semibold text-white/80 text-xs mb-1">First time logging in?</p>
+        <p>Check your registered email for a temporary password sent by your property management office.</p>
       </div>
     </div>
 
-    <!-- ── RIGHT PANEL ── Multi-step wizard ──────────────────────────────────── -->
+    <!-- ── RIGHT PANEL — Multi-step flow ───────────────────────────────── -->
     <div class="p-8 flex flex-col justify-center min-h-[520px]">
 
-      <!-- Step indicator -->
-      <div class="flex items-center gap-2 mb-6">
-        <ng-container *ngFor="let n of [1,2,3]">
-          <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
-               [class.bg-[#1f5fae]]="getStepNumber() >= n"
-               [class.text-white]="getStepNumber() >= n"
-               [class.bg-[#e8f0fd]]="getStepNumber() < n"
-               [class.text-[#6b7a90]]="getStepNumber() < n">{{ n }}</div>
-          <div *ngIf="n < 3" class="flex-1 h-0.5 rounded"
-               [class.bg-[#1f5fae]]="getStepNumber() > n"
-               [class.bg-[#e8f0fd]]="getStepNumber() <= n"></div>
-        </ng-container>
-        <span class="ml-2 text-xs text-[#6b7a90]">
-          {{ step === 'email' ? 'Identify' : (step === 'not-found' || step === 'ic-entry' || step === 'ic-not-found' || step === 'ic-found-email') ? 'Verify' : 'Access' }}
-        </span>
-      </div>
-
-      <!-- ═══════════════════════════════════════════════════════════════════ -->
-      <!-- STEP 1: Email Entry                                                 -->
-      <!-- ═══════════════════════════════════════════════════════════════════ -->
-      <ng-container *ngIf="step === 'email'">
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- STEP: LOGIN — Email + Password together                        -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <ng-container *ngIf="step === 'login'">
         <h2 class="text-[#0b2d5c] text-xl font-bold mb-1">Sign In</h2>
-        <p class="text-[#6b7a90] text-sm mb-6">Enter your registered email to continue.</p>
-        <form [formGroup]="emailForm" (ngSubmit)="submitEmail()" class="space-y-4">
+        <p class="text-[#6b7a90] text-sm mb-6">Enter your registered email and password to continue.</p>
+
+        <form [formGroup]="loginForm" (ngSubmit)="submitLogin()" class="space-y-4">
+          <!-- Email -->
           <div class="space-y-1.5">
             <label class="pms-label">Email Address</label>
             <input type="email" formControlName="email" placeholder="you&#64;example.com"
-                   class="pms-input" [class.border-red-400]="emailForm.get('email')?.invalid && emailForm.get('email')?.touched"/>
-            <p *ngIf="emailForm.get('email')?.invalid && emailForm.get('email')?.touched" class="text-xs text-red-500">Please enter a valid email address.</p>
+                   class="pms-input" [class.border-red-400]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"/>
+            <p *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched" class="text-xs text-red-500">
+              Please enter a valid email address.
+            </p>
           </div>
+
+          <!-- Password -->
+          <div class="space-y-1.5">
+            <label class="pms-label">Password</label>
+            <div class="relative">
+              <input [type]="showPassword ? 'text' : 'password'" formControlName="password"
+                     placeholder="Enter your password" class="pms-input pr-10"
+                     [class.border-red-400]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"/>
+              <button type="button" (click)="showPassword = !showPassword"
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7a90] hover:text-[#1f5fae]">
+                {{ showPassword ? '🙈' : '👁️' }}
+              </button>
+            </div>
+            <p *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched" class="text-xs text-red-500">
+              Password is required.
+            </p>
+          </div>
+
+          <!-- Error -->
           <div *ngIf="errorMessage" class="flex gap-2 items-start bg-red-50 border border-red-200 text-red-700 px-3 py-2.5 rounded-xl text-sm">
             <span>⚠️</span><span>{{ errorMessage }}</span>
           </div>
+
+          <!-- Submit -->
           <button type="submit" [disabled]="isLoading"
                   class="w-full bg-gradient-to-r from-[#1f5fae] to-[#2f7de0] text-white rounded-xl py-3 font-semibold transition-all hover:-translate-y-0.5 disabled:opacity-60 shadow-md">
-            {{ isLoading ? 'Checking...' : 'Continue →' }}
+            {{ isLoading ? 'Signing In...' : 'Sign In →' }}
           </button>
         </form>
-      </ng-container>
 
-      <!-- ═══════════════════════════════════════════════════════════════════ -->
-      <!-- STEP 2a: Email Not Found — Role Fallback Selector                  -->
-      <!-- ═══════════════════════════════════════════════════════════════════ -->
-      <ng-container *ngIf="step === 'not-found'">
-        <div class="mb-4">
-          <h2 class="text-[#0b2d5c] text-xl font-bold mb-1">Email Not Found</h2>
-          <p class="text-[#6b7a90] text-sm">
-            <span class="font-medium text-[#1f5fae]">{{ email }}</span> was not found in our system.<br/>
-            Please select who you are so we can assist you:
-          </p>
-        </div>
-
-        <!-- Role option cards -->
-        <div class="space-y-2 mb-4">
-          <button (click)="selectFallback('tenant')"
-                  class="w-full text-left px-4 py-3 rounded-xl border-2 transition-all"
-                  [class.border-[#1f5fae]]="selectedFallback === 'tenant'"
-                  [class.bg-[#eef5ff]]="selectedFallback === 'tenant'"
-                  [class.border-[#dbe7fb]]="selectedFallback !== 'tenant'"
-                  [class.hover:border-[#7ca9e8]]="selectedFallback !== 'tenant'">
-            <div class="flex items-center gap-2 font-semibold text-[#1b2a41] text-sm">
-              <span>🏠</span> Tenant / Resident
-            </div>
+        <!-- Help link -->
+        <div class="mt-6 text-center border-t border-gray-100 pt-4">
+          <button (click)="openHelp()" class="text-sm text-[#6b7a90] hover:text-[#1f5fae] transition-colors">
+            Need help signing in?
           </button>
-          <button (click)="selectFallback('staff')"
-                  class="w-full text-left px-4 py-3 rounded-xl border-2 transition-all"
-                  [class.border-[#1f5fae]]="selectedFallback === 'staff'"
-                  [class.bg-[#eef5ff]]="selectedFallback === 'staff'"
-                  [class.border-[#dbe7fb]]="selectedFallback !== 'staff'"
-                  [class.hover:border-[#7ca9e8]]="selectedFallback !== 'staff'">
-            <div class="flex items-center gap-2 font-semibold text-[#1b2a41] text-sm">
-              <span>🏢</span> Property Manager / Technician
-            </div>
-          </button>
-          <button (click)="selectFallback('owner')"
-                  class="w-full text-left px-4 py-3 rounded-xl border-2 transition-all"
-                  [class.border-[#f59e0b]]="selectedFallback === 'owner'"
-                  [class.bg-[#fffbeb]]="selectedFallback === 'owner'"
-                  [class.border-[#dbe7fb]]="selectedFallback !== 'owner'"
-                  [class.hover:border-[#fbbf24]]="selectedFallback !== 'owner'">
-            <div class="flex items-center gap-2 font-semibold text-[#1b2a41] text-sm">
-              <span>🔑</span> Property Owner
-            </div>
-          </button>
-        </div>
-
-        <!-- Context-specific message (exact text from activity diagram) -->
-        <div *ngIf="selectedFallback && selectedFallback !== 'owner'"
-             class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800 mb-4">
-          <p class="font-semibold mb-1">📋 What to do:</p>
-          <p>{{ getFallbackMessage(selectedFallback) }}</p>
-        </div>
-        <div *ngIf="selectedFallback === 'owner'"
-             class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800 mb-4">
-          <p class="font-semibold mb-1">🔑 Owner Alternative Login:</p>
-          <p>{{ getFallbackMessage('owner') }}</p>
-        </div>
-
-        <div class="flex gap-2">
-          <button (click)="goBackToEmail()" class="btn-outline flex-1 py-2.5 text-sm">← Re-enter Email</button>
-          <button *ngIf="selectedFallback === 'owner'" (click)="step = 'ic-entry'"
-                  class="btn-primary flex-1 py-2.5 text-sm">Use IC Number →</button>
         </div>
       </ng-container>
 
-      <!-- ═══════════════════════════════════════════════════════════════════ -->
-      <!-- STEP 2a-Owner: IC / Passport Entry                                 -->
-      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- STEP: HELP — Role-based guidance panel                         -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <ng-container *ngIf="step === 'help'">
+        <h2 class="text-[#0b2d5c] text-xl font-bold mb-1">Need Help Signing In?</h2>
+        <p class="text-[#6b7a90] text-sm mb-5">Select which type of user you are to get the right guidance.</p>
+
+        <div class="space-y-3">
+
+          <!-- Tenant / Resident -->
+          <div class="border border-[#dbe7fb] rounded-xl p-4 bg-[#f8fbff]">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-lg">🏠</span>
+              <span class="font-semibold text-[#0b2d5c] text-sm">Tenant or Resident</span>
+            </div>
+            <p class="text-[#6b7a90] text-xs leading-relaxed">
+              Your account is created and managed by your <strong>Property Owner</strong>. 
+              Please contact your owner to confirm the email address they registered for you. 
+              Once registered, an activation email with a temporary password will be sent to that email address.
+            </p>
+          </div>
+
+          <!-- Technician / Manager -->
+          <div class="border border-[#dbe7fb] rounded-xl p-4 bg-[#f8fbff]">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-lg">🔧</span>
+              <span class="font-semibold text-[#0b2d5c] text-sm">Technician or Property Manager</span>
+            </div>
+            <p class="text-[#6b7a90] text-xs leading-relaxed">
+              Your account is created by the <strong>Property Management Office</strong>. 
+              Please check with your lead manager to confirm the email address registered for your account. 
+              An activation email with a temporary password will be sent upon registration.
+            </p>
+          </div>
+
+          <!-- Owner — with IC bypass option -->
+          <div class="border border-[#1f5fae]/30 rounded-xl p-4 bg-[#eaf3ff]">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-lg">🏡</span>
+              <span class="font-semibold text-[#0b2d5c] text-sm">Property Owner</span>
+            </div>
+            <p class="text-[#3d546e] text-xs leading-relaxed mb-3">
+              Your account is registered by the <strong>Property Management Office</strong> using your details 
+              from the Sale and Purchase Agreement. If your registered email is outdated or incorrect, 
+              you may use your <strong>IC or Passport number</strong> to verify your identity and update your account.
+            </p>
+            <button (click)="startOwnerVerification()"
+                    class="w-full bg-[#1f5fae] text-white rounded-lg py-2 text-xs font-semibold hover:bg-[#1a4f96] transition-colors">
+              Verify with IC / Passport Number →
+            </button>
+          </div>
+
+        </div>
+
+        <div class="mt-5 text-center">
+          <button (click)="goBackToLogin()" class="text-sm text-[#6b7a90] hover:text-[#1f5fae] transition-colors">
+            ← Back to Sign In
+          </button>
+        </div>
+      </ng-container>
+
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- STEP: IC ENTRY — Owner enters IC/Passport                      -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
       <ng-container *ngIf="step === 'ic-entry'">
-        <h2 class="text-[#0b2d5c] text-xl font-bold mb-1">Owner Verification</h2>
-        <p class="text-[#6b7a90] text-sm mb-5">Enter your IC or Passport number as per your Sale and Purchase Agreement.</p>
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-8 h-8 rounded-full bg-[#eaf3ff] flex items-center justify-center text-sm">🏡</div>
+          <div>
+            <h2 class="text-[#0b2d5c] text-xl font-bold leading-tight">Owner Verification</h2>
+            <p class="text-[#6b7a90] text-xs">Step 1 of 2 — Identity Verification</p>
+          </div>
+        </div>
+        <p class="text-[#6b7a90] text-sm mb-5">
+          Enter your IC or Passport number as recorded in your Sale and Purchase Agreement.
+        </p>
+
         <form [formGroup]="icForm" (ngSubmit)="submitIc()" class="space-y-4">
           <div class="space-y-1.5">
             <label class="pms-label">IC / Passport Number</label>
             <input type="text" formControlName="identificationNo" placeholder="e.g. 900101-10-1234"
-                   class="pms-input font-mono" [class.border-red-400]="icForm.get('identificationNo')?.invalid && icForm.get('identificationNo')?.touched"/>
-            <p *ngIf="icForm.get('identificationNo')?.invalid && icForm.get('identificationNo')?.touched" class="text-xs text-red-500">Please enter a valid IC or Passport number.</p>
-          </div>
-          <div class="bg-[#f0f6ff] border border-[#cfe3ff] rounded-xl px-3 py-2 text-xs text-[#4f6f9a]">
-            💡 Demo: Enter <span class="font-mono font-bold">900101-10-1234</span> to simulate a found owner, or <span class="font-mono font-bold">000000-00-0000</span> for not found.
+                   class="pms-input font-mono tracking-wider"
+                   [class.border-red-400]="icForm.get('identificationNo')?.invalid && icForm.get('identificationNo')?.touched"/>
+            <p *ngIf="icForm.get('identificationNo')?.invalid && icForm.get('identificationNo')?.touched" class="text-xs text-red-500">
+              Please enter your IC or Passport number.
+            </p>
           </div>
           <div *ngIf="errorMessage" class="flex gap-2 items-start bg-red-50 border border-red-200 text-red-700 px-3 py-2.5 rounded-xl text-sm">
             <span>⚠️</span><span>{{ errorMessage }}</span>
           </div>
           <div class="flex gap-2">
-            <button type="button" (click)="step = 'not-found'" class="btn-outline flex-1 py-2.5 text-sm">← Back</button>
+            <button type="button" (click)="goBackToHelp()" class="btn-outline flex-1 py-2.5 text-sm">← Back</button>
             <button type="submit" [disabled]="isLoading" class="btn-primary flex-1 py-2.5 text-sm">
-              {{ isLoading ? 'Verifying...' : 'Verify IC' }}
+              {{ isLoading ? 'Verifying...' : 'Verify Identity' }}
             </button>
           </div>
         </form>
       </ng-container>
 
-      <!-- ═══════════════════════════════════════════════════════════════════ -->
-      <!-- IC Not Found                                                        -->
-      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- STEP: IC NOT FOUND                                             -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
       <ng-container *ngIf="step === 'ic-not-found'">
         <div class="text-center py-4">
           <div class="text-5xl mb-4">🔍</div>
           <h2 class="text-[#0b2d5c] text-xl font-bold mb-2">Account Not Found</h2>
-          <p class="text-[#6b7a90] text-sm mb-6">Sorry, your account is not found. Please check with the property management office to verify your registration details.</p>
+          <p class="text-[#6b7a90] text-sm mb-6 leading-relaxed">
+            We could not find an account matching your IC or Passport number. 
+            Please verify that the number is entered exactly as recorded in your Sale and Purchase Agreement.
+          </p>
           <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800 text-left mb-6">
-            <p class="font-semibold">📞 Contact Property Management Office</p>
-            <p class="mt-1">Bring your Sale and Purchase Agreement and a copy of your IC when visiting the office.</p>
+            <p class="font-semibold">📞 Contact the Property Management Office</p>
+            <p class="mt-1 text-xs leading-relaxed">
+              Please bring your Sale and Purchase Agreement and a copy of your IC or Passport when visiting. 
+              The management team will assist you in verifying and registering your account.
+            </p>
           </div>
-          <button (click)="goBackToEmail()" class="btn-outline w-full py-2.5">← Return to Login</button>
+          <div class="flex gap-2">
+            <button (click)="goBackToHelp()" class="btn-outline flex-1 py-2.5 text-sm">← Back</button>
+            <button (click)="startOwnerVerification()" class="btn-primary flex-1 py-2.5 text-sm">Try Again</button>
+          </div>
         </div>
       </ng-container>
 
-      <!-- ═══════════════════════════════════════════════════════════════════ -->
-      <!-- IC Found — Update Email                                             -->
-      <!-- ═══════════════════════════════════════════════════════════════════ -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- STEP: IC FOUND — Update Email                                   -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
       <ng-container *ngIf="step === 'ic-found-email'">
-        <h2 class="text-[#0b2d5c] text-xl font-bold mb-1">Account Found</h2>
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-sm">✅</div>
+          <div>
+            <h2 class="text-[#0b2d5c] text-xl font-bold leading-tight">Identity Verified</h2>
+            <p class="text-[#6b7a90] text-xs">Step 2 of 2 — Update Your Email</p>
+          </div>
+        </div>
         <div class="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-800 mb-5">
-          <p class="font-semibold">✅ Identity Verified</p>
-          <p class="mt-1">Your account is associated with <span class="font-mono font-bold">{{ maskedEmail }}</span>. Please enter your correct email address to update your account and proceed.</p>
+          <p>Your account is currently associated with <span class="font-mono font-bold">{{ maskedEmail }}</span>.</p>
+          <p class="mt-1 text-xs text-green-700">Please enter your correct email address below. A new password will be set after this step.</p>
         </div>
         <form [formGroup]="newEmailForm" (ngSubmit)="submitNewEmail()" class="space-y-4">
           <div class="space-y-1.5">
             <label class="pms-label">Your Correct Email Address</label>
             <input type="email" formControlName="newEmail" placeholder="you&#64;example.com" class="pms-input"
                    [class.border-red-400]="newEmailForm.get('newEmail')?.invalid && newEmailForm.get('newEmail')?.touched"/>
-            <p *ngIf="newEmailForm.get('newEmail')?.invalid && newEmailForm.get('newEmail')?.touched" class="text-xs text-red-500">Please enter a valid email address.</p>
+            <p *ngIf="newEmailForm.get('newEmail')?.invalid && newEmailForm.get('newEmail')?.touched" class="text-xs text-red-500">
+              Please enter a valid email address.
+            </p>
           </div>
           <div *ngIf="errorMessage" class="flex gap-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2.5 rounded-xl text-sm">
             <span>⚠️</span><span>{{ errorMessage }}</span>
           </div>
           <button type="submit" [disabled]="isLoading" class="btn-primary w-full py-2.5">
-            {{ isLoading ? 'Updating...' : 'Update & Continue →' }}
+            {{ isLoading ? 'Updating...' : 'Update Email & Continue →' }}
           </button>
         </form>
       </ng-container>
 
-      <!-- ═══════════════════════════════════════════════════════════════════ -->
-      <!-- STEP 3a (Staff): Verify Temporary Password                         -->
-      <!-- ═══════════════════════════════════════════════════════════════════ -->
-      <ng-container *ngIf="step === 'verify-temp'">
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <!-- STEP: SET NEW PASSWORD (first login or after IC bypass)        -->
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+      <ng-container *ngIf="step === 'set-password'">
         <div class="mb-5">
-          <div class="inline-flex items-center gap-2 bg-amber-100 text-amber-800 px-3 py-1.5 rounded-full text-xs font-semibold mb-3">
-            🔒 First-Time Staff Login
-          </div>
-          <h2 class="text-[#0b2d5c] text-xl font-bold mb-1">Verify Temporary Password</h2>
-          <p class="text-[#6b7a90] text-sm">Your account was provisioned with a temporary password. Please enter it to proceed and set your permanent password.</p>
-        </div>
-        <div class="bg-[#f8f4ff] border border-[#d6c8f5] rounded-xl px-3 py-2 text-xs text-[#5c4a8a] mb-4">
-          📧 The temporary password was sent to <span class="font-semibold">{{ email }}</span> in your activation email.
-        </div>
-        <form [formGroup]="tempPwForm" (ngSubmit)="submitTempPassword()" class="space-y-4">
-          <div class="space-y-1.5">
-            <label class="pms-label">Temporary Password</label>
-            <div class="relative">
-              <input [type]="showTempPw ? 'text' : 'password'" formControlName="temporaryPassword"
-                     placeholder="Enter temporary password" class="pms-input pr-10"/>
-              <button type="button" (click)="showTempPw = !showTempPw"
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7a90] hover:text-[#1f5fae]">
-                {{ showTempPw ? '🙈' : '👁️' }}
-              </button>
-            </div>
-          </div>
-          <div *ngIf="errorMessage" class="flex gap-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2.5 rounded-xl text-sm">
-            <span>⚠️</span><span>{{ errorMessage }}</span>
-          </div>
-          <button type="submit" [disabled]="isLoading" class="btn-primary w-full py-2.5">
-            {{ isLoading ? 'Verifying...' : 'Verify & Continue →' }}
-          </button>
-        </form>
-      </ng-container>
-
-      <!-- ═══════════════════════════════════════════════════════════════════ -->
-      <!-- STEP 3b: Set New Permanent Password (Occupant first login)         -->
-      <!-- STEP 3c: Set New Permanent Password (Staff after temp verified)    -->
-      <!-- ═══════════════════════════════════════════════════════════════════ -->
-      <ng-container *ngIf="step === 'set-password' || step === 'new-password'">
-        <div class="mb-5">
-          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-3"
-               [class.bg-blue-100]="step === 'set-password'"
-               [class.text-blue-800]="step === 'set-password'"
-               [class.bg-purple-100]="step === 'new-password'"
-               [class.text-purple-800]="step === 'new-password'">
-            {{ step === 'set-password' ? '👋 Welcome! Activate Your Account' : '🔐 Set Permanent Password' }}
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-3 bg-purple-100 text-purple-800">
+            🔐 First-Time Login — Account Activation
           </div>
           <h2 class="text-[#0b2d5c] text-xl font-bold mb-1">Create Your Password</h2>
           <p class="text-[#6b7a90] text-sm">
-            {{ step === 'set-password' ? 'You have been invited to access the property portal. Please set your password to activate your account.' : 'Your temporary password has been verified. Please set a strong permanent password.' }}
+            For your security, please set a strong permanent password to activate your account.
           </p>
         </div>
+
         <form [formGroup]="setPasswordForm" (ngSubmit)="submitSetPassword()" class="space-y-4">
           <!-- New Password -->
           <div class="space-y-1.5">
@@ -278,25 +271,27 @@
                 {{ showNewPassword ? '🙈' : '👁️' }}
               </button>
             </div>
-            <!-- Password strength bar -->
+            <!-- Strength bar -->
             <div class="space-y-1" *ngIf="setPasswordForm.get('newPassword')?.value">
               <div class="flex gap-1">
                 <div *ngFor="let i of [1,2,3,4]" class="h-1.5 flex-1 rounded"
                      [ngClass]="pwStrength >= i ? pwStrengthColors[pwStrength] : 'bg-gray-200'"></div>
               </div>
-              <p class="text-xs" [class.text-red-500]="pwStrength <= 1" [class.text-orange-500]="pwStrength === 2"
+              <p class="text-xs"
+                 [class.text-red-500]="pwStrength <= 1" [class.text-orange-500]="pwStrength === 2"
                  [class.text-yellow-600]="pwStrength === 3" [class.text-green-600]="pwStrength === 4">
                 {{ pwStrengthLabels[pwStrength] }}
               </p>
             </div>
-            <!-- Requirements -->
+            <!-- Requirements checklist -->
             <ul class="text-xs text-[#6b7a90] space-y-0.5 mt-1">
               <li [class.text-green-600]="spLen(8)">{{ spLen(8) ? '✅' : '○' }} At least 8 characters</li>
-              <li [class.text-green-600]="spHas('upper')">{{ spHas('upper') ? '✅' : '○' }} 1 uppercase letter</li>
-              <li [class.text-green-600]="spHas('number')">{{ spHas('number') ? '✅' : '○' }} 1 number</li>
+              <li [class.text-green-600]="spHas('upper')">{{ spHas('upper') ? '✅' : '○' }} 1 uppercase letter (A–Z)</li>
+              <li [class.text-green-600]="spHas('number')">{{ spHas('number') ? '✅' : '○' }} 1 number (0–9)</li>
               <li [class.text-green-600]="spHas('special')">{{ spHas('special') ? '✅' : '○' }} 1 special character (!&#64;#$%)</li>
             </ul>
           </div>
+
           <!-- Confirm Password -->
           <div class="space-y-1.5">
             <label class="pms-label">Confirm Password</label>
@@ -309,50 +304,18 @@
                 {{ showConfirmPw ? '🙈' : '👁️' }}
               </button>
             </div>
-            <p *ngIf="setPasswordForm.hasError('mismatch') && setPasswordForm.get('confirmPassword')?.touched" class="text-xs text-red-500">Passwords do not match.</p>
+            <p *ngIf="setPasswordForm.hasError('mismatch') && setPasswordForm.get('confirmPassword')?.touched" class="text-xs text-red-500">
+              Passwords do not match.
+            </p>
           </div>
-          <div *ngIf="errorMessage" class="flex gap-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2.5 rounded-xl text-sm">
-            <span>⚠️</span><span>{{ errorMessage }}</span>
-          </div>
-          <button type="submit" [disabled]="isLoading || setPasswordForm.invalid" class="btn-primary w-full py-2.5">
-            {{ isLoading ? 'Activating...' : 'Activate Account & Sign In →' }}
-          </button>
-        </form>
-      </ng-container>
 
-      <!-- ═══════════════════════════════════════════════════════════════════ -->
-      <!-- STEP 4: Normal Password Entry                                      -->
-      <!-- ═══════════════════════════════════════════════════════════════════ -->
-      <ng-container *ngIf="step === 'enter-password'">
-        <div class="mb-5">
-          <h2 class="text-[#0b2d5c] text-xl font-bold mb-1">Welcome back!</h2>
-          <div class="flex items-center gap-2 mt-2">
-            <div class="w-8 h-8 rounded-full bg-[#1f5fae] text-white text-sm flex items-center justify-center font-bold">
-              {{ (email[0] || '?').toUpperCase() }}
-            </div>
-            <span class="text-sm text-[#1f5fae] font-medium">{{ email }}</span>
-            <button (click)="goBackToEmail()" class="text-xs text-[#6b7a90] underline ml-1">Change</button>
-          </div>
-        </div>
-        <form [formGroup]="passwordForm" (ngSubmit)="submitPassword()" class="space-y-4">
-          <div class="space-y-1.5">
-            <label class="pms-label">Password</label>
-            <div class="relative">
-              <input [type]="showPassword ? 'text' : 'password'" formControlName="password"
-                     placeholder="Enter your password" class="pms-input pr-10" autofocus
-                     [class.border-red-400]="passwordForm.get('password')?.invalid && passwordForm.get('password')?.touched"/>
-              <button type="button" (click)="showPassword = !showPassword"
-                      class="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7a90] hover:text-[#1f5fae]">
-                {{ showPassword ? '🙈' : '👁️' }}
-              </button>
-            </div>
-          </div>
           <div *ngIf="errorMessage" class="flex gap-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2.5 rounded-xl text-sm">
             <span>⚠️</span><span>{{ errorMessage }}</span>
           </div>
-          <button type="submit" [disabled]="isLoading || passwordForm.invalid"
-                  class="w-full bg-gradient-to-r from-[#1f5fae] to-[#2f7de0] text-white rounded-xl py-3 font-semibold transition-all hover:-translate-y-0.5 disabled:opacity-60 shadow-md">
-            {{ isLoading ? 'Signing In...' : 'Sign In →' }}
+
+          <button type="submit" [disabled]="isLoading || setPasswordForm.invalid"
+                  class="btn-primary w-full py-2.5">
+            {{ isLoading ? 'Activating...' : 'Activate Account & Sign In →' }}
           </button>
         </form>
       </ng-container>
