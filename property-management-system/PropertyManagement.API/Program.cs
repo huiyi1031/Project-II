@@ -15,7 +15,7 @@ builder.Services.AddSwaggerGen();
 // Configure Database - SQL SERVER
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));  // ← PostgreSQL / Supabase
+    options.UseSqlServer(connectionString));  // ← Changed to SQL Server
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
