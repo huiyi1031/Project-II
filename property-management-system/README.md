@@ -1,6 +1,6 @@
 # 🏢 Property Management System
 
-A full-stack property maintenance management system built with **Angular 18**, **Tailwind CSS 3**, and **.NET 8 Web API**.
+A full-stack property maintenance management system built with **Angular 18**, **Tailwind CSS 3**, **.NET 8 Web API**, and **Supabase (PostgreSQL cloud database)**.
 
 ---
 
@@ -8,11 +8,12 @@ A full-stack property maintenance management system built with **Angular 18**, *
 
 - [Project Overview](#project-overview)
 - [Tech Stack](#tech-stack)
-- [Prerequisites — Install These First](#prerequisites--install-these-first)
-- [Getting Started](#getting-started)
+- [🚀 NEW TEAMMATE SETUP — Start Here](#-new-teammate-setup--start-here)
+- [▶️ Running the Project Daily](#️-running-the-project-daily)
 - [Project Structure](#project-structure)
-- [Demo Accounts](#demo-accounts)
-- [Team Members](#team-members)
+- [Test Accounts](#test-accounts)
+- [Team Collaboration Rules](#team-collaboration-rules)
+- [Common Issues](#common-issues)
 
 ---
 
@@ -22,10 +23,10 @@ A web-based system for managing property maintenance operations, covering:
 
 | Role | Capabilities |
 |------|-------------|
-| **Tenant / Resident** | Submit maintenance requests, track status, manage family members, chat with technicians |
-| **Property Owner** | All Tenant features + manage tenants, view contracts, file documents |
+| **Tenant / Resident** | Submit maintenance requests, track status, chat with technicians |
+| **Property Owner** | All Tenant features + manage tenants, view contracts |
 | **Technician** | View & execute work orders, update job status, file reports |
-| **Property Manager** | Full system access — staff management, request approvals, asset tracking, proactive maintenance |
+| **Property Manager** | Full system access — staff management, request approvals, asset tracking |
 
 ---
 
@@ -37,160 +38,218 @@ A web-based system for managing property maintenance operations, covering:
 | UI Styling | Tailwind CSS | **3.4** |
 | Language | TypeScript | **5.4** |
 | Backend | .NET Web API | **8.0** |
-| Database | SQL Server | 2019+ |
+| Database | Supabase (PostgreSQL) | Cloud ☁️ |
 | Runtime | Node.js | **20.x** |
-| Package Manager | npm | **10.x** |
+
+> ⚠️ **No SQL Server installation needed.** The database is hosted on Supabase (cloud). Everyone connects to the same shared database automatically.
 
 ---
 
-## Prerequisites — Install These First
+## 🚀 NEW TEAMMATE SETUP — Start Here
 
-> ⚠️ **Install all tools below before cloning.** Your teammates only need to do this once.
+> Follow these steps **in order**. Do this only once on a new computer.
 
-### 1. 🟢 Node.js (v20 LTS)
+---
 
-Node.js is the JavaScript runtime that Angular needs.
+### STEP 1 — Install Node.js (v20 LTS)
+
+Node.js is required to run the Angular frontend.
 
 1. Go to **https://nodejs.org/**
-2. Download the **"20.x LTS"** version (Left button)
-3. Run the installer — keep all defaults
-4. Verify installation:
-   ```bash
-   node --version    # should show v20.x.x
-   npm --version     # should show 10.x.x
+2. Download the **"20.x LTS"** version (left button — says "Recommended for most users")
+3. Run the installer → click **Next** for everything → **Install**
+4. After installing, open **Command Prompt** and verify:
    ```
+   node --version
+   ```
+   You should see something like `v20.19.0`
 
 ---
 
-### 2. 📐 Angular CLI (v18)
-
-Angular CLI is the command-line tool for running and building Angular apps.
+### STEP 2 — Install Angular CLI
 
 Open **Command Prompt** or **PowerShell** and run:
-```bash
+
+```
 npm install -g @angular/cli@18
 ```
 
-Verify:
-```bash
-ng version    # should show Angular CLI: 18.x.x
+Wait for it to finish (1–2 minutes). Then verify:
 ```
+ng version
+```
+You should see `Angular CLI: 18.x.x`
 
-> 💡 If you see a permissions error on Windows, run PowerShell **as Administrator**.
-
----
-
-### 3. 🎨 Tailwind CSS
-
-Tailwind is already included in the project's `package.json` — **you do NOT need to install it separately**. It installs automatically when you run `npm install` inside the project.
+> 💡 If you see a **permissions error**, close the window, right-click **Command Prompt** → **Run as Administrator**, then try again.
 
 ---
 
-### 4. 🔷 .NET SDK 8.0
+### STEP 3 — Install .NET 8 SDK
 
-Required to run the backend API.
+> Skip this step if you already have .NET 8 installed.
 
-1. Go to **https://dotnet.microsoft.com/download**
-2. Download **.NET 8.0 SDK** (not Runtime)
-3. Run the installer
+1. Go to **https://dotnet.microsoft.com/en-us/download/dotnet/8.0**
+2. Under **.NET 8.0** → click **Download .NET SDK x64** (Windows)
+3. Run the installer → click **Install**
 4. Verify:
-   ```bash
-   dotnet --version    # should show 8.x.x
    ```
+   dotnet --version
+   ```
+   You should see `8.x.x`
 
 ---
 
-### 5. 🗄️ SQL Server
+### STEP 4 — Install Git
 
-Required for the database.
+> Skip this step if you already have Git installed (try `git --version` to check).
 
-- **Option A (Recommended for development):** Download [SQL Server 2022 Developer Edition](https://www.microsoft.com/en-us/sql-server/sql-server-downloads) — free for development use
-- **Option B:** Use [SQL Server Express](https://www.microsoft.com/en-us/sql-server/sql-server-downloads) — free, lighter weight
-
-Also install **SQL Server Management Studio (SSMS)**:
-- https://learn.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms
+1. Go to **https://git-scm.com/download/win**
+2. Download and install with all default options
 
 ---
 
-### 6. 💻 Visual Studio Code (Recommended Editor)
+### STEP 5 — Clone the Repository
 
-Download from **https://code.visualstudio.com/**
+Open **Command Prompt** and navigate to where you want the project (e.g., your Documents folder):
 
-Recommended extensions (install from VS Code Extensions panel):
-- **Angular Language Service** — IntelliSense for Angular templates
-- **Tailwind CSS IntelliSense** — Autocomplete for Tailwind classes
-- **C# Dev Kit** — .NET backend support
-- **GitLens** — Better git integration
-
----
-
-## Getting Started
-
-### Step 1 — Clone the Repository
-
-```bash
+```
+cd Documents
 git clone https://github.com/huiyi1031/Project-II.git
-cd Project-II/property-management-system
+cd Project-II
 ```
 
 ---
 
-### Step 2 — Set Up the Frontend (Angular)
+### STEP 6 — Install Frontend Dependencies
 
-```bash
-# Navigate to the UI folder
-cd property-management-ui
-
-# Install all dependencies (this downloads node_modules — may take 1-2 minutes)
+```
+cd property-management-system\property-management-ui
 npm install
-
-# Start the development server
-ng serve --port 4201 --open
 ```
 
-✅ The app will open at **http://localhost:4201**
+This installs Angular, Tailwind CSS, and all other packages. May take **2–3 minutes**.
 
-> 💡 `node_modules` is NOT included in the repository (it's in `.gitignore`).  
-> Always run `npm install` after cloning or pulling new changes that include `package.json` updates.
+> ✅ Tailwind CSS is already configured in `package.json` — you do NOT install it separately.
 
 ---
 
-### Step 3 — Set Up the Backend (.NET API)
+### STEP 7 — Create Your Database Config File (SECRET — Do NOT commit to GitHub)
 
-```bash
-# From the project root
-cd PropertyManagement.API
+This file connects your computer to the shared Supabase database.
 
-# Restore NuGet packages
-dotnet restore
-
-# Update appsettings.json with your SQL Server connection string
-# (see appsettings.json — update the "DefaultConnection" value)
-
-# Apply database migrations
-dotnet ef database update
-
-# Run the API
-dotnet run
-```
-
-✅ The API will run at **http://localhost:5004**
-
----
-
-### Step 4 — Configure Database Connection
-
-Open `PropertyManagement.API/appsettings.json` and update:
+1. Go to this folder: `property-management-system\PropertyManagement.API\`
+2. Create a **new file** called exactly: `appsettings.Development.json`
+3. Paste this content into it (ask your team leader for the password if blocked):
 
 ```json
 {
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
   "ConnectionStrings": {
-    "DefaultConnection": "Server=YOUR_SERVER_NAME;Database=PropertyManagementDB;Trusted_Connection=True;TrustServerCertificate=True"
+    "DefaultConnection": "Host=db.gxzjcobrhhgijvveazxa.supabase.co;Database=postgres;Username=postgres;Password=SlcCouvFr1WiCUak;Port=5432;SSL Mode=Require;Trust Server Certificate=true"
+  },
+  "JwtSettings": {
+    "SecretKey": "YourSuperSecretKeyForJWTAtLeast32CharactersLong!",
+    "Issuer": "PropertyManagementAPI",
+    "Audience": "PropertyManagementUI",
+    "ExpiryMinutes": 60
+  },
+  "SmtpSettings": {
+    "Host": "smtp.gmail.com",
+    "Port": "587",
+    "Username": "nghy1031@gmail.com",
+    "Password": "hdzeisojtruxhvsc",
+    "FromEmail": "nghy1031@gmail.com",
+    "FromName": "Property Management System",
+    "EnableSsl": "true"
   }
 }
 ```
 
-Replace `YOUR_SERVER_NAME` with your SQL Server instance (e.g., `localhost` or `DESKTOP-ABC123\SQLEXPRESS`).
+4. Save the file.
+
+> ⚠️ This file is in `.gitignore` — it will NOT be uploaded to GitHub. That's correct. Never push it.
+
+---
+
+### STEP 8 — Install Backend Dependencies & Sync Database
+
+```
+cd ..\PropertyManagement.API
+dotnet restore
+dotnet ef database update
+```
+
+- `dotnet restore` downloads all .NET packages
+- `dotnet ef database update` creates any missing tables in the shared Supabase database
+
+> 💡 If `dotnet ef` is not found, install it with:
+> ```
+> dotnet tool install --global dotnet-ef
+> ```
+> Then run `dotnet ef database update` again.
+
+---
+
+### STEP 9 — Verify Everything Works
+
+Open **two separate** Command Prompt / PowerShell windows:
+
+**Window 1 — Backend API:**
+```
+cd Documents\Project-II\property-management-system\PropertyManagement.API
+dotnet run
+```
+Wait until you see: `Now listening on: http://localhost:5004`
+
+**Window 2 — Frontend:**
+```
+cd Documents\Project-II\property-management-system\property-management-ui
+ng serve --port 4201
+```
+Wait until you see: `Application bundle generation complete`
+
+Then open your browser and go to: **http://localhost:4201**
+
+✅ You should see the login page. Use the test accounts below to log in.
+
+---
+
+## Test Accounts
+
+> These are on the real shared database. Contact the team leader to reset if needed.
+
+| Role | Email | Password |
+|------|-------|----------|
+| **Property Manager** | `nghy-wm24@student.tarc.edu.my` | `Manager@123` |
+| **Technician** | `nghy1031@gmail.com` | Check email inbox for temp password |
+| **Owner** | Use "Need help?" → Owner → IC bypass | IC: `900101-10-1234` |
+
+> If login doesn't work, call `POST http://localhost:5004/api/Seed/run` to reset all test data.
+
+---
+
+## ▶️ Running the Project Daily
+
+Every time you want to work on the project, open **two terminals**:
+
+**Terminal 1 — Backend:**
+```
+cd Documents\Project-II\property-management-system\PropertyManagement.API
+dotnet run
+```
+
+**Terminal 2 — Frontend:**
+```
+cd Documents\Project-II\property-management-system\property-management-ui
+ng serve --port 4201
+```
+
+Then visit **http://localhost:4201**
 
 ---
 
@@ -200,79 +259,80 @@ Replace `YOUR_SERVER_NAME` with your SQL Server instance (e.g., `localhost` or `
 Project-II/
 └── property-management-system/
     ├── property-management-ui/          ← Angular frontend
-    │   ├── src/
-    │   │   ├── app/
-    │   │   │   ├── auth/                ← Login page
-    │   │   │   ├── core/                ← Services, Models, Guards
-    │   │   │   └── features/
-    │   │   │       ├── tenant/          ← Tenant/Resident/Owner pages
-    │   │   │       ├── technician/      ← Technician pages
-    │   │   │       ├── manager/         ← Property Manager pages
-    │   │   │       └── shared/          ← Shared layout & components
-    │   │   └── styles.css               ← Global Tailwind + custom styles
-    │   ├── package.json                 ← npm dependencies
-    │   ├── angular.json                 ← Angular project config
+    │   ├── src/app/
+    │   │   ├── auth/                    ← Login page
+    │   │   ├── core/                    ← Services, Guards, Models
+    │   │   └── features/
+    │   │       ├── tenant/              ← Tenant/Resident/Owner pages
+    │   │       ├── technician/          ← Technician pages
+    │   │       ├── manager/             ← Property Manager pages
+    │   │       └── shared/              ← Shared layout & components
+    │   ├── package.json                 ← npm dependencies (includes Tailwind)
     │   └── tailwind.config.js           ← Tailwind configuration
     │
     └── PropertyManagement.API/          ← .NET 8 backend
         ├── Controllers/                 ← API endpoints
-        ├── Models/                      ← Database entity models
+        ├── Data/AppDbContext.cs         ← Database table definitions
+        ├── Models/Entities/             ← C# entity classes (one per table)
         ├── Services/                    ← Business logic
-        └── appsettings.json             ← Configuration (DB connection)
+        ├── Migrations/                  ← Auto-generated database migrations
+        ├── appsettings.json             ← Safe config (no secrets)
+        └── appsettings.Development.json ← YOUR LOCAL SECRETS (gitignored)
 ```
 
 ---
 
-## Demo Accounts
+## Team Collaboration Rules
 
-> Use these to test the app without a backend connection. Password for all: **`Test123!`**
-
-| Email | Role | Notes |
-|-------|------|-------|
-| `tenant@demo.com` | Tenant | Normal returning user |
-| `owner@demo.com` | Property Owner | Has "My Tenants" menu |
-| `tech@demo.com` | Technician | Work order management |
-| `admin@demo.com` | Property Manager | Full system access |
-| `new.tenant@demo.com` | New Tenant | First login — set password flow |
-| `new.staff@demo.com` | New Staff | Temp password: `TEMP9999` |
-| IC bypass | Owner | IC: `900101-10-1234` |
-
----
-
-## 🔄 Pulling Latest Changes (For Team Members)
-
-When a teammate pushes new code, update your local copy:
-
-```bash
+### Every morning before coding:
+```
 git pull origin main
-
-# If package.json was updated, reinstall dependencies:
-cd property-management-ui
-npm install
+dotnet ef database update
 ```
+
+### After finishing your work:
+```
+git add -A
+git commit -m "feat: describe what you did"
+git push origin main
+```
+
+### When adding a new database table:
+1. Create the C# model in `Models/Entities/`
+2. Add `DbSet<YourModel>` to `AppDbContext.cs`
+3. Run: `dotnet ef migrations add YourMigrationName`
+4. Run: `dotnet ef database update`
+5. Commit and push — teammates then just run `dotnet ef database update`
+
+> ⚠️ **Tell your team in the group chat before modifying shared tables** to avoid merge conflicts.
 
 ---
 
-## ❓ Common Issues
+## Common Issues
 
 | Problem | Solution |
 |---------|---------|
-| `ng: command not found` | Run `npm install -g @angular/cli@18` again |
-| `EACCES` permission error | Run terminal as Administrator |
-| `npm install` fails | Delete `node_modules` folder and run `npm install` again |
-| App shows blank page | Check browser console (F12) for errors |
-| API not connecting | Ensure `dotnet run` is running and port 5004 is not blocked |
+| `ng: command not found` | Run `npm install -g @angular/cli@18` |
+| `npm install` fails | Delete the `node_modules` folder and run `npm install` again |
+| `dotnet ef: command not found` | Run `dotnet tool install --global dotnet-ef` |
+| `Unable to connect to server` | Check that `dotnet run` is running in a separate terminal |
+| Login says "Incorrect email or password" | Run the seed: `POST http://localhost:5004/api/Seed/run` |
+| Port 4201 already in use | Run `ng serve --port 4202` instead |
+| `git push` rejected | Run `git pull origin main` first, then push again |
 
 ---
 
-## Team Members
+## Recommended VS Code Extensions
 
-<!-- Add your team member names here -->
-- 
-- 
-- 
-- 
+Install these from the VS Code Extensions panel (Ctrl+Shift+X):
+
+| Extension | Purpose |
+|-----------|---------|
+| **Angular Language Service** | IntelliSense for Angular HTML templates |
+| **Tailwind CSS IntelliSense** | Autocomplete for Tailwind classes |
+| **C# Dev Kit** | .NET/C# IntelliSense and debugging |
+| **GitLens** | See who changed what line in Git |
 
 ---
 
-*Built with ❤️ using Angular 18 + Tailwind CSS 3 + .NET 8*
+*Built with ❤️ using Angular 18 + Tailwind CSS 3 + .NET 8 + Supabase*
