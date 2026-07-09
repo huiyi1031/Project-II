@@ -133,50 +133,7 @@ This installs Angular, Tailwind CSS, and all other packages. May take **2–3 mi
 
 ---
 
-### STEP 7 — Create Your Database Config File (SECRET — Do NOT commit to GitHub)
-
-This file connects your computer to the shared Supabase database.
-
-1. Go to this folder: `property-management-system\PropertyManagement.API\`
-2. Create a **new file** called exactly: `appsettings.Development.json`
-3. Paste this content into it (ask your team leader for the password if blocked):
-
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning"
-    }
-  },
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=db.gxzjcobrhhgijvveazxa.supabase.co;Database=postgres;Username=postgres;Password=SlcCouvFr1WiCUak;Port=5432;SSL Mode=Require;Trust Server Certificate=true"
-  },
-  "JwtSettings": {
-    "SecretKey": "YourSuperSecretKeyForJWTAtLeast32CharactersLong!",
-    "Issuer": "PropertyManagementAPI",
-    "Audience": "PropertyManagementUI",
-    "ExpiryMinutes": 60
-  },
-  "SmtpSettings": {
-    "Host": "smtp.gmail.com",
-    "Port": "587",
-    "Username": "nghy1031@gmail.com",
-    "Password": "hdzeisojtruxhvsc",
-    "FromEmail": "nghy1031@gmail.com",
-    "FromName": "Property Management System",
-    "EnableSsl": "true"
-  }
-}
-```
-
-4. Save the file.
-
-> ⚠️ This file is in `.gitignore` — it will NOT be uploaded to GitHub. That's correct. Never push it.
-
----
-
-### STEP 8 — Install Backend Dependencies & Sync Database
+### STEP 7 — Install Backend Dependencies & Sync Database
 
 ```
 cd ..\PropertyManagement.API
@@ -195,7 +152,7 @@ dotnet ef database update
 
 ---
 
-### STEP 9 — Verify Everything Works
+### STEP 8 — Verify Everything Works
 
 Open **two separate** Command Prompt / PowerShell windows:
 
