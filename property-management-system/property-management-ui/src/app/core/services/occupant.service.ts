@@ -28,14 +28,14 @@ export class OccupantService {
   // ── Family Members (Resident/Owner) ──────────────────────────────────────
   getMyFamilyMembers(): Observable<any[]>                    { return this.http.get<any[]>(`${this.base}/Occupants/me/family`); }
   addFamilyMember(dto: any): Observable<any>                 { return this.http.post<any>(`${this.base}/Occupants/me/family`, dto); }
-  removeFamilyMember(occupantID: number): Observable<void>   { return this.http.delete<void>(`${this.base}/Occupants/family/${occupantID}`); }
+  removeFamilyMember(occupantID: number): Observable<void>   { return this.http.delete<void>(`${this.base}/Occupants/me/family/${occupantID}`); }
   getUnitHeadcount(): Observable<any>                        { return this.http.get<any>(`${this.base}/PropertyUnits/my/headcount`); }
 
-  // ── Tenant management (Owner manages tenants) ────────────────────────────
-  getMyTenants(): Observable<any[]>                          { return this.http.get<any[]>(`${this.base}/Contracts/my-tenants`); }
+  // ── Tenants (Owner) ──────────────────────────────────────────────────────
+  getMyTenants(): Observable<any[]>                          { return this.http.get<any[]>(`${this.base}/Occupants/me/tenants`); }
   addTenant(dto: any): Observable<any>                       { return this.http.post<any>(`${this.base}/Occupants/me/tenants`, dto); }
-  removeTenant(contractID: number, dto: any): Observable<void> {
-    return this.http.request<void>('DELETE', `${this.base}/Contracts/${contractID}`, { body: dto });
+  removeTenant(occupantID: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/Occupants/me/tenants/${occupantID}`);
   }
 
   // ── Property Units (Manager) ─────────────────────────────────────────────

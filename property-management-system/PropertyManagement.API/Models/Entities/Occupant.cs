@@ -21,10 +21,13 @@ namespace PropertyManagement.API.Models.Entities
         
         [MaxLength(1)]
         public string? Gender { get; set; }
-        
         public int? Age { get; set; }
         
+        public DateTime? DateOfBirth { get; set; }
+        
         public OccupantType OccupantType { get; set; } = OccupantType.Tenant;
+        
+        public long? ParentOccupantId { get; set; }
         
         [MaxLength(20)]
         public string? OccupantStatus { get; set; } = "Active";

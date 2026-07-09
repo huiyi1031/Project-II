@@ -117,5 +117,20 @@ namespace PropertyManagement.API.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequestDto request)
+        {
+            try
+            {
+                await _authService.ForgotPasswordAsync(request.Email);
+                return Ok(new { message = "If the email is registered, a temporary password has been sent." });
+            }
+            catch (Exception ex)
+            {
+                // We shouldn't really expose internal errors here unless necessary, but keeping it consistent with the rest
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

@@ -3,8 +3,10 @@ import { FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/fo
 import { AuthService } from '../../core/services/auth.service';
 
 type LoginStep =
+  | 'door-closed'     // Initial Splash Screen
   | 'login'           // Enter email & password
   | 'help'            // "Need help?" — role selector panel
+  | 'forgot-password' // Enter email for temp password
   | 'ic-entry'        // Owner: Enter IC/Passport
   | 'ic-not-found'    // IC not found
   | 'ic-found-email'  // IC found → update email
@@ -19,23 +21,24 @@ export class LoginComponent {
   step: LoginStep = 'login';
 
   // Forms
-  loginForm:       FormGroup;
+  loginForm: FormGroup;
   setPasswordForm: FormGroup;
-  icForm:          FormGroup;
-  newEmailForm:    FormGroup;
+  icForm: FormGroup;
+  newEmailForm: FormGroup;
+  forgotPasswordForm: FormGroup;
 
   // State carried across steps
-  email       = '';
+  email = '';
   maskedEmail = '';
   updateToken = '';
 
-  isLoading    = false;
+  isLoading = false;
   errorMessage = '';
 
   // UI state
-  showPassword    = false;
+  showPassword = false;
   showNewPassword = false;
-  showConfirmPw   = false;
+  showConfirmPw = false;
 
   // Password strength
   get pwStrength(): number { return this._calcStrength(this.setPasswordForm.get('newPassword')?.value || ''); }
@@ -44,11 +47,11 @@ export class LoginComponent {
 
   constructor(private fb: FormBuilder, private auth: AuthService) {
     this.loginForm = fb.group({
-      email:    ['', [Validators.required, Validators.email]],
+      email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required],
     });
     this.setPasswordForm = fb.group({
-      newPassword:     ['', [Validators.required, Validators.minLength(8), this._pwComplexity]],
+      newPassword: ['', [Validators.required, Validators.minLength(8), this._pwComplexity]],
       confirmPassword: ['', Validators.required],
     }, { validators: this._pwMatch });
     this.icForm = fb.group({
@@ -56,6 +59,9 @@ export class LoginComponent {
     });
     this.newEmailForm = fb.group({
       newEmail: ['', [Validators.required, Validators.email]],
+    });
+    this.forgotPasswordForm = fb.group({
+      email: ['', [Validators.required, Validators.email]],
     });
   }
 
@@ -106,6 +112,38 @@ export class LoginComponent {
     this.errorMessage = '';
   }
 
+  // ── Forgot Password ─────────────────────────────────────────────────────────
+  startForgotPassword(): void {
+    this.step = 'forgot-password';
+    this.errorMessage = '';
+    // Pre-fill email if they already typed it
+    const currentEmail = this.loginForm.get('email')?.value;
+    this.forgotPasswordForm.patchValue({ email: currentEmail });
+  }
+
+  submitForgotPassword(): void {
+    if (this.forgotPasswordForm.invalid) { this.forgotPasswordForm.markAllAsTouched(); return; }
+    this.isLoading = true;
+    this.errorMessage = '';
+    const email = this.forgotPasswordForm.value.email.toLowerCase().trim();
+
+    this.auth.forgotPassword(email).subscribe({
+      next: (res) => {
+        this.isLoading = false;
+        // Tell them to check their email
+        this.errorMessage = res.message; // actually a success message but we can just use the login page to show it
+        this.step = 'login';
+        this.loginForm.patchValue({ email: email });
+        // show success alert instead of error, we can repurpose errorMessage for simplicity
+        // or just let them read it on the screen
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.errorMessage = err.error?.message || 'Failed to send reset link. Please try again.';
+      }
+    });
+  }
+
   // ── Owner IC Path ─────────────────────────────────────────────────────────────
   submitIc(): void {
     if (this.icForm.invalid) { this.icForm.markAllAsTouched(); return; }
@@ -147,10 +185,10 @@ export class LoginComponent {
     if (this.setPasswordForm.invalid) { this.setPasswordForm.markAllAsTouched(); return; }
     this.isLoading = true;
     this.auth.setPassword({
-      email:           this.email,
-      newPassword:     this.setPasswordForm.value.newPassword,
+      email: this.email,
+      newPassword: this.setPasswordForm.value.newPassword,
       confirmPassword: this.setPasswordForm.value.confirmPassword,
-      updateToken:     this.updateToken || undefined,
+      updateToken: this.updateToken || undefined,
     }).subscribe({
       next: (resp) => {
         this.isLoading = false;
@@ -167,8 +205,8 @@ export class LoginComponent {
   spLen(n: number): boolean { return (this.setPasswordForm.get('newPassword')?.value || '').length >= n; }
   spHas(pattern: 'upper' | 'number' | 'special'): boolean {
     const v = this.setPasswordForm.get('newPassword')?.value || '';
-    if (pattern === 'upper')   return /[A-Z]/.test(v);
-    if (pattern === 'number')  return /[0-9]/.test(v);
+    if (pattern === 'upper') return /[A-Z]/.test(v);
+    if (pattern === 'number') return /[0-9]/.test(v);
     if (pattern === 'special') return /[^A-Za-z0-9]/.test(v);
     return false;
   }
@@ -176,9 +214,9 @@ export class LoginComponent {
   private _calcStrength(pw: string): number {
     if (!pw) return 0;
     let score = 0;
-    if (pw.length >= 8)          score++;
-    if (/[A-Z]/.test(pw))        score++;
-    if (/[0-9]/.test(pw))        score++;
+    if (pw.length >= 8) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
     if (/[^A-Za-z0-9]/.test(pw)) score++;
     return score;
   }
@@ -186,9 +224,9 @@ export class LoginComponent {
   private _pwComplexity(ctrl: AbstractControl): { [key: string]: boolean } | null {
     const v = ctrl.value || '';
     const errors: Record<string, boolean> = {};
-    if (!/[A-Z]/.test(v))        errors['noUppercase'] = true;
-    if (!/[0-9]/.test(v))        errors['noNumber']    = true;
-    if (!/[^A-Za-z0-9]/.test(v)) errors['noSpecial']   = true;
+    if (!/[A-Z]/.test(v)) errors['noUppercase'] = true;
+    if (!/[0-9]/.test(v)) errors['noNumber'] = true;
+    if (!/[^A-Za-z0-9]/.test(v)) errors['noSpecial'] = true;
     return Object.keys(errors).length ? errors : null;
   }
 

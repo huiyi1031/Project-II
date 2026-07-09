@@ -56,13 +56,26 @@
         <h3 class="font-bold text-navy text-base m-0">{{ pageTitle }}</h3>
         <p class="text-xs text-muted m-0 mt-0.5">{{ breadcrumb }}</p>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3 relative">
         <div class="text-right hidden md:block">
           <div class="text-sm font-semibold text-navy">{{ userName }}</div>
           <div class="text-xs text-muted">{{ userEmail }}</div>
         </div>
-        <div class="w-9 h-9 rounded-full bg-light-blue border border-border
-                    grid place-items-center text-lg">👤</div>
+        <button (click)="toggleProfileMenu()" class="w-9 h-9 rounded-full bg-light-blue border border-border grid place-items-center text-lg cursor-pointer hover:bg-gray-100 transition-colors">
+          👤
+        </button>
+        <!-- Dropdown Menu -->
+        <div *ngIf="isProfileMenuOpen" class="absolute top-12 right-0 w-48 bg-white rounded-xl shadow-lg border border-border py-2 z-50 animate-fade-in-down">
+          <button (click)="navigate({route: 'profile', label: 'My Profile', icon: '👤'}); isProfileMenuOpen = false" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex gap-2 items-center">
+            👤 My Profile
+          </button>
+          <button *ngIf="roleLabel === 'Occupant' && occupantType !== 'Tenant'" (click)="navigate({route: 'family', label: 'My Family Member', icon: '👨‍👩‍👧'}); isProfileMenuOpen = false" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex gap-2 items-center">
+            👨‍👩‍👧 My Family Member
+          </button>
+          <button *ngIf="roleLabel === 'Occupant' && occupantType === 'Owner'" (click)="navigate({route: 'tenants', label: 'My Tenants', icon: '🔑'}); isProfileMenuOpen = false" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex gap-2 items-center">
+            🔑 My Tenants
+          </button>
+        </div>
       </div>
     </header>
 

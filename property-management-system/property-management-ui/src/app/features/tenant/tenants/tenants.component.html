@@ -20,17 +20,16 @@
       </div>
       <div *ngIf="isLoading" class="text-center py-8 text-[#6b7a90]">Loading...</div>
       <table *ngIf="!isLoading && tenants.length > 0" class="pms-table">
-        <thead><tr><th>Name</th><th>IC / Passport</th><th>Unit</th><th>Lease Start</th><th>Lease End</th><th>Status</th><th>Action</th></tr></thead>
+        <thead><tr><th>Name</th><th>Unit</th><th>Lease Start</th><th>Lease End</th><th>Status</th><th>Action</th></tr></thead>
         <tbody>
-          <tr *ngFor="let t of tenants">
+          <tr *ngFor="let t of tenants" class="hover:bg-gray-50 cursor-pointer" (click)="viewDetails(t)">
             <td class="font-semibold">{{ t.fullName }}</td>
-            <td class="font-mono text-xs">{{ t.identificationNo }}</td>
             <td class="font-semibold text-[#1f5fae]">{{ t.unitNumber }}</td>
             <td>{{ t.startDate | date:'dd MMM yyyy' }}</td>
             <td>{{ t.endDate ? (t.endDate | date:'dd MMM yyyy') : '—' }}</td>
             <td><app-status-badge [status]="t.status"></app-status-badge></td>
             <td>
-              <button *ngIf="t.status === 'Active'" (click)="confirmRemove(t)" class="btn-danger text-xs py-1 px-2">Remove</button>
+              <button *ngIf="t.status === 'Active'" (click)="confirmRemove(t); $event.stopPropagation()" class="btn-danger text-xs py-1 px-2">Remove</button>
               <span *ngIf="t.status === 'PendingApproval'" class="text-xs text-amber-600 font-medium">Pending...</span>
               <span *ngIf="t.status === 'Expired'" class="text-xs text-[#6b7a90]">Expired</span>
             </td>
@@ -44,24 +43,14 @@
   <!-- ═══ VIEW: Add Tenant — Step 1: Personal Details ══════════════════════ -->
   <ng-container *ngIf="view === 'add-step1'">
     <div class="pms-card">
-      <!-- Step indicator -->
-      <div class="flex items-center gap-2 mb-5">
-        <div class="w-7 h-7 rounded-full bg-[#1f5fae] text-white text-xs flex items-center justify-center font-bold">1</div>
-        <div class="flex-1 h-0.5 bg-gray-200 rounded"></div>
-        <div class="w-7 h-7 rounded-full bg-[#e8f0fd] text-[#6b7a90] text-xs flex items-center justify-center font-bold">2</div>
-        <span class="text-xs text-[#6b7a90] ml-1">Step 1 of 2 — Tenant Details</span>
-      </div>
+
       <h4 class="section-title">Enter Tenant Information</h4>
-      <p class="text-sm text-[#6b7a90] mb-4">Provide the tenant's personal details and lease period. A formal tenancy agreement upload is required in the next step.</p>
-      <form [formGroup]="step1Form" (ngSubmit)="goToStep2()" class="space-y-4">
+      <p class="text-sm text-[#6b7a90] mb-4">Provide the tenant's personal details and lease period.</p>
+      <form [formGroup]="step1Form" class="space-y-4">
         <div class="form-grid">
           <div class="space-y-1.5">
             <label class="pms-label">Full Name *</label>
             <input formControlName="fullName" class="pms-input" [class.border-red-400]="step1Form.get('fullName')?.invalid && step1Form.get('fullName')?.touched"/>
-          </div>
-          <div class="space-y-1.5">
-            <label class="pms-label">IC / Passport *</label>
-            <input formControlName="identificationNo" class="pms-input font-mono" placeholder="e.g. 870505-14-1234" [class.border-red-400]="step1Form.get('identificationNo')?.invalid && step1Form.get('identificationNo')?.touched"/>
           </div>
           <div class="space-y-1.5">
             <label class="pms-label">Email *</label>
@@ -74,8 +63,14 @@
           <div class="space-y-1.5">
             <label class="pms-label">Gender *</label>
             <select formControlName="gender" class="pms-select">
-              <option value="">Select</option><option>Male</option><option>Female</option>
+              <option value="">Select</option>
+              <option value="M">Male</option>
+              <option value="F">Female</option>
             </select>
+          </div>
+          <div class="space-y-1.5">
+            <label class="pms-label">Date of Birth *</label>
+            <input formControlName="dateOfBirth" type="date" class="pms-input" [class.border-red-400]="step1Form.get('dateOfBirth')?.invalid && step1Form.get('dateOfBirth')?.touched"/>
           </div>
           <div class="space-y-1.5">
             <label class="pms-label">Property Unit *</label>
@@ -96,74 +91,15 @@
         </div>
         <div class="form-actions">
           <button type="button" (click)="cancelAdd()" class="btn-outline">Cancel</button>
-          <button type="submit" class="btn-primary">Next: Upload Agreement →</button>
+          <button type="button" (click)="submitTenant()" [disabled]="isSaving || step1Form.invalid" class="btn-primary">
+            {{ isSaving ? 'Submitting...' : '📤 Submit' }}
+          </button>
         </div>
       </form>
     </div>
   </ng-container>
 
-  <!-- ═══ VIEW: Add Tenant — Step 2: Upload Agreement ══════════════════════ -->
-  <ng-container *ngIf="view === 'add-step2'">
-    <div class="pms-card">
-      <div class="flex items-center gap-2 mb-5">
-        <div class="w-7 h-7 rounded-full bg-[#22a06b] text-white text-xs flex items-center justify-center font-bold">✓</div>
-        <div class="flex-1 h-0.5 bg-[#1f5fae] rounded"></div>
-        <div class="w-7 h-7 rounded-full bg-[#1f5fae] text-white text-xs flex items-center justify-center font-bold">2</div>
-        <span class="text-xs text-[#6b7a90] ml-1">Step 2 of 2 — Tenancy Agreement</span>
-      </div>
-      <h4 class="section-title">Upload Tenancy Agreement</h4>
-      <p class="text-sm text-[#6b7a90] mb-4">A formal lease document is required before the application can be submitted to the Property Manager for review.</p>
 
-      <!-- Upload zone -->
-      <div class="upload-box mb-4" (click)="fileInput.click()">
-        <input #fileInput type="file" class="hidden" accept=".pdf,.jpg,.jpeg,.png" (change)="onFileSelected($event)"/>
-        <div *ngIf="!uploadedFileName && !uploading" class="text-center">
-          <div class="text-4xl mb-2">📄</div>
-          <p class="font-semibold text-[#1f5fae]">Click to upload</p>
-          <p class="text-xs text-[#6b7a90] mt-1">Accepted formats: PDF, JPG, PNG (max 10 MB)</p>
-        </div>
-        <div *ngIf="uploading" class="text-center text-[#6b7a90]">
-          <div class="animate-spin w-8 h-8 border-2 border-[#1f5fae] border-t-transparent rounded-full mx-auto mb-2"></div>
-          <p class="text-sm">Uploading...</p>
-        </div>
-        <div *ngIf="uploadedFileName && !uploading" class="text-center">
-          <div class="text-3xl mb-2">✅</div>
-          <p class="font-semibold text-green-700">{{ uploadedFileName }}</p>
-          <p class="text-xs text-[#6b7a90] mt-1">Click to replace</p>
-        </div>
-      </div>
-
-      <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800 mb-4">
-        <p class="font-semibold">📋 Dual Approval Process</p>
-        <p class="mt-1">Your application will be reviewed by the Property Manager. The tenant will only receive their activation email after manager approval.</p>
-      </div>
-
-      <div class="form-actions">
-        <button type="button" (click)="view='add-step1'" class="btn-outline">← Back</button>
-        <button type="button" (click)="submitTenant()" [disabled]="isSaving || !uploadedFileRef" class="btn-primary">
-          {{ isSaving ? 'Submitting...' : '📤 Submit for Manager Approval' }}
-        </button>
-      </div>
-    </div>
-  </ng-container>
-
-  <!-- ═══ VIEW: Pending ══════════════════════════════════════════════════════ -->
-  <ng-container *ngIf="view === 'pending'">
-    <div class="pms-card text-center py-6">
-      <div class="text-5xl mb-3">📤</div>
-      <h4 class="text-lg font-bold text-[#0b2d5c] mb-2">Application Submitted</h4>
-      <p class="text-sm text-[#6b7a90] mb-4 max-w-sm mx-auto">The tenant registration and tenancy agreement have been sent to the Property Manager for review.</p>
-      <div class="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-800 text-left max-w-sm mx-auto mb-6">
-        <p class="font-semibold">📋 What happens next:</p>
-        <ol class="list-decimal list-inside mt-1 space-y-1">
-          <li>Manager reviews tenant details and agreement</li>
-          <li>Upon approval, tenant account is created automatically</li>
-          <li>Tenant receives activation email to set their password</li>
-        </ol>
-      </div>
-      <button (click)="view='list'; loadTenants()" class="btn-primary">← Back to Tenant List</button>
-    </div>
-  </ng-container>
 
   <!-- ═══ VIEW: Remove Confirm ══════════════════════════════════════════════ -->
   <ng-container *ngIf="view === 'remove-confirm'">
@@ -197,6 +133,44 @@
           </button>
         </div>
       </form>
+    </div>
+  </ng-container>
+
+  <!-- ═══ VIEW: Details ════════════════════════════════════════════════════ -->
+  <ng-container *ngIf="view === 'details' && selectedTenant">
+    <div class="pms-card">
+      <div class="flex items-center justify-between mb-4">
+        <h4 class="section-title mb-0">Tenant Details</h4>
+        <button (click)="closeDetails()" class="btn-outline text-sm">← Back</button>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs text-[#6b7a90] mb-1">Full Name</p>
+          <p class="font-semibold">{{ selectedTenant.fullName }}</p>
+        </div>
+
+        <div>
+          <p class="text-xs text-[#6b7a90] mb-1">Email</p>
+          <p class="font-semibold">{{ selectedTenant.email || '—' }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-[#6b7a90] mb-1">Contact Number</p>
+          <p class="font-semibold">{{ selectedTenant.contactNumber || '—' }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-[#6b7a90] mb-1">Property Unit</p>
+          <p class="font-semibold text-[#1f5fae]">{{ selectedTenant.unitNumber }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-[#6b7a90] mb-1">Lease Period</p>
+          <p class="font-semibold">{{ selectedTenant.startDate | date:'dd MMM yyyy' }} to {{ selectedTenant.endDate ? (selectedTenant.endDate | date:'dd MMM yyyy') : '—' }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-[#6b7a90] mb-1">Status</p>
+          <app-status-badge [status]="selectedTenant.status"></app-status-badge>
+        </div>
+      </div>
     </div>
   </ng-container>
 

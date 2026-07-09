@@ -15,10 +15,7 @@ const MENUS: Record<string, MenuItem[]> = {
     { label: 'Create Maintenance Request', icon: '📝', route: 'create-request' },
     { label: 'Track Request',              icon: '🔍', route: 'track-request' },
     { label: 'Maintenance Chat Room',      icon: '💬', route: 'chat' },
-    { label: 'My Profile',                 icon: '👤', route: 'profile' },
     { label: 'My Property',                icon: '🏢', route: 'my-property' },
-    { label: 'My Family Member',           icon: '👨‍👩‍👧', route: 'family' },
-    // Owner-only — injected dynamically in ngOnInit
   ],
   Technician: [
     { label: 'Dashboard',        icon: '🏠', route: 'dashboard' },
@@ -26,7 +23,6 @@ const MENUS: Record<string, MenuItem[]> = {
     { label: 'Execute Work Order',icon: '🔧', route: 'execute-work' },
     { label: 'Chat Room',        icon: '💬', route: 'chat' },
     { label: 'Report',           icon: '📊', route: 'report' },
-    { label: 'My Profile',       icon: '👤', route: 'profile' },
   ],
   PropertyManager: [
     { label: 'Dashboard',                   icon: '🏠', route: 'dashboard' },
@@ -38,7 +34,6 @@ const MENUS: Record<string, MenuItem[]> = {
     { label: 'Asset Management',            icon: '⚙️', route: 'assets' },
     { label: 'Proactive Maintenance',       icon: '🛡️', route: 'proactive' },
     { label: 'Maintenance Chat Room',       icon: '💬', route: 'chat' },
-    { label: 'My Profile',                  icon: '👤', route: 'profile' },
   ],
 };
 
@@ -58,6 +53,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   breadcrumb   = '';
   userName     = '';
   userEmail    = '';
+  isProfileMenuOpen = false;
 
   private sub!: Subscription;
 
@@ -73,17 +69,6 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
       // Start with the base menu for the role
       const base = [...(MENUS[user.role] ?? [])];
-
-      // Inject "My Tenants" only for Owners (between Family and end)
-      if (user.role === 'Occupant' && this.occupantType === 'Owner') {
-        const familyIdx = base.findIndex(m => m.route === 'family');
-        const ownerItem: MenuItem = { label: 'My Tenants', icon: '🔑', route: 'tenants' };
-        if (familyIdx >= 0) {
-          base.splice(familyIdx + 1, 0, ownerItem);
-        } else {
-          base.push(ownerItem);
-        }
-      }
 
       this.menuItems = base;
     }
@@ -107,6 +92,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   logout(): void { this.authService.logout(); }
+
+  toggleProfileMenu(): void {
+    this.isProfileMenuOpen = !this.isProfileMenuOpen;
+  }
 
   private syncActive(url: string): void {
     const seg = url.split('/').pop() ?? 'dashboard';

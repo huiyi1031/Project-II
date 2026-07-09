@@ -50,6 +50,7 @@ namespace PropertyManagement.API.Services
                     Email = user.Email,
                     Role = user.RoleType.ToString(),
                     RequiresPasswordChange = true,
+                    IsFirstLogin = (user.LastLogin == null),
                     UpdateToken = updateToken
                 };
             }
@@ -77,7 +78,8 @@ namespace PropertyManagement.API.Services
                 FullName = fullName,
                 AccountStatus = user.AccountStatus.ToString(),
                 OccupantType = occupantType,
-                RequiresPasswordChange = false
+                RequiresPasswordChange = false,
+                IsFirstLogin = false
             };
         }
 
@@ -236,14 +238,28 @@ namespace PropertyManagement.API.Services
                 user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Email == request.Email);
             }
 
-            if (user == null) throw new Exception("User not found.");
+            if (user == null) throw new Exception("User not found. Please try logging in again.");
 
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-            user.AccountStatus = AccountStatus.Active;
-            user.UpdatedAt = DateTime.UtcNow;
-            user.LastLogin = DateTime.UtcNow;
+            try 
+            {
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+                user.AccountStatus = AccountStatus.Active;
+                user.UpdatedAt = DateTime.UtcNow;
+                user.LastLogin = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
+                var saved = await _context.SaveChangesAsync();
+                if (saved == 0)
+                {
+                    // This shouldn't happen unless EF core decides no fields were modified, but let's be safe.
+                    // Or if there was a concurrency issue.
+                    Console.WriteLine($"[SetPasswordAsync] Warning: SaveChangesAsync returned 0 for user {user.Email}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SetPasswordAsync] Database Save Error: {ex.Message}");
+                throw new Exception("A database error occurred while saving your new password. Please try again.");
+            }
 
             var token = GenerateJwtToken(user);
             string fullName = await GetUserFullName(user);
@@ -265,6 +281,25 @@ namespace PropertyManagement.API.Services
                 OccupantType = occupantType,
                 RequiresPasswordChange = false
             };
+        }
+
+        public async Task ForgotPasswordAsync(string email)
+        {
+            var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null)
+            {
+                // Security: don't reveal if email exists, just return silently
+                return;
+            }
+
+            var tempPassword = GenerateTemporaryPassword();
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword);
+            user.AccountStatus = AccountStatus.Pending; // Force password change on next login
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            await _emailService.SendPasswordResetEmailAsync(user.Email, tempPassword);
         }
 
         private string GenerateJwtToken(UserAccount user)
