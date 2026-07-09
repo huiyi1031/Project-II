@@ -7,14 +7,21 @@
 
   <ng-container *ngIf="!isLoading">
     <!-- Profile header card -->
-    <div class="pms-card flex items-center gap-4">
-      <div class="w-16 h-16 rounded-full bg-gradient-to-br from-[#1f5fae] to-[#2f7de0] text-white text-2xl flex items-center justify-center font-bold shadow-md">
-        {{ profile?.fullName?.[0]?.toUpperCase() || '?' }}
+    <div class="pms-card flex flex-col sm:flex-row items-center gap-6">
+      <div class="relative group">
+        <div class="w-20 h-20 rounded-full bg-gradient-to-br from-[#1f5fae] to-[#2f7de0] text-white text-3xl flex items-center justify-center font-bold shadow-md overflow-hidden border-2 border-white">
+          <img *ngIf="profile?.profilePictureUrl" [src]="profile?.profilePictureUrl" class="w-full h-full object-cover"/>
+          <span *ngIf="!profile?.profilePictureUrl">{{ profile?.fullName?.[0]?.toUpperCase() || '?' }}</span>
+        </div>
+        <label class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+          <span class="text-white text-xs font-semibold">Upload</span>
+          <input type="file" class="hidden" accept="image/*" (change)="onFileSelected($event)" />
+        </label>
       </div>
-      <div>
-        <h3 class="text-lg font-bold text-[#0b2d5c]">{{ profile?.fullName }}</h3>
+      <div class="text-center sm:text-left">
+        <h3 class="text-xl font-bold text-[#0b2d5c]">{{ profile?.fullName }}</h3>
         <p class="text-sm text-[#6b7a90]">{{ profile?.email }}</p>
-        <span class="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#eaf3ff] text-[#1f5fae]">{{ profile?.occupantType || 'Occupant' }}</span>
+        <span class="inline-block mt-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#eaf3ff] text-[#1f5fae]">{{ profile?.occupantType || profile?.role || 'Occupant' }}</span>
       </div>
     </div>
 
@@ -66,7 +73,8 @@
             <label class="pms-label">Gender</label>
             <select formControlName="gender" class="pms-select">
               <option value="">Select gender</option>
-              <option>Male</option><option>Female</option><option>Prefer not to say</option>
+              <option value="M">Male</option>
+              <option value="F">Female</option>
             </select>
           </div>
         </div>

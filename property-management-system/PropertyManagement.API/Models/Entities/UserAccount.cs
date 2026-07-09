@@ -21,6 +21,9 @@ namespace PropertyManagement.API.Models.Entities
         
         public DateTime? LastLogin { get; set; }
         
+        [MaxLength(255)]
+        public string? ProfilePictureUrl { get; set; }
+        
         // One-to-One Relationships
         public virtual Occupant? Occupant { get; set; }
         public virtual Technician? Technician { get; set; }

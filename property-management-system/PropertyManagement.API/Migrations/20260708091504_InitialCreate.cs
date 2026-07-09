@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -16,16 +17,16 @@ namespace PropertyManagement.API.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    PropertyName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    PropertyType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    Address = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    City = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    State = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    Postcode = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PropertyName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    PropertyType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    Address = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    City = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    State = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    Postcode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -37,13 +38,13 @@ namespace PropertyManagement.API.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    BasePrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    BasePrice = table.Column<decimal>(type: "numeric", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -55,15 +56,15 @@ namespace PropertyManagement.API.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    RoleType = table.Column<int>(type: "int", nullable: false),
-                    AccountStatus = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
-                    LastLogin = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Email = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    PasswordHash = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
+                    RoleType = table.Column<int>(type: "integer", nullable: false),
+                    AccountStatus = table.Column<int>(type: "integer", nullable: false, defaultValue: 1),
+                    LastLogin = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -75,25 +76,25 @@ namespace PropertyManagement.API.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     PropertyId = table.Column<long>(type: "bigint", nullable: false),
-                    AssetName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    AssetType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    Location = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    InstallationDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Manufacturer = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    ModelNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    ExpLifespanYears = table.Column<int>(type: "int", nullable: false),
-                    CriticalityLevel = table.Column<int>(type: "int", nullable: false),
-                    MaintenanceIntervalDays = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    IsHighRisk = table.Column<bool>(type: "bit", nullable: false),
-                    RiskLevel = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    RiskScore = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    QrCode = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                    AssetName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    AssetType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    Location = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    InstallationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Manufacturer = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    ModelNumber = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    ExpLifespanYears = table.Column<int>(type: "integer", nullable: false),
+                    CriticalityLevel = table.Column<int>(type: "integer", nullable: false),
+                    MaintenanceIntervalDays = table.Column<int>(type: "integer", nullable: false),
+                    Status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    IsHighRisk = table.Column<bool>(type: "boolean", nullable: false),
+                    RiskLevel = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    RiskScore = table.Column<decimal>(type: "numeric", nullable: false),
+                    QrCode = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -111,21 +112,21 @@ namespace PropertyManagement.API.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     PropertyId = table.Column<long>(type: "bigint", nullable: false),
-                    UnitNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    FloorLevel = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
-                    Block = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    Bedrooms = table.Column<int>(type: "int", nullable: true),
-                    Bathrooms = table.Column<int>(type: "int", nullable: true),
-                    AreaSqft = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    UnitType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    MaxOccupants = table.Column<int>(type: "int", nullable: false),
-                    CurrentOccupants = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                    UnitNumber = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    FloorLevel = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    Block = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    Bedrooms = table.Column<int>(type: "integer", nullable: true),
+                    Bathrooms = table.Column<int>(type: "integer", nullable: true),
+                    AreaSqft = table.Column<decimal>(type: "numeric", nullable: true),
+                    UnitType = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    MaxOccupants = table.Column<int>(type: "integer", nullable: false),
+                    CurrentOccupants = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -145,10 +146,10 @@ namespace PropertyManagement.API.Migrations
                     PropertyId = table.Column<long>(type: "bigint", nullable: false),
                     ServiceTypeId = table.Column<long>(type: "bigint", nullable: false),
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -172,18 +173,18 @@ namespace PropertyManagement.API.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserAccountId = table.Column<long>(type: "bigint", nullable: false),
-                    FullName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    IdentificationNo = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    ContactNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    Gender = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    Age = table.Column<int>(type: "int", nullable: true),
-                    OccupantType = table.Column<int>(type: "int", nullable: false),
-                    OccupantStatus = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                    FullName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    IdentificationNo = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    ContactNumber = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    Gender = table.Column<string>(type: "character varying(1)", maxLength: 1, nullable: true),
+                    Age = table.Column<int>(type: "integer", nullable: true),
+                    OccupantType = table.Column<int>(type: "integer", nullable: false),
+                    OccupantStatus = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -201,16 +202,16 @@ namespace PropertyManagement.API.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserAccountId = table.Column<long>(type: "bigint", nullable: false),
-                    FullName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    ContactNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    Gender = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    Age = table.Column<int>(type: "int", nullable: true),
-                    Position = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                    FullName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    ContactNumber = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    Gender = table.Column<string>(type: "character varying(1)", maxLength: 1, nullable: true),
+                    Age = table.Column<int>(type: "integer", nullable: true),
+                    Position = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -228,19 +229,19 @@ namespace PropertyManagement.API.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserAccountId = table.Column<long>(type: "bigint", nullable: false),
                     ServiceTypeId = table.Column<long>(type: "bigint", nullable: true),
-                    FullName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    ContactNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    Gender = table.Column<string>(type: "nvarchar(1)", maxLength: 1, nullable: true),
-                    Age = table.Column<int>(type: "int", nullable: true),
-                    ExperienceLevel = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    AvailabilityStatus = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    Ranking = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                    FullName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    ContactNumber = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    Gender = table.Column<string>(type: "character varying(1)", maxLength: 1, nullable: true),
+                    Age = table.Column<int>(type: "integer", nullable: true),
+                    ExperienceLevel = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    AvailabilityStatus = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    Ranking = table.Column<decimal>(type: "numeric", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -263,16 +264,16 @@ namespace PropertyManagement.API.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     AssetId = table.Column<long>(type: "bigint", nullable: false),
-                    IntervalDays = table.Column<int>(type: "int", nullable: false),
-                    LastServiceDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    NextDueDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    ScheduledBy = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                    IntervalDays = table.Column<int>(type: "integer", nullable: false),
+                    LastServiceDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    NextDueDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    ScheduledBy = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -290,18 +291,18 @@ namespace PropertyManagement.API.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     OccupantId = table.Column<long>(type: "bigint", nullable: false),
                     UnitId = table.Column<long>(type: "bigint", nullable: false),
-                    ContractType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    StartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsPrimaryOccupant = table.Column<bool>(type: "bit", nullable: false),
-                    DocumentPath = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                    ContractType = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsPrimaryOccupant = table.Column<bool>(type: "boolean", nullable: false),
+                    DocumentPath = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    Status = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -325,21 +326,21 @@ namespace PropertyManagement.API.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     OccupantId = table.Column<long>(type: "bigint", nullable: false),
                     UnitId = table.Column<long>(type: "bigint", nullable: false),
-                    AssetType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Title = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ImagePath = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    PriorityLevel = table.Column<int>(type: "int", nullable: false),
-                    RequestDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
-                    ResolutionNotes = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    ResolvedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                    AssetType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Title = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    ImagePath = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    PriorityLevel = table.Column<int>(type: "integer", nullable: false),
+                    RequestDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false, defaultValue: 1),
+                    ResolutionNotes = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    ResolvedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -363,11 +364,11 @@ namespace PropertyManagement.API.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     RequestId = table.Column<long>(type: "bigint", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -385,15 +386,15 @@ namespace PropertyManagement.API.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     RequestId = table.Column<long>(type: "bigint", nullable: false),
-                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    PaymentMethod = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    PaymentStatus = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    PaymentDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                    Amount = table.Column<decimal>(type: "numeric", nullable: false),
+                    PaymentMethod = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    PaymentStatus = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    PaymentDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -411,17 +412,17 @@ namespace PropertyManagement.API.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     RequestId = table.Column<long>(type: "bigint", nullable: true),
                     PlanId = table.Column<long>(type: "bigint", nullable: true),
-                    WorkType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ScheduleDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CompletedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                    WorkType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    ScheduleDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CompletedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -446,10 +447,10 @@ namespace PropertyManagement.API.Migrations
                     ChatId = table.Column<long>(type: "bigint", nullable: false),
                     UserAccountId = table.Column<long>(type: "bigint", nullable: false),
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -473,16 +474,16 @@ namespace PropertyManagement.API.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     ChatId = table.Column<long>(type: "bigint", nullable: false),
                     SenderId = table.Column<long>(type: "bigint", nullable: false),
-                    MessageContent = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    AttachmentPath = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
-                    SentAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ReadStatus = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                    MessageContent = table.Column<string>(type: "text", nullable: false),
+                    AttachmentPath = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: true),
+                    SentAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ReadStatus = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -506,19 +507,19 @@ namespace PropertyManagement.API.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     AssetId = table.Column<long>(type: "bigint", nullable: false),
                     WorkOrderId = table.Column<long>(type: "bigint", nullable: true),
-                    MaintenanceType = table.Column<int>(type: "int", nullable: false),
-                    FailureType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    DowntimeDuration = table.Column<int>(type: "int", nullable: true),
-                    Cost = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    MaintenanceDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ResultStatus = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                    MaintenanceType = table.Column<int>(type: "integer", nullable: false),
+                    FailureType = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    DowntimeDuration = table.Column<int>(type: "integer", nullable: true),
+                    Cost = table.Column<decimal>(type: "numeric", nullable: true),
+                    MaintenanceDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ResultStatus = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -541,14 +542,14 @@ namespace PropertyManagement.API.Migrations
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     WorkOrderId = table.Column<long>(type: "bigint", nullable: false),
                     TechnicianId = table.Column<long>(type: "bigint", nullable: false),
-                    AssignedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
+                    AssignedDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Status = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -581,8 +582,7 @@ namespace PropertyManagement.API.Migrations
                 name: "IX_Asset_QrCode",
                 table: "Assets",
                 column: "QrCode",
-                unique: true,
-                filter: "[QrCode] IS NOT NULL");
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Assets_PropertyId",
@@ -699,8 +699,7 @@ namespace PropertyManagement.API.Migrations
                 name: "IX_WorkOrders_RequestId",
                 table: "WorkOrders",
                 column: "RequestId",
-                unique: true,
-                filter: "[RequestId] IS NOT NULL");
+                unique: true);
         }
 
         /// <inheritdoc />

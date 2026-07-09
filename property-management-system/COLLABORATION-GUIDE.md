@@ -23,6 +23,31 @@ This guide explains exactly how Ng Hui Yi, Alyssa Leong, Chong Jin Wei, and Wong
 
 ---
 
+## Phase 1.5: Backend (.NET) & Database Setup
+
+Since we have successfully connected our API to a live **Supabase Cloud Database**, you **do not** need to install SQL Server or configure any local databases. Everyone will share the exact same database in the cloud!
+
+**Follow these steps to run the Backend:**
+1. Make sure you have downloaded and installed the **.NET 8.0 SDK** (if you haven't already).
+2. Open a new terminal in Visual Studio Code (`Terminal` > `New Terminal`).
+3. Navigate into the API folder:
+   ```bash
+   cd PropertyManagement.API
+   ```
+4. Restore dependencies (this installs PostgreSQL and Entity Framework packages):
+   ```bash
+   dotnet restore
+   ```
+5. Run the API:
+   ```bash
+   dotnet run
+   ```
+6. You should see a message saying `Now listening on: http://localhost:5004`. Leave this terminal open and running in the background!
+
+*Note: The test data (Manager, Technician, etc.) is already loaded in the cloud. You do not need to run the SeedController!*
+
+---
+
 ## Phase 2: The Daily Workflow (Do this every time you code)
 
 Whenever you sit down to work on your specific modules, follow these 3 strict steps:

@@ -13,11 +13,46 @@ namespace PropertyManagement.API.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IEmailService _emailService;
+        private readonly string _appUrl;
 
-        public SeedController(AppDbContext context, IEmailService emailService)
+        public SeedController(AppDbContext context, IEmailService emailService, IConfiguration configuration)
         {
             _context = context;
             _emailService = emailService;
+            _appUrl = configuration["AppUrl"] ?? "http://localhost:4201";
+        }
+
+        [HttpPost("migrate-profile-pic")]
+        public async Task<IActionResult> MigrateProfilePic()
+        {
+            try {
+                await _context.Database.ExecuteSqlRawAsync("ALTER TABLE \"UserAccounts\" ADD COLUMN IF NOT EXISTS \"ProfilePictureUrl\" character varying(255) NULL;");
+                await _context.Database.ExecuteSqlRawAsync("ALTER TABLE \"Occupants\" ADD COLUMN IF NOT EXISTS \"ParentOccupantId\" bigint NULL;");
+                return Ok("Columns added successfully");
+            } catch (Exception ex) {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("debug-users")]
+        public async Task<IActionResult> DebugUsers()
+        {
+            var users = await _context.UserAccounts
+                .Include(u => u.Occupant)
+                .Include(u => u.PropertyManager)
+                .Include(u => u.Technician)
+                .Select(u => new
+                {
+                    u.Id,
+                    u.Email,
+                    u.RoleType,
+                    OccupantName = u.Occupant != null ? u.Occupant.FullName : null,
+                    ManagerName = u.PropertyManager != null ? u.PropertyManager.FullName : null,
+                    TechName = u.Technician != null ? u.Technician.FullName : null
+                })
+                .ToListAsync();
+
+            return Ok(users);
         }
 
         /// <summary>
@@ -31,165 +66,78 @@ namespace PropertyManagement.API.Controllers
 
             try
             {
-                // ── 1. Clear dependent data first (FK order) ─────────────────────
-                _context.Contracts.RemoveRange(_context.Contracts);
-                _context.MaintenanceRequests.RemoveRange(_context.MaintenanceRequests);
-                _context.Occupants.RemoveRange(_context.Occupants);
-                _context.Technicians.RemoveRange(_context.Technicians);
-                _context.PropertyManagers.RemoveRange(_context.PropertyManagers);
-                _context.UserAccounts.RemoveRange(_context.UserAccounts);
-                _context.PropertyUnits.RemoveRange(_context.PropertyUnits);
-                _context.Properties.RemoveRange(_context.Properties);
-                await _context.SaveChangesAsync();
-                log.Add("✅ Cleared existing data");
+                // ── 1. Clear dependent data first and reset IDs (PostgreSQL) ────────
+                await _context.Database.ExecuteSqlRawAsync(@"
+                    TRUNCATE TABLE 
+                        ""Contracts"", 
+                        ""MaintenanceRequests"", 
+                        ""Occupants"", 
+                        ""Technicians"", 
+                        ""PropertyManagers"", 
+                        ""UserAccounts"", 
+                        ""PropertyUnits"", 
+                        ""Properties"" 
+                    RESTART IDENTITY CASCADE;
+                ");
+                log.Add("✅ Cleared existing data and reset all ID sequences to 1");
 
-                // ── 2. Property Manager (Active, no email needed — use known password) ──
-                var managerTempPw = "Manager@123";
-                var managerUser = new UserAccount
-                {
-                    Email = "nghy-wm24@student.tarc.edu.my",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(managerTempPw),
-                    RoleType = RoleType.PropertyManager,
-                    AccountStatus = AccountStatus.Active
-                };
-                _context.UserAccounts.Add(managerUser);
-                await _context.SaveChangesAsync();
+                // ── Helper ────────────────────────────────────────────────────────
+                string Hash(string pw) => BCrypt.Net.BCrypt.HashPassword(pw);
 
-                _context.PropertyManagers.Add(new PropertyManager
-                {
-                    UserAccountId = managerUser.Id,
-                    FullName = "Ng Hui Yi",
-                    ContactNumber = "012-3456789",
-                    Gender = "F",
-                    Position = "Lead Manager"
-                });
-                await _context.SaveChangesAsync();
-                log.Add($"✅ Manager: nghy-wm24@student.tarc.edu.my | Password: {managerTempPw}");
-
-                // ── 3. Technician (Pending — real email sent) ─────────────────────
-                var techTempPw = GenerateTempPassword();
-                var techUser = new UserAccount
-                {
-                    Email = "nghy1031@gmail.com",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(techTempPw),
-                    RoleType = RoleType.Technician,
-                    AccountStatus = AccountStatus.Pending
-                };
-                _context.UserAccounts.Add(techUser);
-                await _context.SaveChangesAsync();
-
-                _context.Technicians.Add(new Technician
-                {
-                    UserAccountId = techUser.Id,
-                    FullName = "Daniel Tan",
-                    ContactNumber = "013-9876543",
-                    Gender = "M",
-                    ExperienceLevel = "Senior",
-                    AvailabilityStatus = "Available",
-                    Ranking = 1m
-                });
-                await _context.SaveChangesAsync();
-
-                await _emailService.SendEmailAsync(
-                    techUser.Email,
-                    "Welcome to Property Management System — Activate Your Account",
-                    BuildActivationEmail("Daniel Tan", techUser.Email, techTempPw, "Technician")
-                );
-                log.Add($"✅ Technician: nghy1031@gmail.com | Temp Password: {techTempPw} | Activation email sent!");
-
-                // ── 4. Property ───────────────────────────────────────────────────
-                var property = new Property
-                {
-                    PropertyName = "Sunway Nexis Residences",
-                    PropertyType = "Condominium",
-                    Address = "Jalan PJU 5/1, Kota Damansara",
-                    City = "Petaling Jaya",
-                    State = "Selangor",
-                    Postcode = "47810"
-                };
+                // ── 2. Add Properties & Units ─────────────────────────────────────
+                var property = new Property { PropertyName = "Sunway Nexis Residences", PropertyType = "Condominium", Address = "Jalan PJU 5/1", City = "Petaling Jaya", State = "Selangor", Postcode = "47810" };
                 _context.Properties.Add(property);
                 await _context.SaveChangesAsync();
-                log.Add($"✅ Property: {property.PropertyName} (ID: {property.Id})");
 
-                // ── 5. Units ──────────────────────────────────────────────────────
-                var unit1 = new PropertyUnit
-                {
-                    PropertyId = property.Id,
-                    UnitNumber = "A-12-03",
-                    FloorLevel = "12",
-                    Block = "A",
-                    UnitType = "Studio",
-                    AreaSqft = 650,
-                    MaxOccupants = 4,
-                    CurrentOccupants = 0,
-                    Status = "Vacant"
-                };
-                var unit2 = new PropertyUnit
-                {
-                    PropertyId = property.Id,
-                    UnitNumber = "B-05-11",
-                    FloorLevel = "5",
-                    Block = "B",
-                    UnitType = "2-Bedroom",
-                    AreaSqft = 900,
-                    MaxOccupants = 6,
-                    CurrentOccupants = 0,
-                    Status = "Vacant"
-                };
+                var unit1 = new PropertyUnit { PropertyId = property.Id, UnitNumber = "A-12-03", FloorLevel = "12", Block = "A", UnitType = "Studio", AreaSqft = 650, MaxOccupants = 4, CurrentOccupants = 0, Status = "Vacant" };
+                var unit2 = new PropertyUnit { PropertyId = property.Id, UnitNumber = "B-05-11", FloorLevel = "5", Block = "B", UnitType = "2-Bedroom", AreaSqft = 900, MaxOccupants = 6, CurrentOccupants = 0, Status = "Vacant" };
                 _context.PropertyUnits.AddRange(unit1, unit2);
                 await _context.SaveChangesAsync();
-                log.Add($"✅ Units: A-12-03, B-05-11");
 
-                // ── 6. Owner (Pending — using IC, no direct email account) ────────
-                // The owner will use the IC bypass flow to set up their account.
-                // We seed the Occupant record with IC but with a placeholder email.
-                var ownerUser = new UserAccount
-                {
-                    Email = "owner.placeholder@pms.local",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
-                    RoleType = RoleType.Occupant,
-                    AccountStatus = AccountStatus.Pending
-                };
-                _context.UserAccounts.Add(ownerUser);
+                // ── 3. Add Dummy Users ───────────────────────────────────────────
+                var users = new List<object>();
+
+                // Manager
+                var mgr = new UserAccount { Email = "manager@test.com", PasswordHash = Hash("Manager@123"), RoleType = RoleType.PropertyManager, AccountStatus = AccountStatus.Active };
+                _context.UserAccounts.Add(mgr);
                 await _context.SaveChangesAsync();
+                _context.PropertyManagers.Add(new PropertyManager { UserAccountId = mgr.Id, FullName = "Ng Hui Yi", ContactNumber = "012-3456789", Gender = "F", Position = "Lead Manager" });
+                users.Add(new { role = "Manager", email = "manager@test.com", password = "Manager@123" });
 
-                var ownerOccupant = new Occupant
-                {
-                    UserAccountId = ownerUser.Id,
-                    FullName = "Ahmad bin Razak",
-                    IdentificationNo = "900101-10-1234",
-                    ContactNumber = "011-2233445",
-                    Gender = "M",
-                    OccupantType = OccupantType.Owner,
-                    OccupantStatus = "Active"
-                };
-                _context.Occupants.Add(ownerOccupant);
+                // Technicians
+                var tech1 = new UserAccount { Email = "tech1@test.com", PasswordHash = Hash("Tech@123"), RoleType = RoleType.Technician, AccountStatus = AccountStatus.Active };
+                var tech2 = new UserAccount { Email = "tech2@test.com", PasswordHash = Hash("Tech@123"), RoleType = RoleType.Technician, AccountStatus = AccountStatus.Active };
+                _context.UserAccounts.AddRange(tech1, tech2);
                 await _context.SaveChangesAsync();
-                log.Add("✅ Owner: IC=900101-10-1234 | Use IC bypass flow to set email+password");
+                _context.Technicians.Add(new Technician { UserAccountId = tech1.Id, FullName = "Daniel Tan", ContactNumber = "013-9876543", Gender = "M", ExperienceLevel = "Senior", AvailabilityStatus = "Available", Ranking = 1m });
+                _context.Technicians.Add(new Technician { UserAccountId = tech2.Id, FullName = "Ali Bin Abu", ContactNumber = "011-1234567", Gender = "M", ExperienceLevel = "Junior", AvailabilityStatus = "Available", Ranking = 0m });
+                users.Add(new { role = "Technician", email = "tech1@test.com", password = "Tech@123" });
+                users.Add(new { role = "Technician", email = "tech2@test.com", password = "Tech@123" });
 
-                // ── 7. Tenant (Pending — real student email) ──────────────────────
-                var tenantTempPw = GenerateTempPassword();
-                var tenantUser = new UserAccount
-                {
-                    Email = "nghy-wm24@student.tarc.edu.my",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(tenantTempPw),
-                    RoleType = RoleType.Occupant,
-                    AccountStatus = AccountStatus.Pending
-                };
-                // Note: If nghy-wm24 is also the Manager, we skip this to avoid duplicate email.
-                // In production the Owner would register a different tenant email.
-                // For testing, we note the temp password in the log.
-                log.Add($"⚠️  Tenant temp password (not inserted, same email as manager): {tenantTempPw}");
+                // Owners
+                var owner1 = new UserAccount { Email = "owner1@test.com", PasswordHash = Hash("Owner@123"), RoleType = RoleType.Occupant, AccountStatus = AccountStatus.Active };
+                var owner2 = new UserAccount { Email = "owner2@test.com", PasswordHash = Hash("Owner@123"), RoleType = RoleType.Occupant, AccountStatus = AccountStatus.Active };
+                _context.UserAccounts.AddRange(owner1, owner2);
+                await _context.SaveChangesAsync();
+                _context.Occupants.Add(new Occupant { UserAccountId = owner1.Id, FullName = "Ahmad bin Razak", IdentificationNo = "900101-10-1234", ContactNumber = "011-2233445", Gender = "M", OccupantType = OccupantType.Owner, OccupantStatus = "Active" });
+                _context.Occupants.Add(new Occupant { UserAccountId = owner2.Id, FullName = "John Doe", IdentificationNo = "850202-14-5678", ContactNumber = "019-8765432", Gender = "M", OccupantType = OccupantType.Owner, OccupantStatus = "Active" });
+                users.Add(new { role = "Owner", email = "owner1@test.com", password = "Owner@123" });
+                users.Add(new { role = "Owner", email = "owner2@test.com", password = "Owner@123" });
+
+                // Tenants
+                var tenant1 = new UserAccount { Email = "tenant1@test.com", PasswordHash = Hash("Tenant@123"), RoleType = RoleType.Occupant, AccountStatus = AccountStatus.Active };
+                var tenant2 = new UserAccount { Email = "tenant2@test.com", PasswordHash = Hash("Tenant@123"), RoleType = RoleType.Occupant, AccountStatus = AccountStatus.Active };
+                _context.UserAccounts.AddRange(tenant1, tenant2);
+                await _context.SaveChangesAsync();
+                _context.Occupants.Add(new Occupant { UserAccountId = tenant1.Id, FullName = "Sarah Lim", IdentificationNo = "950303-01-9012", ContactNumber = "016-1122334", Gender = "F", OccupantType = OccupantType.Tenant, OccupantStatus = "Active" });
+                _context.Occupants.Add(new Occupant { UserAccountId = tenant2.Id, FullName = "Michael Chong", IdentificationNo = "980404-07-3456", ContactNumber = "017-5566778", Gender = "M", OccupantType = OccupantType.Tenant, OccupantStatus = "Active" });
+                users.Add(new { role = "Tenant", email = "tenant1@test.com", password = "Tenant@123" });
+                users.Add(new { role = "Tenant", email = "tenant2@test.com", password = "Tenant@123" });
 
                 return Ok(new
                 {
                     message = "✅ Seed complete! Database is ready for testing.",
-                    accounts = new[]
-                    {
-                        new { role = "Property Manager", email = "nghy-wm24@student.tarc.edu.my", password = managerTempPw, status = "Active — login directly" },
-                        new { role = "Technician",        email = "nghy1031@gmail.com",            password = techTempPw,    status = "Pending — check nghy1031@gmail.com for temp password then set new password" },
-                        new { role = "Owner",             email = "(none yet)",                    password = "Use IC bypass", status = "IC: 900101-10-1234 → set your email → set password" },
-                    },
+                    accounts = users,
                     log
                 });
             }
@@ -207,7 +155,7 @@ namespace PropertyManagement.API.Controllers
             return $"TEMP-{BitConverter.ToString(bytes).Replace("-", "")}";
         }
 
-        private static string BuildActivationEmail(string name, string email, string tempPw, string role)
+        private static string BuildActivationEmail(string name, string email, string tempPw, string role, string appUrl = "http://localhost:4201")
         {
             return $@"
 <!DOCTYPE html>
@@ -235,7 +183,7 @@ namespace PropertyManagement.API.Controllers
       </div>
       
       <div style='margin-top:24px; text-align:center;'>
-        <a href='http://localhost:4201/auth/login' 
+        <a href='{appUrl}/auth/login' 
            style='display:inline-block; background:linear-gradient(135deg,#1f5fae,#2f7de0); color:#fff; padding:12px 32px; border-radius:10px; text-decoration:none; font-weight:600; font-size:15px;'>
           Login Now →
         </a>

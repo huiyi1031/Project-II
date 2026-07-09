@@ -57,8 +57,12 @@ export class AuthService {
   }
 
   // ── STEP 3a (Staff): Verify temporary password ───────────────────────────────
-  verifyTempPassword(dto: VerifyTempPasswordDto): Observable<{ tempVerifiedToken: string }> {
+  verifyTempPassword(dto: { email: string; temporaryPassword: string }): Observable<{ tempVerifiedToken: string }> {
     return this.http.post<{ tempVerifiedToken: string }>(`${this.apiUrl}/Auth/verify-temp-password`, dto);
+  }
+
+  forgotPassword(email: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.apiUrl}/Auth/forgot-password`, { email });
   }
 
   // ── STEP 3b (First login & after IC bypass): Set permanent password ──────────

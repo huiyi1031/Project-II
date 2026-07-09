@@ -19,6 +19,7 @@ namespace PropertyManagement.API.Models.DTOs
         /// <summary>Only set for Occupant role: "Owner" | "Tenant" | "Resident"</summary>
         public string? OccupantType { get; set; }
         public bool RequiresPasswordChange { get; set; }
+        public bool IsFirstLogin { get; set; }
         public string? UpdateToken { get; set; }
     }
 

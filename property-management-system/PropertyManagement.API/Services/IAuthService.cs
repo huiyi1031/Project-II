@@ -11,5 +11,6 @@ namespace PropertyManagement.API.Services
         Task UpdateEmailByIcAsync(string updateToken, string newEmail);
         Task<string> VerifyTempPasswordAsync(VerifyTempPasswordRequestDto request);
         Task<LoginResponseDto> SetPasswordAsync(SetPasswordRequestDto request);
+        Task ForgotPasswordAsync(string email);
     }
 }

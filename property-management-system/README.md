@@ -133,50 +133,7 @@ This installs Angular, Tailwind CSS, and all other packages. May take **2–3 mi
 
 ---
 
-### STEP 7 — Create Your Database Config File (SECRET — Do NOT commit to GitHub)
-
-This file connects your computer to the shared Supabase database.
-
-1. Go to this folder: `property-management-system\PropertyManagement.API\`
-2. Create a **new file** called exactly: `appsettings.Development.json`
-3. Paste this content into it (ask your team leader for the password if blocked):
-
-```json
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning"
-    }
-  },
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=db.gxzjcobrhhgijvveazxa.supabase.co;Database=postgres;Username=postgres;Password=SlcCouvFr1WiCUak;Port=5432;SSL Mode=Require;Trust Server Certificate=true"
-  },
-  "JwtSettings": {
-    "SecretKey": "YourSuperSecretKeyForJWTAtLeast32CharactersLong!",
-    "Issuer": "PropertyManagementAPI",
-    "Audience": "PropertyManagementUI",
-    "ExpiryMinutes": 60
-  },
-  "SmtpSettings": {
-    "Host": "smtp.gmail.com",
-    "Port": "587",
-    "Username": "nghy1031@gmail.com",
-    "Password": "hdzeisojtruxhvsc",
-    "FromEmail": "nghy1031@gmail.com",
-    "FromName": "Property Management System",
-    "EnableSsl": "true"
-  }
-}
-```
-
-4. Save the file.
-
-> ⚠️ This file is in `.gitignore` — it will NOT be uploaded to GitHub. That's correct. Never push it.
-
----
-
-### STEP 8 — Install Backend Dependencies & Sync Database
+### STEP 7 — Install Backend Dependencies & Sync Database
 
 ```
 cd ..\PropertyManagement.API
@@ -195,7 +152,7 @@ dotnet ef database update
 
 ---
 
-### STEP 9 — Verify Everything Works
+### STEP 8 — Verify Everything Works
 
 Open **two separate** Command Prompt / PowerShell windows:
 
@@ -221,15 +178,18 @@ Then open your browser and go to: **http://localhost:4201**
 
 ## Test Accounts
 
-> These are on the real shared database. Contact the team leader to reset if needed.
+> These accounts are seeded on the shared database. If they don't work, someone might have deleted them or changed passwords. Run `POST http://localhost:5004/api/Seed/run` to reset the database.
 
 | Role | Email | Password |
 |------|-------|----------|
-| **Property Manager** | `nghy-wm24@student.tarc.edu.my` | `Manager@123` |
-| **Technician** | `nghy1031@gmail.com` | Check email inbox for temp password |
-| **Owner** | Use "Need help?" → Owner → IC bypass | IC: `900101-10-1234` |
+| **Property Manager** | `manager1@test.com` | `Manager@123` |
+| **Technician** | `tech1@test.com` | `Tech@123` |
+| **Owner 1** | `owner1@test.com` | `Owner@123` |
+| **Owner 2** | `owner2@test.com` | `Owner@123` |
+| **Tenant 1** | `tenant1@test.com` | `Tenant@123` |
+| **Tenant 2** | `tenant2@test.com` | `Tenant@123` |
 
-> If login doesn't work, call `POST http://localhost:5004/api/Seed/run` to reset all test data.
+> 🔑 **Tip:** You can test the "Forgot Password" or "Add Family Member/Tenant" features! The system will generate a temporary password and send a real activation email (or check the backend console output).
 
 ---
 
@@ -284,10 +244,15 @@ Project-II/
 
 ## Team Collaboration Rules
 
-### Every morning before coding:
-```
+### Every morning before coding (or when pulling new code):
+```bash
 git pull origin main
-dotnet ef database update
+cd property-management-system/PropertyManagement.API
+dotnet restore # (Optional) Run if new backend packages were added
+dotnet ef database update # (Optional) Run if someone added new tables
+
+cd ../property-management-ui
+npm install # (Optional) Run if new frontend packages were added
 ```
 
 ### After finishing your work:

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
-import { OccupantService } from '../../../core/services/occupant.service';
+import { UserService } from '../../../core/services/user.service';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -37,7 +37,7 @@ export class ProfileComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private occupantSvc: OccupantService,
+    private userSvc: UserService,
     private authSvc: AuthService,
   ) {
     this.profileForm = fb.group({
@@ -55,16 +55,14 @@ export class ProfileComponent implements OnInit {
 
   ngOnInit(): void {
     this.isLoading = true;
-    this.occupantSvc.getMyProfile().subscribe({
+    this.userSvc.getProfile().subscribe({
       next: (p) => {
         this.profile = p;
         this.profileForm.patchValue({ fullName: p.fullName, contactNumber: p.contactNumber, gender: p.gender });
         this.isLoading = false;
       },
       error: () => {
-        // Demo fallback
-        this.profile = { fullName: 'Ravi Kumar', email: 'tenant@demo.com', contactNumber: '012-3456789', gender: 'Male', occupantType: 'Tenant' };
-        this.profileForm.patchValue(this.profile);
+        this.errorMsg = 'Failed to load profile data.';
         this.isLoading = false;
       }
     });
@@ -73,16 +71,42 @@ export class ProfileComponent implements OnInit {
   saveProfile(): void {
     if (this.profileForm.invalid) { this.profileForm.markAllAsTouched(); return; }
     this.isSaving = true; this.errorMsg = ''; this.successMsg = '';
-    this.occupantSvc.updateMyProfile(this.profileForm.value).subscribe({
+    this.userSvc.updateProfile(this.profileForm.value).subscribe({
       next: () => { this.isSaving = false; this.successMsg = 'Profile updated successfully.'; setTimeout(() => this.successMsg = '', 3500); },
-      error: () => { this.isSaving = false; this.successMsg = 'Profile updated (demo mode).'; setTimeout(() => this.successMsg = '', 3500); }
+      error: () => { this.isSaving = false; this.errorMsg = 'Failed to update profile.'; setTimeout(() => this.errorMsg = '', 3500); }
     });
+  }
+
+  onFileSelected(event: any): void {
+    const file = event.target.files[0];
+    if (file) {
+      this.isLoading = true;
+      this.userSvc.uploadProfilePicture(file).subscribe({
+        next: (res) => {
+          this.profile.profilePictureUrl = res.profilePictureUrl;
+          this.isLoading = false;
+          this.successMsg = 'Profile picture updated.';
+          setTimeout(() => this.successMsg = '', 3500);
+        },
+        error: () => {
+          this.isLoading = false;
+          this.errorMsg = 'Failed to upload picture.';
+          setTimeout(() => this.errorMsg = '', 3500);
+        }
+      });
+    }
   }
 
   changePassword(): void {
     if (this.passwordForm.invalid) { this.passwordForm.markAllAsTouched(); return; }
     this.isSaving = true; this.errorMsg = ''; this.successMsg = '';
-    this.authSvc.changePassword(this.passwordForm.value).subscribe({
+    
+    const payload = {
+      ...this.passwordForm.value,
+      email: this.profile?.email || this.authSvc.getCurrentUser()?.email
+    };
+
+    this.authSvc.changePassword(payload).subscribe({
       next: () => { this.isSaving = false; this.successMsg = 'Password changed successfully.'; this.passwordForm.reset(); setTimeout(() => this.successMsg = '', 3500); },
       error: () => { this.isSaving = false; this.errorMsg = 'Current password is incorrect or request failed.'; }
     });

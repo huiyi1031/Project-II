@@ -414,6 +414,7 @@ export interface UpdateProfileDto {
 }
 
 export interface ChangePasswordDto {
+  email?:          string;
   currentPassword: string;
   newPassword:     string;
   confirmPassword: string;

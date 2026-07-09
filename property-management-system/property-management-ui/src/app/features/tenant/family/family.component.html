@@ -1,26 +1,6 @@
 <div class="fade-in space-y-4">
 
-  <!-- Headcount banner -->
-  <div *ngIf="headcount" class="pms-card flex items-center justify-between flex-wrap gap-3">
-    <div>
-      <h4 class="font-bold text-[#0b2d5c]">Unit {{ headcount.unitNumber }} — Occupant Capacity</h4>
-      <p class="text-sm text-[#6b7a90] mt-0.5">{{ headcount.currentCount }} of {{ headcount.maxOccupants }} occupants registered</p>
-    </div>
-    <div class="flex items-center gap-3">
-      <div class="flex gap-1">
-        <div *ngFor="let i of [].constructor(headcount.maxOccupants); let idx = index" class="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-             [class.bg-[#1f5fae]]="idx < headcount.currentCount" [class.border-[#1f5fae]]="idx < headcount.currentCount"
-             [class.border-gray-300]="idx >= headcount.currentCount">
-          <span *ngIf="idx < headcount.currentCount" class="text-white text-[8px]">✓</span>
-        </div>
-      </div>
-      <span class="text-xs font-semibold px-2 py-1 rounded-full"
-            [class.bg-green-100]="headcount.canAddDirect" [class.text-green-700]="headcount.canAddDirect"
-            [class.bg-amber-100]="!headcount.canAddDirect" [class.text-amber-700]="!headcount.canAddDirect">
-        {{ headcount.canAddDirect ? 'Space Available' : 'Unit Full' }}
-      </span>
-    </div>
-  </div>
+
 
   <!-- Toast messages -->
   <div *ngIf="successMsg" class="flex gap-2 items-center bg-green-50 border border-green-200 text-green-800 px-4 py-2.5 rounded-xl text-sm">
@@ -40,19 +20,18 @@
       <div *ngIf="isLoading" class="text-center py-8 text-[#6b7a90]">Loading...</div>
       <table *ngIf="!isLoading && members.length > 0" class="pms-table">
         <thead><tr>
-          <th>Name</th><th>IC / Passport</th><th>Relationship</th>
+          <th>Name</th><th>Relationship</th>
           <th>Email</th><th>Contact</th><th>Status</th><th>Action</th>
         </tr></thead>
         <tbody>
-          <tr *ngFor="let m of members">
+          <tr *ngFor="let m of members" class="hover:bg-gray-50 cursor-pointer" (click)="viewDetails(m)">
             <td class="font-semibold">{{ m.fullName }}</td>
-            <td class="font-mono text-xs">{{ m.identificationNo }}</td>
             <td>{{ m.relationship }}</td>
             <td class="text-[#1f5fae] text-sm">{{ m.email || '—' }}</td>
             <td>{{ m.contactNumber || '—' }}</td>
             <td><app-status-badge [status]="m.occupantStatus"></app-status-badge></td>
             <td>
-              <button (click)="confirmRemove(m.occupantID, m.fullName)" class="btn-danger text-xs py-1 px-2">Remove</button>
+              <button (click)="confirmRemove(m.occupantID, m.fullName); $event.stopPropagation()" class="btn-danger text-xs py-1 px-2">Remove</button>
             </td>
           </tr>
         </tbody>
@@ -63,52 +42,16 @@
     </div>
   </ng-container>
 
-  <!-- ═══ VIEW: Limit Warning ═══════════════════════════════════════════════ -->
-  <ng-container *ngIf="view === 'limit-warning'">
-    <div class="pms-card">
-      <div class="text-center py-4">
-        <div class="text-5xl mb-3">🏠</div>
-        <h4 class="text-lg font-bold text-amber-700 mb-2">Unit Occupancy Limit Reached</h4>
-        <p class="text-sm text-[#6b7a90] mb-4 max-w-sm mx-auto">
-          Your unit ({{ headcount?.unitNumber }}) is currently at maximum capacity
-          ({{ headcount?.maxOccupants }} occupants). To add another family member, a request must be sent to the Property Manager for approval.
-        </p>
-        <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800 text-left mb-6 max-w-sm mx-auto">
-          <p class="font-semibold">📋 What happens next:</p>
-          <ol class="list-decimal list-inside mt-1 space-y-1">
-            <li>You fill in the family member's details</li>
-            <li>A request is sent to the Property Manager</li>
-            <li>Manager reviews and may increase the unit capacity</li>
-            <li>Upon approval, the account is created automatically</li>
-          </ol>
-        </div>
-        <div class="flex gap-3 justify-center">
-          <button (click)="cancelAdd()" class="btn-outline">Cancel</button>
-          <button (click)="requestManagerApproval()" class="btn-primary">Continue & Request Approval</button>
-        </div>
-      </div>
-    </div>
-  </ng-container>
 
-  <!-- ═══ VIEW: Pending Approval ════════════════════════════════════════════ -->
-  <ng-container *ngIf="view === 'pending-approval'">
-    <div class="pms-card text-center py-6">
-      <div class="text-5xl mb-3">📤</div>
-      <h4 class="text-lg font-bold text-[#0b2d5c] mb-2">Approval Request Sent</h4>
-      <p class="text-sm text-[#6b7a90] mb-4">Your request has been forwarded to the Property Manager. You will be notified once approved.</p>
-      <button (click)="view='list'; successMsg=''" class="btn-primary">← Back to Family List</button>
-    </div>
-  </ng-container>
 
   <!-- ═══ VIEW: Add Form ════════════════════════════════════════════════════ -->
   <ng-container *ngIf="view === 'add'">
     <div class="pms-card">
       <div class="flex items-center gap-2 mb-1">
         <h4 class="section-title mb-0">Add Family Member</h4>
-        <span *ngIf="!headcount?.canAddDirect" class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">Requires Manager Approval</span>
       </div>
       <p class="text-sm text-[#6b7a90] mb-4">
-        {{ headcount?.canAddDirect ? 'An activation email will be sent automatically to the new member.' : 'Your request will be sent to the Property Manager for capacity approval.' }}
+        An activation email will be sent automatically to the new member.
       </p>
       <form [formGroup]="addForm" (ngSubmit)="submitAdd()" class="space-y-4">
         <div class="form-grid">
@@ -116,11 +59,6 @@
             <label class="pms-label">Full Name *</label>
             <input formControlName="fullName" class="pms-input" [class.border-red-400]="addForm.get('fullName')?.invalid && addForm.get('fullName')?.touched"/>
             <p *ngIf="addForm.get('fullName')?.invalid && addForm.get('fullName')?.touched" class="text-xs text-red-500">Full name is required.</p>
-          </div>
-          <div class="space-y-1.5">
-            <label class="pms-label">IC / Passport Number *</label>
-            <input formControlName="identificationNo" class="pms-input font-mono" placeholder="e.g. 950202-10-5678" [class.border-red-400]="addForm.get('identificationNo')?.invalid && addForm.get('identificationNo')?.touched"/>
-            <p *ngIf="addForm.get('identificationNo')?.invalid && addForm.get('identificationNo')?.touched" class="text-xs text-red-500">IC/Passport is required.</p>
           </div>
           <div class="space-y-1.5">
             <label class="pms-label">Email Address *</label>
@@ -141,9 +79,10 @@
           </div>
           <div class="space-y-1.5">
             <label class="pms-label">Gender *</label>
-            <select formControlName="gender" class="pms-select">
-              <option value="">Select gender</option>
-              <option>Male</option><option>Female</option>
+            <select formControlName="gender" class="pms-select" [class.border-red-400]="addForm.get('gender')?.invalid && addForm.get('gender')?.touched">
+              <option value="">Select Gender</option>
+              <option value="M">Male</option>
+              <option value="F">Female</option>
             </select>
           </div>
           <div class="space-y-1.5">
@@ -157,10 +96,51 @@
         <div class="form-actions">
           <button type="button" (click)="cancelAdd()" class="btn-outline">Cancel</button>
           <button type="submit" [disabled]="isSaving" class="btn-primary">
-            {{ isSaving ? 'Submitting...' : (headcount?.canAddDirect ? '✉️ Add & Send Activation Email' : '📤 Submit Approval Request') }}
+            {{ isSaving ? 'Submitting...' : '✉️ Add & Send Activation Email' }}
           </button>
         </div>
       </form>
+    </div>
+  </ng-container>
+
+  <!-- ═══ VIEW: Details ════════════════════════════════════════════════════ -->
+  <ng-container *ngIf="view === 'details' && selectedMember">
+    <div class="pms-card">
+      <div class="flex items-center justify-between mb-4">
+        <h4 class="section-title mb-0">Family Member Details</h4>
+        <button (click)="closeDetails()" class="btn-outline text-sm">← Back</button>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs text-[#6b7a90] mb-1">Full Name</p>
+          <p class="font-semibold">{{ selectedMember.fullName }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-[#6b7a90] mb-1">Email</p>
+          <p class="font-semibold">{{ selectedMember.email || '—' }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-[#6b7a90] mb-1">Contact Number</p>
+          <p class="font-semibold">{{ selectedMember.contactNumber || '—' }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-[#6b7a90] mb-1">Relationship</p>
+          <p class="font-semibold">{{ selectedMember.relationship }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-[#6b7a90] mb-1">Gender</p>
+          <p class="font-semibold">{{ selectedMember.gender === 'M' ? 'Male' : (selectedMember.gender === 'F' ? 'Female' : '—') }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-[#6b7a90] mb-1">Date of Birth</p>
+          <p class="font-semibold">{{ (selectedMember.dateOfBirth | date:'dd MMM yyyy') || '—' }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-[#6b7a90] mb-1">Status</p>
+          <app-status-badge [status]="selectedMember.occupantStatus"></app-status-badge>
+        </div>
+      </div>
     </div>
   </ng-container>
 
