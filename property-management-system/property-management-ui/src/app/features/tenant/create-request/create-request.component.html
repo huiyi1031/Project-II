@@ -1,5 +1,5 @@
 <!-- Create Maintenance Request -->
-<div class="fade-in max-w-3xl">
+<div class="fade-in max-w-4xl mx-auto">
   <div class="pms-card">
     <h4 class="section-title">Create Maintenance Request</h4>
 
@@ -42,16 +42,6 @@
           </select>
         </div>
 
-        <!-- Priority -->
-        <div class="space-y-1.5">
-          <label class="pms-label">Priority *</label>
-          <select formControlName="priorityLevel" class="pms-select">
-            <option value="Low">Low</option>
-            <option value="Medium" selected>Medium</option>
-            <option value="High">High</option>
-          </select>
-        </div>
-
         <!-- Description (full width) -->
         <div class="space-y-1.5 md:col-span-2">
           <label class="pms-label">Description *</label>
@@ -61,14 +51,8 @@
                class="text-red-500 text-xs">Description is required.</div>
         </div>
 
-        <!-- Preferred Schedule -->
-        <div class="space-y-1.5">
-          <label class="pms-label">Preferred Schedule Date (optional)</label>
-          <input type="date" formControlName="preferredScheduleDate" class="pms-input"/>
-        </div>
-
         <!-- Attachment -->
-        <div class="space-y-1.5">
+        <div class="space-y-1.5 md:col-span-2">
           <label class="pms-label">Attachment (optional)</label>
           <div class="upload-box" (click)="fileInput.click()">
             <div>

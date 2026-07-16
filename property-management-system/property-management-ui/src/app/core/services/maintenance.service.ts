@@ -34,8 +34,8 @@ export class MaintenanceService {
     return this.http.get<MaintenanceRequest>(`${this.base}/MaintenanceRequests/${id}`);
   }
 
-  createRequest(dto: CreateMaintenanceRequestDto): Observable<MaintenanceRequest> {
-    return this.http.post<MaintenanceRequest>(`${this.base}/MaintenanceRequests`, dto);
+  createRequest(data: FormData | CreateMaintenanceRequestDto): Observable<MaintenanceRequest> {
+    return this.http.post<MaintenanceRequest>(`${this.base}/MaintenanceRequests`, data);
   }
 
   updateRequestStatus(id: number, status: string): Observable<void> {

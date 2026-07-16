@@ -30,9 +30,7 @@ export class CreateRequestComponent implements OnInit {
       requestTitle:          ['', Validators.required],
       issueCategory:         ['', Validators.required],
       description:           ['', Validators.required],
-      priorityLevel:         ['Medium', Validators.required],
       unitID:                [1, Validators.required],
-      preferredScheduleDate: [''],
     });
 
     // Load units for dropdown
@@ -44,10 +42,16 @@ export class CreateRequestComponent implements OnInit {
 
   get f() { return this.form.controls; }
 
+  fileToUpload: File | null = null;
+
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files?.length) {
-      this.fileName = input.files[0].name;
+      this.fileToUpload = input.files[0];
+      this.fileName = this.fileToUpload.name;
+    } else {
+      this.fileToUpload = null;
+      this.fileName = '';
     }
   }
 
@@ -57,7 +61,17 @@ export class CreateRequestComponent implements OnInit {
     this.successMsg = '';
     this.errorMsg   = '';
 
-    this.maintenanceSvc.createRequest(this.form.value).subscribe({
+    const formData = new FormData();
+    formData.append('Title', this.form.value.requestTitle);
+    formData.append('IssueCategory', this.form.value.issueCategory);
+    formData.append('Description', this.form.value.description);
+    formData.append('UnitId', this.form.value.unitID);
+    
+    if (this.fileToUpload) {
+      formData.append('Image', this.fileToUpload);
+    }
+
+    this.maintenanceSvc.createRequest(formData).subscribe({
       next: () => {
         this.isLoading  = false;
         this.successMsg = 'Maintenance request submitted successfully! Redirecting...';
@@ -71,8 +85,9 @@ export class CreateRequestComponent implements OnInit {
   }
 
   resetForm(): void {
-    this.form.reset({ priorityLevel: 'Medium', unitID: 1 });
+    this.form.reset({ unitID: 1 });
     this.fileName = '';
+    this.fileToUpload = null;
     this.successMsg = '';
     this.errorMsg   = '';
   }
