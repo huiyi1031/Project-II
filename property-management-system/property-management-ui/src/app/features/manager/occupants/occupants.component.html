@@ -1,80 +1,173 @@
-<!-- Tenant/Owner Management -->
 <div class="fade-in space-y-4">
-  <div class="pms-card">
-    <div class="flex flex-wrap gap-3 items-end mb-3">
-      <h4 class="section-title mb-0 flex-1">Tenant / Owner Management</h4>
-      <input [(ngModel)]="search" placeholder="Name / ID / Unit" class="pms-input w-52"/>
-      <select [(ngModel)]="filter" class="pms-select w-36">
-        <option>All</option><option>Owner</option><option>Tenant</option><option>Resident</option>
-      </select>
+  <div *ngIf="showSuccessPopup" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
+    <div class="pms-card max-w-sm w-full text-center">
+      <h4 class="section-title mb-2">Record Saved</h4>
+      <p class="text-sm text-muted mb-4">{{ successPopupMessage }}</p>
+      <button type="button" class="btn-primary" (click)="closeSuccessPopup()">OK</button>
     </div>
-    <table class="pms-table">
-      <thead>
-        <tr><th>Name</th><th>ID</th><th>Role</th><th>Unit</th><th>Contact</th><th>Status</th><th>Action</th></tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let o of occupants">
-          <td class="font-semibold">{{ o.fullName }}</td>
-          <td class="font-mono text-xs text-blue">OCC-{{ o.occupantID }}</td>
-          <td>{{ o.occupantType }}</td>
-          <td class="text-muted">—</td>
-          <td class="text-muted text-xs">{{ o.contactNumber }}</td>
-          <td><app-status-badge [status]="o.occupantStatus"></app-status-badge></td>
-          <td>
-            <button class="btn-outline text-xs px-2 py-1 mr-1" (click)="editOccupant(o)">Edit</button>
-            <button class="btn-danger text-xs px-2 py-1" (click)="toggleStatus(o)">
-              {{ o.occupantStatus === 'Active' ? 'Deactivate' : 'Activate' }}
-            </button>
-          </td>
-        </tr>
-        <ng-container *ngIf="occupants.length === 0">
-          <tr>
-            <td class="font-semibold">Nur Ain</td>
-            <td class="font-mono text-xs text-blue">OCC-104</td>
-            <td>Owner</td><td class="text-muted">A-12-05</td>
-            <td class="text-muted text-xs">012-8899000</td>
-            <td><app-status-badge status="Active"></app-status-badge></td>
-            <td><button class="btn-outline text-xs px-2 py-1">Edit</button></td>
-          </tr>
-          <tr>
-            <td class="font-semibold">Ravi Kumar</td>
-            <td class="font-mono text-xs text-blue">OCC-239</td>
-            <td>Tenant</td><td class="text-muted">B-08-12</td>
-            <td class="text-muted text-xs">012-5560011</td>
-            <td><app-status-badge status="Inactive"></app-status-badge></td>
-            <td><button class="btn-outline text-xs px-2 py-1">Edit</button></td>
-          </tr>
-        </ng-container>
-      </tbody>
-    </table>
   </div>
 
-  <!-- Create / Update Form -->
-  <div class="pms-card">
-    <h4 class="section-title">{{ editMode ? 'Update' : 'Create' }} Occupant Record</h4>
-    <div class="form-grid">
-      <div class="space-y-1"><label class="pms-label">Full Name</label>
-        <input [(ngModel)]="form.fullName" class="pms-input"/></div>
-      <div class="space-y-1"><label class="pms-label">Identification No</label>
-        <input [(ngModel)]="form.identificationNo" class="pms-input"/></div>
-      <div class="space-y-1"><label class="pms-label">Contact Number</label>
-        <input [(ngModel)]="form.contactNumber" class="pms-input"/></div>
-      <div class="space-y-1"><label class="pms-label">Email</label>
-        <input [(ngModel)]="form.email" type="email" class="pms-input"/></div>
-      <div class="space-y-1"><label class="pms-label">Property Unit</label>
-        <select [(ngModel)]="form.unitID" class="pms-select">
-          <option value="1">A-12-05</option><option value="2">B-08-12</option>
-        </select>
+  <div class="pms-card occupants-panel">
+    <div class="occupants-toolbar">
+      <div>
+        <h4 class="section-title mb-1">Tenant / Owner Management</h4>
+        <p class="pagination-summary" *ngIf="!loading">
+          Showing {{ startItem }}-{{ endItem }} of {{ filteredOccupants.length }} records
+        </p>
       </div>
-      <div class="space-y-1"><label class="pms-label">Role Type</label>
-        <select [(ngModel)]="form.occupantType" class="pms-select">
-          <option>Tenant</option><option>Owner</option><option>Resident</option>
+
+      <div class="occupants-filters">
+        <input
+          [(ngModel)]="search"
+          (ngModelChange)="onSearchChanged()"
+          placeholder="Name / ID / Unit"
+          class="pms-input occupants-search" />
+
+        <select [(ngModel)]="filter" (change)="onFilterChanged()" class="pms-select occupants-filter">
+          <option>All</option>
+          <option>Owner</option>
+          <option>Tenant</option>
+          <option>Resident</option>
         </select>
       </div>
     </div>
-    <div class="form-actions">
-      <button class="btn-outline" (click)="resetForm()">Cancel</button>
-      <button class="btn-primary" (click)="saveOccupant()">💾 Save Record</button>
+
+    <div *ngIf="errorMsg" class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm mb-3">
+      {{ errorMsg }}
+    </div>
+
+    <div *ngIf="loading" class="text-sm text-muted py-6 text-center">Loading occupant records...</div>
+
+    <div *ngIf="!loading" class="occupants-table-wrap">
+      <table class="pms-table occupants-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Identification No</th>
+            <th>Role</th>
+            <th>Unit</th>
+            <th>Contact</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let o of filteredOccupants">
+            <td class="font-semibold">{{ o.fullName }}</td>
+            <td class="font-mono text-xs text-blue">{{ o.identificationNo }}</td>
+            <td>{{ o.occupantType }}</td>
+            <td class="text-muted">{{ $any(o).unitNumber || '-' }}</td>
+            <td class="text-muted text-xs">{{ o.contactNumber }}</td>
+            <td class="text-muted text-xs">{{ o.email || '-' }}</td>
+            <td><app-status-badge [status]="o.occupantStatus"></app-status-badge></td>
+            <td>
+              <button class="btn-outline text-xs px-2 py-1 mr-1" type="button" (click)="editOccupant(o)">Edit</button>
+              <button class="btn-danger text-xs px-2 py-1" type="button" (click)="toggleStatus(o)">
+                {{ o.occupantStatus === 'Active' ? 'Deactivate' : 'Activate' }}
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="filteredOccupants.length === 0">
+            <td colspan="8" class="text-center text-muted py-6">No occupant records found.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="!loading" class="pagination-bar">
+      <div class="page-size-control">
+        <label for="occupantPageSize">Rows per page</label>
+        <select id="occupantPageSize" [(ngModel)]="pageSize" (change)="onPageSizeChanged()" class="pms-select page-size-select">
+          <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
+        </select>
+      </div>
+
+      <div class="pagination-controls" *ngIf="totalItems > 0">
+        <button type="button" class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">Prev</button>
+        <button
+          *ngFor="let page of pageNumbers"
+          type="button"
+          class="page-btn page-number"
+          [class.active]="page === currentPage"
+          (click)="goToPage(page)">
+          {{ page }}
+        </button>
+        <button type="button" class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">Next</button>
+      </div>
     </div>
   </div>
+
+  <div class="pms-card">
+    <h4 class="section-title">{{ editMode ? 'Update' : 'Create' }} Occupant Record</h4>
+
+    <form [formGroup]="form" (ngSubmit)="saveOccupant()" class="space-y-4">
+      <div class="form-grid">
+        <div class="space-y-1.5">
+          <label class="pms-label">Full Name *</label>
+          <input formControlName="fullName" class="pms-input" maxlength="100" placeholder="John Doe" />
+          <div *ngIf="f['fullName'].hasError('required') && f['fullName'].touched" class="text-red-500 text-xs">Name is required.</div>
+          <div *ngIf="f['fullName'].hasError('nameFormat') && f['fullName'].touched" class="text-red-500 text-xs">Only alphabets and spaces are allowed.</div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="pms-label">Identification No *</label>
+          <input formControlName="identificationNo" class="pms-input" maxlength="14" placeholder="xxxxxx-xx-xxxx" />
+          <div *ngIf="f['identificationNo'].invalid && f['identificationNo'].touched" class="text-red-500 text-xs">Format must be xxxxxx-xx-xxxx using numbers only.</div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="pms-label">Contact No *</label>
+          <input formControlName="contactNumber" class="pms-input" maxlength="11" placeholder="01x-xxxxxxx" />
+          <div *ngIf="f['contactNumber'].invalid && f['contactNumber'].touched" class="text-red-500 text-xs">Format must be 01x-xxxxxxx using numbers only.</div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="pms-label">Email (optional)</label>
+          <input formControlName="email" class="pms-input" placeholder="name@example.com" />
+          <div *ngIf="f['email'].hasError('emailFormat') && f['email'].touched" class="text-red-500 text-xs">Email must be in &#64;xxx.com format.</div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="pms-label">Property Unit *</label>
+          <input formControlName="unitNumber" class="pms-input uppercase" maxlength="7" placeholder="A-10-09" />
+          <div *ngIf="f['unitNumber'].hasError('unitFormat') && f['unitNumber'].touched" class="text-red-500 text-xs">Format must be A-C, 01-20, 01-09. Example: A-10-09.</div>
+          <div *ngIf="f['unitNumber'].hasError('required') && f['unitNumber'].touched" class="text-red-500 text-xs">Property Unit is required.</div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="pms-label">Role Type *</label>
+          <select formControlName="occupantType" class="pms-select">
+            <option>Tenant</option>
+            <option>Owner</option>
+            <option>Resident</option>
+          </select>
+        </div>
+      </div>
+
+      <div *ngIf="formError" class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm">
+        {{ formError }}
+      </div>
+
+      <div class="form-actions occupant-form-actions">
+        <button
+          *ngIf="editMode"
+          class="btn-danger"
+          type="button"
+          [disabled]="deleting || saving"
+          (click)="deleteSelectedOccupant()">
+          {{ deleting ? 'Deleting...' : 'Delete Record' }}
+        </button>
+
+        <div class="occupant-save-actions">
+          <button class="btn-outline" type="button" (click)="resetForm()">Cancel</button>
+          <button class="btn-primary" type="submit" [disabled]="form.invalid || saving || deleting">
+            {{ saving ? 'Saving...' : 'Save Record' }}
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
 </div>
+
+
