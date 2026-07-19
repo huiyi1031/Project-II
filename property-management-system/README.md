@@ -192,10 +192,10 @@ Then open your browser and go to: **http://localhost:4201**
 | **Property Manager** | `manager2@sunwayproperty.com.my` | `Manager@123` | Sunway Geo Residences |
 | **Technician** | `tech2@sunwayproperty.com.my` | `Tech@123` | N/A |
 | **Technician (Needs Activation)** | `nghy1031@gmail.com` | *(Check backend console for Temp PW)* | N/A |
-| **Tenant** | `tenant1@demo.com` | `Tenant@123` | N/A |
-| **Tenant** | `tenant2@demo.com` | `Tenant@123` | N/A |
-| **Owner** | IC: `900101-10-1234` | *(Use IC bypass to set password)* | N/A |
-| **Owner** | IC: `850505-14-5566` | *(Use IC bypass to set password)* | N/A |
+| **Tenant** | `tenant1@demo.com` | `Tenant@123` | Sunway Geo Residences (B-02-01) |
+| **Tenant** | `tenant2@demo.com` | `Tenant@123` | Sunway Geo Residences (B-08-04) |
+| **Owner** | IC: `900101-10-1234` | *(Use IC bypass to set password)* | Sunway Nexis Residences (A-01-01) |
+| **Owner** | IC: `850505-14-5566` | *(Use IC bypass to set password)* | Sunway Nexis Residences (A-05-03) |
 
 > **If you pull the latest code:**
 > 1. Run `dotnet ef database update` in the API folder to apply the new schema changes.
