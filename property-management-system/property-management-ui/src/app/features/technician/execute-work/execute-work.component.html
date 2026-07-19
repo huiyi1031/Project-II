@@ -58,7 +58,7 @@
           <td class="font-mono text-xs text-blue">{{ h.workOrderId ? 'WO-' + h.workOrderId : '—' }}</td>
           <td>{{ h.maintenanceType }}</td>
           <td class="text-muted text-xs">{{ h.maintenanceDate | date:'dd MMM yyyy' }}</td>
-          <td><app-status-badge [status]="h.resultStatus"></app-status-badge></td>
+          <td><app-status-badge [status]="h.resultStatus || 'Pending'"></app-status-badge></td>
         </tr>
         <ng-container *ngIf="history.length === 0">
           <tr>

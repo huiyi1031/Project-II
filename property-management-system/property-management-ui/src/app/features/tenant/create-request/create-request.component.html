@@ -34,7 +34,7 @@
           <label class="pms-label">Location (Unit / Area) *</label>
           <select formControlName="unitID" class="pms-select">
             <option value="">Select unit</option>
-            <option *ngFor="let u of units" [value]="u.unitID">
+            <option *ngFor="let u of units" [value]="u.unitId">
               {{ u.unitNumber }} — Block {{ u.block }}
             </option>
             <!-- Fallback option when API not connected -->

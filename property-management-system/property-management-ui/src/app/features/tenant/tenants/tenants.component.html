@@ -76,7 +76,7 @@
             <label class="pms-label">Property Unit *</label>
             <select formControlName="unitID" class="pms-select">
               <option value="">Select unit</option>
-              <option *ngFor="let u of units" [value]="u.unitID">{{ u.unitNumber }}</option>
+              <option *ngFor="let u of units" [value]="u.unitId">{{ u.unitNumber }}</option>
               <option value="1">A-12-03 (Demo)</option>
             </select>
           </div>

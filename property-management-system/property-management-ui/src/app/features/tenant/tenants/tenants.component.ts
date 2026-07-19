@@ -23,7 +23,7 @@ export class TenantsComponent implements OnInit {
   removeForm: FormGroup;
   selectedTenant: TenantRecord | null = null;
 
-  units: any[] = [{ unitID: 1, unitNumber: 'A-12-03' }]; // fallback
+  units: any[] = [{ unitId: 1, unitNumber: 'A-12-03' }]; // fallback
 
   constructor(
     private fb: FormBuilder,

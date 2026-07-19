@@ -176,20 +176,31 @@ Then open your browser and go to: **http://localhost:4201**
 
 ---
 
-## Test Accounts
+## ⚠️ Database Reset & Test Accounts (IMPORTANT)
 
-> These accounts are seeded on the shared database. If they don't work, someone might have deleted them or changed passwords. Run `POST http://localhost:5004/api/Seed/run` to reset the database.
+> **ATTENTION TEAM:** The database was recently wiped and re-seeded. 
+> 
+> **Why?** We implemented a new `Organisation` entity, modified `Asset` (removed risk fields), and updated `Property` and `AssetMaintenanceHistory` relationships. Because the schema changed significantly, the old test data was incompatible. The `SeedController` automatically clears all data before inserting fresh, schema-compliant mock data to ensure everyone has a working development environment.
+> 
+> **Impact:** Any test users, units, or requests you manually created previously have been deleted. You will need to use the new seeded accounts below, or re-create your test data.
 
-| Role | Email | Password |
-|------|-------|----------|
-| **Property Manager** | `manager1@test.com` | `Manager@123` |
-| **Technician** | `tech1@test.com` | `Tech@123` |
-| **Owner 1** | `owner1@test.com` | `Owner@123` |
-| **Owner 2** | `owner2@test.com` | `Owner@123` |
-| **Tenant 1** | `tenant1@test.com` | `Tenant@123` |
-| **Tenant 2** | `tenant2@test.com` | `Tenant@123` |
+**Here are the new seeded accounts you must use to log in (do NOT use your old test accounts as they no longer exist):**
 
-> 🔑 **Tip:** You can test the "Forgot Password" or "Add Family Member/Tenant" features! The system will generate a temporary password and send a real activation email (or check the backend console output).
+| Role | Email | Password | Assigned To |
+|------|-------|----------|-------------|
+| **Property Manager** | `nghy-wm24@student.tarc.edu.my` | `Manager@123` | Sunway Nexis Residences |
+| **Property Manager** | `manager2@sunwayproperty.com.my` | `Manager@123` | Sunway Geo Residences |
+| **Technician** | `tech2@sunwayproperty.com.my` | `Tech@123` | N/A |
+| **Technician (Needs Activation)** | `nghy1031@gmail.com` | *(Check backend console for Temp PW)* | N/A |
+| **Tenant** | `tenant1@demo.com` | `Tenant@123` | N/A |
+| **Tenant** | `tenant2@demo.com` | `Tenant@123` | N/A |
+| **Owner** | IC: `900101-10-1234` | *(Use IC bypass to set password)* | N/A |
+| **Owner** | IC: `850505-14-5566` | *(Use IC bypass to set password)* | N/A |
+
+> **If you pull the latest code:**
+> 1. Run `dotnet ef database update` in the API folder to apply the new schema changes.
+> 2. The data is already seeded in Supabase, so you don't need to run the seed endpoint again unless the database gets corrupted. If you do need to reset it, make a POST request to `http://localhost:5004/api/Seed/run` (Note: This WILL wipe the database again!).
+
 
 ---
 
