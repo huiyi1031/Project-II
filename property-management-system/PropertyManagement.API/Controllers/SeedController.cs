@@ -260,30 +260,47 @@ namespace PropertyManagement.API.Controllers
                 _context.UserAccounts.AddRange(ownerUser1, ownerUser2);
                 await _context.SaveChangesAsync();
 
-                _context.Occupants.AddRange(
-                    new Occupant
-                    {
-                        UserAccountId   = ownerUser1.Id,
-                        FullName        = "Ahmad bin Razak",
-                        IdentificationNo = "900101-10-1234",
-                        ContactNumber   = "011-2233445",
-                        Gender          = "M",
-                        OccupantType    = OccupantType.Owner,
-                        OccupantStatus  = "Active"
-                    },
-                    new Occupant
-                    {
-                        UserAccountId   = ownerUser2.Id,
-                        FullName        = "Sarah Wong Mei Ling",
-                        IdentificationNo = "850505-14-5566",
-                        ContactNumber   = "012-9998888",
-                        Gender          = "F",
-                        OccupantType    = OccupantType.Owner,
-                        OccupantStatus  = "Active"
-                    }
-                );
+                var occOwner1 = new Occupant
+                {
+                    UserAccountId   = ownerUser1.Id,
+                    FullName        = "Ahmad bin Razak",
+                    IdentificationNo = "900101-10-1234",
+                    ContactNumber   = "011-2233445",
+                    Gender          = "M",
+                    OccupantType    = OccupantType.Owner,
+                    OccupantStatus  = "Active"
+                };
+                var occOwner2 = new Occupant
+                {
+                    UserAccountId   = ownerUser2.Id,
+                    FullName        = "Sarah Wong Mei Ling",
+                    IdentificationNo = "850505-14-5566",
+                    ContactNumber   = "012-9998888",
+                    Gender          = "F",
+                    OccupantType    = OccupantType.Owner,
+                    OccupantStatus  = "Active"
+                };
+                _context.Occupants.AddRange(occOwner1, occOwner2);
                 await _context.SaveChangesAsync();
-                log.Add("✅ Owners: IC=900101-10-1234, IC=850505-14-5566 | Use IC bypass to set email+password");
+
+                // Link owners to units
+                var unitA0101 = await _context.PropertyUnits.FirstOrDefaultAsync(u => u.UnitNumber == "A-01-01" && u.PropertyId == property1.Id);
+                if (unitA0101 != null)
+                {
+                    _context.Contracts.Add(new Contract { OccupantId = occOwner1.Id, UnitId = unitA0101.Id, ContractType = "Ownership", StartDate = DateTime.UtcNow.AddMonths(-12), IsPrimaryOccupant = true, Status = "Active" });
+                    unitA0101.Status = "Occupied";
+                    unitA0101.CurrentOccupants = 1;
+                }
+                var unitA0503 = await _context.PropertyUnits.FirstOrDefaultAsync(u => u.UnitNumber == "A-05-03" && u.PropertyId == property1.Id);
+                if (unitA0503 != null)
+                {
+                    _context.Contracts.Add(new Contract { OccupantId = occOwner2.Id, UnitId = unitA0503.Id, ContractType = "Ownership", StartDate = DateTime.UtcNow.AddMonths(-6), IsPrimaryOccupant = true, Status = "Active" });
+                    unitA0503.Status = "Occupied";
+                    unitA0503.CurrentOccupants = 1;
+                }
+                await _context.SaveChangesAsync();
+                log.Add("✅ Owners: IC=900101-10-1234, IC=850505-14-5566 | Linked to A-01-01 and A-05-03");
+
 
                 // ── 8. Tenants (2, Active) ───────────────────────────────────────────
                 var tenantPw = "Tenant@123";
@@ -304,30 +321,47 @@ namespace PropertyManagement.API.Controllers
                 _context.UserAccounts.AddRange(tenantUser1, tenantUser2);
                 await _context.SaveChangesAsync();
 
-                _context.Occupants.AddRange(
-                    new Occupant
-                    {
-                        UserAccountId   = tenantUser1.Id,
-                        FullName        = "John Doe",
-                        IdentificationNo = "950101-10-1111",
-                        ContactNumber   = "016-1231234",
-                        Gender          = "M",
-                        OccupantType    = OccupantType.Tenant,
-                        OccupantStatus  = "Active"
-                    },
-                    new Occupant
-                    {
-                        UserAccountId   = tenantUser2.Id,
-                        FullName        = "Jane Smith",
-                        IdentificationNo = "960202-14-2222",
-                        ContactNumber   = "017-4564567",
-                        Gender          = "F",
-                        OccupantType    = OccupantType.Tenant,
-                        OccupantStatus  = "Active"
-                    }
-                );
+                var occTenant1 = new Occupant
+                {
+                    UserAccountId   = tenantUser1.Id,
+                    FullName        = "John Doe",
+                    IdentificationNo = "950101-10-1111",
+                    ContactNumber   = "016-1231234",
+                    Gender          = "M",
+                    OccupantType    = OccupantType.Tenant,
+                    OccupantStatus  = "Active"
+                };
+                var occTenant2 = new Occupant
+                {
+                    UserAccountId   = tenantUser2.Id,
+                    FullName        = "Jane Smith",
+                    IdentificationNo = "960202-14-2222",
+                    ContactNumber   = "017-4564567",
+                    Gender          = "F",
+                    OccupantType    = OccupantType.Tenant,
+                    OccupantStatus  = "Active"
+                };
+                _context.Occupants.AddRange(occTenant1, occTenant2);
                 await _context.SaveChangesAsync();
-                log.Add($"✅ Tenants: tenant1@demo.com, tenant2@demo.com | Password: {tenantPw}");
+
+                // Link tenants to units
+                var unitB0201 = await _context.PropertyUnits.FirstOrDefaultAsync(u => u.UnitNumber == "B-02-01" && u.PropertyId == property2.Id);
+                if (unitB0201 != null)
+                {
+                    _context.Contracts.Add(new Contract { OccupantId = occTenant1.Id, UnitId = unitB0201.Id, ContractType = "Tenancy", StartDate = DateTime.UtcNow.AddMonths(-3), EndDate = DateTime.UtcNow.AddMonths(9), IsPrimaryOccupant = true, Status = "Active" });
+                    unitB0201.Status = "Occupied";
+                    unitB0201.CurrentOccupants = 1;
+                }
+                var unitB0804 = await _context.PropertyUnits.FirstOrDefaultAsync(u => u.UnitNumber == "B-08-04" && u.PropertyId == property2.Id);
+                if (unitB0804 != null)
+                {
+                    _context.Contracts.Add(new Contract { OccupantId = occTenant2.Id, UnitId = unitB0804.Id, ContractType = "Tenancy", StartDate = DateTime.UtcNow.AddMonths(-1), EndDate = DateTime.UtcNow.AddMonths(11), IsPrimaryOccupant = true, Status = "Active" });
+                    unitB0804.Status = "Occupied";
+                    unitB0804.CurrentOccupants = 1;
+                }
+                await _context.SaveChangesAsync();
+                log.Add($"✅ Tenants: tenant1@demo.com, tenant2@demo.com | Linked to B-02-01 and B-08-04");
+
 
                 // ── 9. Assets — 5 per property (realistic building infrastructure) ──
                 //

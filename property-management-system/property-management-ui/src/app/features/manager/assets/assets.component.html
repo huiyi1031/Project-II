@@ -4,19 +4,19 @@
   <div class="page-header">
     <div class="header-left">
       <h1 class="page-title">
-        <span class="title-icon">⚙️</span> Asset Management
+        Asset Management
       </h1>
       <p class="page-subtitle">Track shared building infrastructure and maintenance schedules</p>
     </div>
     <div class="header-actions">
       <button class="btn btn-ghost" *ngIf="selectedAsset" (click)="openEditModal(selectedAsset)">
-        ✏️ Edit Asset
+        Edit Asset
       </button>
       <button class="btn btn-ghost" *ngIf="selectedAsset" (click)="openHistoryModal(selectedAsset)">
-        📋 Add Maintenance Record
+        Add Maintenance Record
       </button>
       <button class="btn btn-danger-ghost" *ngIf="selectedAsset && selectedAsset.status === 'Active'" (click)="confirmDeactivate(selectedAsset)">
-        🔴 Deactivate
+        Deactivate
       </button>
       <button class="btn btn-primary" (click)="openCreateModal()">
         + Register Asset
@@ -38,7 +38,7 @@
   <div class="filter-card">
     <div class="filter-row">
       <div class="filter-group search-group">
-        <span class="filter-icon">🔍</span>
+
         <input type="text" class="filter-input" placeholder="Search asset name or location..."
                [(ngModel)]="searchText" (keyup.enter)="applyFilters()">
       </div>
@@ -83,7 +83,7 @@
       </div>
 
       <div class="table-empty" *ngIf="!loading && assets.length === 0">
-        <span class="empty-icon">⚙️</span>
+
         <p>No assets found. Register your first building asset.</p>
         <button class="btn btn-primary" (click)="openCreateModal()">+ Register Asset</button>
       </div>
@@ -105,9 +105,9 @@
 
         <div class="asset-card-body">
           <div class="asset-meta">
-            <span class="meta-item">📍 {{ asset.location || 'No location' }}</span>
-            <span class="meta-item">🏭 {{ asset.manufacturer || '—' }}</span>
-            <span class="meta-item">🔧 Every {{ asset.maintenanceIntervalDays }} days</span>
+            <span class="meta-item">{{ asset.location || 'No location' }}</span>
+            <span class="meta-item">{{ asset.manufacturer || '—' }}</span>
+            <span class="meta-item">Every {{ asset.maintenanceIntervalDays }} days</span>
           </div>
 
           <!-- Next Maintenance Due -->
@@ -124,7 +124,7 @@
 
           <!-- QR Code Preview -->
           <div class="qr-preview" *ngIf="asset.qrCode">
-            <span class="qr-code-text">🔲 {{ asset.qrCode }}</span>
+            <span class="qr-code-text">{{ asset.qrCode }}</span>
           </div>
         </div>
       </div>
@@ -138,7 +138,7 @@
           <span>{{ selectedAsset.assetName }}</span>
         </div>
         <div class="panel-header-actions">
-          <button class="btn btn-sm btn-ghost" (click)="openEditModal(selectedAsset)">✏️</button>
+          <button class="btn btn-sm btn-ghost" (click)="openEditModal(selectedAsset)">Edit</button>
           <button class="panel-close" (click)="closeDetail()">✕</button>
         </div>
       </div>
@@ -201,7 +201,7 @@
 
         <!-- Maintenance History (from detail load) -->
         <div class="panel-section" *ngIf="selectedAssetDetail?.maintenanceHistory?.length > 0">
-          <h4 class="section-title">📋 Maintenance History</h4>
+          <h4 class="section-title">Maintenance History</h4>
           <div class="history-timeline">
             <div class="history-item" *ngFor="let h of selectedAssetDetail.maintenanceHistory">
               <div class="history-dot" [ngClass]="h.resultStatus === 'Completed' ? 'dot-green' : 'dot-amber'"></div>
@@ -212,8 +212,8 @@
                 </div>
                 <p class="history-desc">{{ h.description }}</p>
                 <div class="history-footer">
-                  <span *ngIf="h.performedBy">👷 {{ h.performedBy }}</span>
-                  <span *ngIf="h.cost">💰 RM {{ h.cost | number:'1.2-2' }}</span>
+                  <span *ngIf="h.performedBy">{{ h.performedBy }}</span>
+                  <span *ngIf="h.cost">RM {{ h.cost | number:'1.2-2' }}</span>
                   <span class="badge-result">{{ h.resultStatus }}</span>
                 </div>
               </div>
@@ -228,12 +228,12 @@
         <!-- Panel Action Buttons -->
         <div class="panel-action-buttons">
           <button class="btn btn-ghost full-width" (click)="openHistoryModal(selectedAsset)">
-            📋 Add Maintenance Record
+            Add Maintenance Record
           </button>
           <button class="btn btn-danger-ghost full-width"
                   *ngIf="selectedAsset?.status === 'Active'"
                   (click)="confirmDeactivate(selectedAsset!)">
-            🔴 Deactivate Asset
+            Deactivate Asset
           </button>
         </div>
       </div>

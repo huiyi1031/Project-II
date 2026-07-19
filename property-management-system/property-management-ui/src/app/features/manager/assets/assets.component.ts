@@ -1,4 +1,4 @@
-﻿import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Asset, AssetMaintenanceHistory } from '../../../core/models';
 import { AssetService, CreateAssetDto } from '../../../core/services/asset.service';
 
@@ -236,11 +236,11 @@ export class AssetsComponent implements OnInit {
 
   getTypeIcon(type?: string): string {
     const icons: Record<string, string> = {
-      'Elevator': 'ðŸ›—', 'HVAC': 'â„ï¸', 'Water Pump': 'ðŸ’§',
-      'Fire System': 'ðŸš’', 'Generator': 'âš¡', 'Plumbing': 'ðŸ”§',
-      'Electrical': 'ðŸ’¡', 'Security': 'ðŸ”’', 'Other': 'âš™ï¸'
+      'Elevator': 'EL', 'HVAC': 'AC', 'Water Pump': 'WP',
+      'Fire System': 'FS', 'Generator': 'GN', 'Plumbing': 'PL',
+      'Electrical': 'EC', 'Security': 'SC', 'Other': 'OT'
     };
-    return icons[type || ''] || 'âš™ï¸';
+    return icons[type || ''] || 'OT';
   }
 
   getDaysUntilDue(nextDue?: string): number | null {

@@ -4,16 +4,16 @@
   <div class="page-header">
     <div class="header-left">
       <h1 class="page-title">
-        <span class="title-icon">🏢</span> Property Unit Management
+        Property Unit Management
       </h1>
       <p class="page-subtitle">Manage all condominium units across your property</p>
     </div>
     <div class="header-actions">
       <button class="btn btn-ghost" *ngIf="selectedUnit" (click)="openEditModal(selectedUnit)">
-        ✏️ Edit Unit
+        Edit Unit
       </button>
       <button class="btn btn-danger-ghost" *ngIf="selectedUnit && selectedUnit.status === 'Vacant'" (click)="confirmDelete(selectedUnit)">
-        🗑️ Delete Unit
+        Delete Unit
       </button>
       <button class="btn btn-primary" (click)="openCreateModal()">
         + Create Unit
@@ -36,7 +36,7 @@
     <div class="filter-row">
       <!-- Search -->
       <div class="filter-group search-group">
-        <span class="filter-icon">🔍</span>
+
         <input type="text" class="filter-input" placeholder="Search unit number or block..."
                [(ngModel)]="searchText" (keyup.enter)="applyFilters()">
       </div>
@@ -45,7 +45,7 @@
       <div class="filter-group">
         <label class="filter-label">Property</label>
         <select class="filter-select" [(ngModel)]="selectedPropertyId" (change)="onPropertyChange()">
-          <option [value]="undefined">All Properties</option>
+          <option value="">All Properties</option>
           <option *ngFor="let p of properties" [value]="p.id">{{ p.name }}</option>
         </select>
       </div>
@@ -127,7 +127,7 @@
       </div>
 
       <div class="table-empty" *ngIf="!loading && filteredUnits.length === 0">
-        <span class="empty-icon">🏠</span>
+
         <p>No units found. Adjust your filters or create a new unit.</p>
         <button class="btn btn-primary" (click)="openCreateModal()">+ Create First Unit</button>
       </div>
@@ -184,9 +184,9 @@
           <span>{{ selectedUnit.unitNumber }}</span>
         </div>
         <div class="panel-header-actions">
-          <button class="btn btn-sm btn-ghost" (click)="openEditModal(selectedUnit)" title="Edit">✏️</button>
+          <button class="btn btn-sm btn-ghost" (click)="openEditModal(selectedUnit)" title="Edit">Edit</button>
           <button class="btn btn-sm btn-danger-ghost" *ngIf="selectedUnit.status === 'Vacant'"
-                  (click)="confirmDelete(selectedUnit)" title="Delete">🗑️</button>
+                  (click)="confirmDelete(selectedUnit)" title="Delete">Delete</button>
           <button class="panel-close" (click)="closeDetailPanel()">✕</button>
         </div>
       </div>
@@ -237,7 +237,7 @@
 
         <!-- Active Contracts -->
         <div class="panel-section" *ngIf="selectedUnitDetail?.activeContracts?.length > 0">
-          <h4 class="section-title">👥 Current Occupants</h4>
+          <h4 class="section-title">Current Occupants</h4>
           <div class="contract-item" *ngFor="let c of selectedUnitDetail.activeContracts">
             <span class="contract-name">{{ c.occupantName }}</span>
             <span class="contract-type-badge">{{ c.occupantType }}</span>
@@ -246,7 +246,7 @@
 
         <div class="panel-section" *ngIf="selectedUnit.status === 'Vacant'">
           <div class="vacant-notice">
-            <span>🟢 This unit is currently vacant</span>
+            <span>This unit is currently vacant</span>
           </div>
         </div>
       </div>
@@ -261,7 +261,7 @@
 <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
   <div class="modal-box" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h2>{{ editMode ? '✏️ Edit Unit' : '+ Create New Unit' }}</h2>
+      <h2>{{ editMode ? 'Edit Unit' : 'Create New Unit' }}</h2>
       <button class="modal-close" (click)="closeModal()">✕</button>
     </div>
 
@@ -356,7 +356,7 @@
 <div class="modal-overlay" *ngIf="showDeleteConfirm" (click)="cancelDelete()">
   <div class="modal-box modal-sm" (click)="$event.stopPropagation()">
     <div class="modal-header danger">
-      <h2>🗑️ Delete Unit</h2>
+      <h2>Delete Unit</h2>
       <button class="modal-close" (click)="cancelDelete()">✕</button>
     </div>
     <div class="modal-body">

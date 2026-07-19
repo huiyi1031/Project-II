@@ -59,7 +59,7 @@ export class UnitsComponent implements OnInit {
       status:     this.filterStatus   || undefined,
       minSqft:    this.filterMinSqft  ? +this.filterMinSqft : undefined,
       maxSqft:    this.filterMaxSqft  ? +this.filterMaxSqft : undefined,
-      propertyId: this.selectedPropertyId,
+      propertyId: this.selectedPropertyId ? +this.selectedPropertyId : undefined,
     }).subscribe({
       next: units => {
         this.units = units;
@@ -245,11 +245,11 @@ export class UnitsComponent implements OnInit {
 
   getTypeIcon(type: string): string {
     switch (type) {
-      case 'Studio':    return '🏠';
-      case '1-Bedroom': return '🛏️';
-      case '2-Bedroom': return '🛏️🛏️';
-      case '3-Bedroom': return '🏡';
-      default:          return '🏠';
+      case 'Studio':    return 'S';
+      case '1-Bedroom': return '1B';
+      case '2-Bedroom': return '2B';
+      case '3-Bedroom': return '3B';
+      default:          return 'U';
     }
   }
 
