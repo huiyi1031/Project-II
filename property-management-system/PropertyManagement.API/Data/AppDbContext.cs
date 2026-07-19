@@ -11,7 +11,8 @@ namespace PropertyManagement.API.Data
         {
         }
 
-        // All 19 DbSets (same as before)
+        // ── DbSets ────────────────────────────────────────────────────────────────
+        public DbSet<Organisation> Organisations { get; set; }
         public DbSet<UserAccount> UserAccounts { get; set; }
         public DbSet<Occupant> Occupants { get; set; }
         public DbSet<PropertyManager> PropertyManagers { get; set; }
@@ -36,14 +37,14 @@ namespace PropertyManagement.API.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configure composite keys
+            // ── Composite Keys ─────────────────────────────────────────────────────
             modelBuilder.Entity<ChatParticipant>()
                 .HasKey(cp => new { cp.ChatId, cp.UserAccountId });
 
             modelBuilder.Entity<PropertyServiceType>()
                 .HasKey(pst => new { pst.PropertyId, pst.ServiceTypeId });
 
-            // Configure one-to-one relationships
+            // ── One-to-One Relationships ───────────────────────────────────────────
             modelBuilder.Entity<Occupant>()
                 .HasOne(o => o.UserAccount)
                 .WithOne(u => u.Occupant)
@@ -62,7 +63,21 @@ namespace PropertyManagement.API.Data
                 .HasForeignKey<PropertyManager>(pm => pm.UserAccountId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Configure one-to-many relationships
+            // ── One-to-Many: Organisation → Property ───────────────────────────────
+            modelBuilder.Entity<Property>()
+                .HasOne(p => p.Organisation)
+                .WithMany(o => o.Properties)
+                .HasForeignKey(p => p.OrganisationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ── One-to-One: Property → PropertyManager (ManagedBy) ────────────────
+            modelBuilder.Entity<Property>()
+                .HasOne(p => p.ManagedBy)
+                .WithMany()
+                .HasForeignKey(p => p.ManagedByManagerId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // ── MaintenanceRequest ↔ Chat / WorkOrder ──────────────────────────────
             modelBuilder.Entity<MaintenanceRequest>()
                 .HasOne(mr => mr.Chat)
                 .WithOne(c => c.MaintenanceRequest)
@@ -75,7 +90,7 @@ namespace PropertyManagement.API.Data
                 .HasForeignKey<WorkOrder>(wo => wo.RequestId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Set default values
+            // ── Default Values ─────────────────────────────────────────────────────
             modelBuilder.Entity<UserAccount>()
                 .Property(u => u.AccountStatus)
                 .HasDefaultValue(AccountStatus.Active)
@@ -90,14 +105,12 @@ namespace PropertyManagement.API.Data
                 .HasDefaultValue(RequestStatus.Pending)
                 .HasConversion<int>();
 
-            // // Indexes
-            // modelBuilder.Entity<UserAccount>()
-            //     .HasIndex(u => u.Email)
-            //     .IsUnique();
-
+            // ── Indexes ────────────────────────────────────────────────────────────
+            // Unit number must be unique WITHIN a property (not globally)
             modelBuilder.Entity<PropertyUnit>()
-                .HasIndex(pu => pu.UnitNumber)
-                .IsUnique();
+                .HasIndex(pu => new { pu.PropertyId, pu.UnitNumber })
+                .IsUnique()
+                .HasDatabaseName("IX_PropertyUnit_PropertyId_UnitNumber");
 
             modelBuilder.Entity<Asset>()
                 .HasIndex(a => a.QrCode)

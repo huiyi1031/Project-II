@@ -49,26 +49,46 @@ export interface Technician {
   email?: string;
 }
 
+export interface Organisation {
+  organisationId: number;
+  organisationName: string;
+  contactPerson?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  address?: string;
+  registrationNo?: string;
+  isActive: boolean;
+}
+
 export interface Property {
   propertyID: number;
+  organisationId?: number;
+  managedByManagerId?: number;
   propertyName: string;
   propertyType: string;
   address: string;
   city: string;
   state: string;
   postcode: string;
+  organisationName?: string;
+  managerName?: string;
 }
 
 export interface PropertyUnit {
-  unitID: number;
-  propertyID: number;
-  unitNumber: string;
-  floor: number;
-  block: string;
-  unitType: string;
-  size: number;
-  status: string;           // 'Occupied' | 'Vacant'
+  unitId: number;
+  propertyId: number;
   propertyName?: string;
+  unitNumber: string;
+  floorLevel?: string;
+  block?: string;
+  unitType?: string;      // 'Studio' | '1-Bedroom' | '2-Bedroom' | '3-Bedroom'
+  areaSqft?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  maxOccupants: number;
+  currentOccupants: number;
+  status: string;         // 'Vacant' | 'Occupied'
+  createdAt?: string;
 }
 
 export interface Contract {
@@ -137,23 +157,23 @@ export interface WorkAssignment {
 }
 
 export interface Asset {
-  assetID: number;
-  propertyID: number;
-  assetName: string;
-  assetType: string;
-  location: string;
-  installationDate: string;
-  manufacturer: string;
-  modelNumber: string;
-  expLifespanYears: number;
-  criticalityLevel: number;
-  maintenanceIntervalDays: number;
-  status: string;
-  isHighRisk: boolean;
-  riskLevel: string;        // 'High' | 'Medium' | 'Low'
-  riskScore: number;
-  qrCode?: string;
+  assetId: number;
+  propertyId: number;
   propertyName?: string;
+  assetName: string;
+  assetType?: string;     // 'Elevator' | 'HVAC' | 'Water Pump' | 'Fire System' | 'Generator' | ...
+  location?: string;
+  installationDate: string;
+  manufacturer?: string;
+  modelNumber?: string;
+  expLifespanYears: number;
+  maintenanceIntervalDays: number;
+  supplierName?: string;
+  warrantyExpiryDate?: string;
+  nextMaintenanceDueDate?: string;
+  status?: string;        // 'Active' | 'Inactive'
+  qrCode?: string;
+  createdAt?: string;
 }
 
 export interface MaintenancePlan {
@@ -169,16 +189,15 @@ export interface MaintenancePlan {
 }
 
 export interface AssetMaintenanceHistory {
-  historyID: number;
-  assetID: number;
-  workOrderID: number;
-  maintenanceType: string;
-  failureType?: string;
-  description: string;
-  downtimeDuration?: number;
-  cost: number;
+  historyId: number;
+  assetId: number;
+  maintenanceType: string;  // 'Corrective' | 'Preventive' | 'Inspection'
+  description?: string;
+  cost?: number;
   maintenanceDate: string;
-  resultStatus: string;
+  resultStatus?: string;    // 'Completed' | 'Partial' | 'Failed'
+  performedBy?: string;
+  workOrderId?: number;
   assetName?: string;
 }
 

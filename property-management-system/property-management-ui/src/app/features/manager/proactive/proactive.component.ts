@@ -17,7 +17,8 @@ export class ProactiveComponent implements OnInit {
 
   ngOnInit(): void {
     this.buildCalendar();
-    this.svc.getHighRiskAssets().subscribe({ next: d => (this.riskAssets = d), error: () => {} });
+    // Load active assets — show those with upcoming maintenance (risk concept removed)
+    this.svc.getAll({ status: 'Active' }).subscribe({ next: d => (this.riskAssets = d), error: () => {} });
   }
 
   private buildCalendar(): void {

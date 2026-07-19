@@ -1,62 +1,374 @@
-<!-- Property Unit Management -->
-<div class="fade-in space-y-4">
-  <div class="pms-card">
-    <div class="flex flex-wrap gap-3 items-end mb-3">
-      <h4 class="section-title mb-0 flex-1">Property Unit Management</h4>
-      <input [(ngModel)]="search" placeholder="Unit no / Floor / Block" class="pms-input w-48"/>
-      <select [(ngModel)]="statusFilter" class="pms-select w-32">
-        <option>All</option><option>Occupied</option><option>Vacant</option>
-      </select>
+<div class="units-page">
+
+  <!-- ── Page Header with Action Buttons ──────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">
+        <span class="title-icon">🏢</span> Property Unit Management
+      </h1>
+      <p class="page-subtitle">Manage all condominium units across your property</p>
     </div>
-    <table class="pms-table">
-      <thead><tr><th>Unit</th><th>Floor</th><th>Block</th><th>Type</th><th>Size</th><th>Status</th><th>Action</th></tr></thead>
-      <tbody>
-        <tr *ngFor="let u of units">
-          <td class="font-semibold text-navy">{{ u.unitNumber }}</td>
-          <td>{{ u.floor }}</td><td>{{ u.block }}</td><td>{{ u.unitType }}</td>
-          <td class="text-muted">{{ u.size }} sqft</td>
-          <td><app-status-badge [status]="u.status"></app-status-badge></td>
-          <td><button class="btn-outline text-xs px-2 py-1" (click)="editUnit(u)">Edit</button></td>
-        </tr>
-        <ng-container *ngIf="units.length === 0">
-          <tr>
-            <td class="font-semibold text-navy">A-12-05</td>
-            <td>12</td><td>A</td><td>Apartment</td><td class="text-muted">850 sqft</td>
-            <td><app-status-badge status="Occupied"></app-status-badge></td>
-            <td><button class="btn-outline text-xs px-2 py-1">Edit</button></td>
-          </tr>
-          <tr>
-            <td class="font-semibold text-navy">B-08-12</td>
-            <td>8</td><td>B</td><td>Apartment</td><td class="text-muted">1050 sqft</td>
-            <td><app-status-badge status="Vacant"></app-status-badge></td>
-            <td><button class="btn-outline text-xs px-2 py-1">Edit</button></td>
-          </tr>
-        </ng-container>
-      </tbody>
-    </table>
+    <div class="header-actions">
+      <button class="btn btn-ghost" *ngIf="selectedUnit" (click)="openEditModal(selectedUnit)">
+        ✏️ Edit Unit
+      </button>
+      <button class="btn btn-danger-ghost" *ngIf="selectedUnit && selectedUnit.status === 'Vacant'" (click)="confirmDelete(selectedUnit)">
+        🗑️ Delete Unit
+      </button>
+      <button class="btn btn-primary" (click)="openCreateModal()">
+        + Create Unit
+      </button>
+    </div>
   </div>
-  <div class="pms-card">
-    <h4 class="section-title">{{ editMode ? 'Update' : 'Create' }} Unit</h4>
-    <div class="form-grid">
-      <div class="space-y-1"><label class="pms-label">Unit Number</label>
-        <input [(ngModel)]="form.unitNumber" class="pms-input"/></div>
-      <div class="space-y-1"><label class="pms-label">Floor Level</label>
-        <input [(ngModel)]="form.floor" type="number" class="pms-input"/></div>
-      <div class="space-y-1"><label class="pms-label">Block</label>
-        <input [(ngModel)]="form.block" class="pms-input"/></div>
-      <div class="space-y-1"><label class="pms-label">Unit Type</label>
-        <input [(ngModel)]="form.unitType" class="pms-input" placeholder="e.g. Apartment"/></div>
-      <div class="space-y-1"><label class="pms-label">Size (sqft)</label>
-        <input [(ngModel)]="form.size" type="number" class="pms-input"/></div>
-      <div class="space-y-1"><label class="pms-label">Status</label>
-        <select [(ngModel)]="form.status" class="pms-select">
-          <option>Occupied</option><option>Vacant</option>
+
+  <!-- ── Alerts ────────────────────────────────────────────────────────────── -->
+  <div class="alert alert-success" *ngIf="success">
+    <span>✅ {{ success }}</span>
+    <button class="alert-close" (click)="dismissAlert()">×</button>
+  </div>
+  <div class="alert alert-error" *ngIf="error && !showModal && !showDeleteConfirm">
+    <span>⚠️ {{ error }}</span>
+    <button class="alert-close" (click)="dismissAlert()">×</button>
+  </div>
+
+  <!-- ── Filter Bar ─────────────────────────────────────────────────────────── -->
+  <div class="filter-card">
+    <div class="filter-row">
+      <!-- Search -->
+      <div class="filter-group search-group">
+        <span class="filter-icon">🔍</span>
+        <input type="text" class="filter-input" placeholder="Search unit number or block..."
+               [(ngModel)]="searchText" (keyup.enter)="applyFilters()">
+      </div>
+
+      <!-- Property -->
+      <div class="filter-group">
+        <label class="filter-label">Property</label>
+        <select class="filter-select" [(ngModel)]="selectedPropertyId" (change)="onPropertyChange()">
+          <option [value]="undefined">All Properties</option>
+          <option *ngFor="let p of properties" [value]="p.id">{{ p.name }}</option>
+        </select>
+      </div>
+
+      <!-- Block -->
+      <div class="filter-group">
+        <label class="filter-label">Block</label>
+        <select class="filter-select" [(ngModel)]="filterBlock" (change)="applyFilters()">
+          <option value="">All Blocks</option>
+          <option *ngFor="let b of filterOptions.blocks" [value]="b">Block {{ b }}</option>
+          <!-- If no options loaded, show A/B/C as defaults -->
+          <ng-container *ngIf="filterOptions.blocks.length === 0">
+            <option value="A">Block A</option>
+            <option value="B">Block B</option>
+            <option value="C">Block C</option>
+          </ng-container>
+        </select>
+      </div>
+
+      <!-- Floor -->
+      <div class="filter-group">
+        <label class="filter-label">Floor</label>
+        <select class="filter-select" [(ngModel)]="filterFloor" (change)="applyFilters()">
+          <option value="">All Floors</option>
+          <option *ngFor="let f of filterOptions.floors" [value]="f">Floor {{ f }}</option>
+        </select>
+      </div>
+
+      <!-- Unit Type -->
+      <div class="filter-group">
+        <label class="filter-label">Unit Type</label>
+        <select class="filter-select" [(ngModel)]="filterType" (change)="applyFilters()">
+          <option value="">All Types</option>
+          <option *ngFor="let t of unitTypes" [value]="t">{{ t }}</option>
+        </select>
+      </div>
+
+      <!-- Status -->
+      <div class="filter-group">
+        <label class="filter-label">Status</label>
+        <select class="filter-select" [(ngModel)]="filterStatus" (change)="applyFilters()">
+          <option value="">All Status</option>
+          <option value="Vacant">Vacant</option>
+          <option value="Occupied">Occupied</option>
         </select>
       </div>
     </div>
-    <div class="form-actions">
-      <button class="btn-outline" (click)="resetForm()">Cancel</button>
-      <button class="btn-primary" (click)="saveUnit()">💾 Save Unit</button>
+
+    <!-- Sqft Range Row -->
+    <div class="filter-row filter-row-secondary">
+      <div class="filter-group">
+        <label class="filter-label">Min Size (sqft)</label>
+        <input type="number" class="filter-input small" placeholder="e.g. 450"
+               [(ngModel)]="filterMinSqft" (change)="applyFilters()">
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Max Size (sqft)</label>
+        <input type="number" class="filter-input small" placeholder="e.g. 1600"
+               [(ngModel)]="filterMaxSqft" (change)="applyFilters()">
+      </div>
+      <div class="filter-actions">
+        <button class="btn btn-sm btn-primary" (click)="applyFilters()">Apply Filters</button>
+        <button class="btn btn-sm btn-ghost" (click)="clearFilters()">Clear All</button>
+      </div>
+      <div class="filter-count">
+        <span class="count-badge">{{ filteredUnits.length }} unit(s) found</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Main Content: Table + Detail Panel ─────────────────────────────────── -->
+  <div class="content-area" [class.with-panel]="showDetailPanel">
+
+    <!-- Unit Table -->
+    <div class="table-card">
+      <div class="table-loading" *ngIf="loading">
+        <div class="spinner"></div>
+        <span>Loading units...</span>
+      </div>
+
+      <div class="table-empty" *ngIf="!loading && filteredUnits.length === 0">
+        <span class="empty-icon">🏠</span>
+        <p>No units found. Adjust your filters or create a new unit.</p>
+        <button class="btn btn-primary" (click)="openCreateModal()">+ Create First Unit</button>
+      </div>
+
+      <table class="data-table" *ngIf="!loading && filteredUnits.length > 0">
+        <thead>
+          <tr>
+            <th>Unit No.</th>
+            <th>Block</th>
+            <th>Floor</th>
+            <th>Type</th>
+            <th>Size (sqft)</th>
+            <th>Bed / Bath</th>
+            <th>Occupants</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let unit of filteredUnits"
+              (click)="selectUnit(unit)"
+              [class.row-selected]="selectedUnit?.unitId === unit.unitId"
+              class="table-row">
+            <td class="unit-number">
+              <span class="type-icon">{{ getTypeIcon(unit.unitType || '') }}</span>
+              <strong>{{ unit.unitNumber }}</strong>
+            </td>
+            <td>
+              <span class="block-chip">{{ unit.block || '—' }}</span>
+            </td>
+            <td>{{ unit.floorLevel || '—' }}</td>
+            <td>
+              <span class="type-chip">{{ unit.unitType || '—' }}</span>
+            </td>
+            <td>{{ unit.areaSqft ? (unit.areaSqft | number:'1.0-0') + ' sqft' : '—' }}</td>
+            <td>{{ unit.bedrooms || '—' }} bd / {{ unit.bathrooms || '—' }} ba</td>
+            <td>
+              <span class="occupant-count">{{ unit.currentOccupants }} / {{ unit.maxOccupants }}</span>
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="getStatusClass(unit.status)">
+                {{ unit.status }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ── Detail Side Panel ───────────────────────────────────────────────── -->
+    <div class="detail-panel" *ngIf="showDetailPanel && selectedUnit">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span>{{ getTypeIcon(selectedUnit.unitType || '') }}</span>
+          <span>{{ selectedUnit.unitNumber }}</span>
+        </div>
+        <div class="panel-header-actions">
+          <button class="btn btn-sm btn-ghost" (click)="openEditModal(selectedUnit)" title="Edit">✏️</button>
+          <button class="btn btn-sm btn-danger-ghost" *ngIf="selectedUnit.status === 'Vacant'"
+                  (click)="confirmDelete(selectedUnit)" title="Delete">🗑️</button>
+          <button class="panel-close" (click)="closeDetailPanel()">✕</button>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">Property</span>
+            <span class="detail-value">{{ selectedUnit.propertyName || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Status</span>
+            <span class="status-badge" [ngClass]="getStatusClass(selectedUnit.status)">{{ selectedUnit.status }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Unit Type</span>
+            <span class="detail-value">{{ selectedUnit.unitType || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Block</span>
+            <span class="detail-value">{{ selectedUnit.block || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Floor</span>
+            <span class="detail-value">{{ selectedUnit.floorLevel || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Size</span>
+            <span class="detail-value">{{ selectedUnit.areaSqft ? (selectedUnit.areaSqft | number:'1.0-0') + ' sqft' : '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Bedrooms</span>
+            <span class="detail-value">{{ selectedUnit.bedrooms || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Bathrooms</span>
+            <span class="detail-value">{{ selectedUnit.bathrooms || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Max Occupants</span>
+            <span class="detail-value">{{ selectedUnit.maxOccupants }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Current Occupants</span>
+            <span class="detail-value">{{ selectedUnit.currentOccupants }}</span>
+          </div>
+        </div>
+
+        <!-- Active Contracts -->
+        <div class="panel-section" *ngIf="selectedUnitDetail?.activeContracts?.length > 0">
+          <h4 class="section-title">👥 Current Occupants</h4>
+          <div class="contract-item" *ngFor="let c of selectedUnitDetail.activeContracts">
+            <span class="contract-name">{{ c.occupantName }}</span>
+            <span class="contract-type-badge">{{ c.occupantType }}</span>
+          </div>
+        </div>
+
+        <div class="panel-section" *ngIf="selectedUnit.status === 'Vacant'">
+          <div class="vacant-notice">
+            <span>🟢 This unit is currently vacant</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════════ -->
+<!-- ── Create / Edit Modal ──────────────────────────────────────────────────── -->
+<!-- ════════════════════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ editMode ? '✏️ Edit Unit' : '+ Create New Unit' }}</h2>
+      <button class="modal-close" (click)="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="alert alert-error" *ngIf="error">⚠️ {{ error }}</div>
+
+      <div class="form-grid">
+        <!-- Property -->
+        <div class="form-group full-width" *ngIf="!editMode">
+          <label class="form-label required">Property</label>
+          <select class="form-control" [(ngModel)]="form.propertyId" required>
+            <option [value]="0">— Select Property —</option>
+            <option *ngFor="let p of properties" [value]="p.id">{{ p.name }}</option>
+          </select>
+        </div>
+
+        <!-- Unit Number -->
+        <div class="form-group">
+          <label class="form-label required">Unit Number</label>
+          <input class="form-control" type="text" [(ngModel)]="form.unitNumber"
+                 placeholder="e.g. A-05-03" maxlength="20">
+        </div>
+
+        <!-- Block -->
+        <div class="form-group">
+          <label class="form-label">Block</label>
+          <input class="form-control" type="text" [(ngModel)]="form.block"
+                 placeholder="e.g. A" maxlength="10">
+        </div>
+
+        <!-- Floor -->
+        <div class="form-group">
+          <label class="form-label">Floor Level</label>
+          <input class="form-control" type="text" [(ngModel)]="form.floorLevel"
+                 placeholder="e.g. 5" maxlength="10">
+        </div>
+
+        <!-- Unit Type (triggers auto-fill) -->
+        <div class="form-group">
+          <label class="form-label">Unit Type</label>
+          <select class="form-control" [(ngModel)]="form.unitType" (change)="onUnitTypeChange()">
+            <option *ngFor="let t of unitTypes" [value]="t">{{ t }}</option>
+          </select>
+        </div>
+
+        <!-- Size -->
+        <div class="form-group">
+          <label class="form-label">Area (sqft)</label>
+          <input class="form-control" type="number" [(ngModel)]="form.areaSqft"
+                 min="300" max="5000" placeholder="e.g. 980">
+        </div>
+
+        <!-- Bedrooms -->
+        <div class="form-group">
+          <label class="form-label">Bedrooms</label>
+          <input class="form-control" type="number" [(ngModel)]="form.bedrooms" min="0" max="10">
+        </div>
+
+        <!-- Bathrooms -->
+        <div class="form-group">
+          <label class="form-label">Bathrooms</label>
+          <input class="form-control" type="number" [(ngModel)]="form.bathrooms" min="0" max="10">
+        </div>
+
+        <!-- Max Occupants -->
+        <div class="form-group">
+          <label class="form-label required">Max Occupants</label>
+          <input class="form-control" type="number" [(ngModel)]="form.maxOccupants" min="1" max="20">
+        </div>
+
+        <!-- Status -->
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-control" [(ngModel)]="form.status">
+            <option *ngFor="let s of statusOptions" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" (click)="closeModal()" [disabled]="saving">Cancel</button>
+      <button class="btn btn-primary" (click)="saveUnit()" [disabled]="saving">
+        <span *ngIf="saving" class="spinner-sm"></span>
+        {{ saving ? 'Saving...' : (editMode ? 'Update Unit' : 'Create Unit') }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Delete Confirmation Modal ─────────────────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="showDeleteConfirm" (click)="cancelDelete()">
+  <div class="modal-box modal-sm" (click)="$event.stopPropagation()">
+    <div class="modal-header danger">
+      <h2>🗑️ Delete Unit</h2>
+      <button class="modal-close" (click)="cancelDelete()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to delete unit <strong>{{ selectedUnit?.unitNumber }}</strong>?</p>
+      <p class="text-muted">This action cannot be undone. Only vacant units can be deleted.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" (click)="cancelDelete()" [disabled]="saving">Cancel</button>
+      <button class="btn btn-danger" (click)="deleteUnit()" [disabled]="saving">
+        <span *ngIf="saving" class="spinner-sm"></span>
+        {{ saving ? 'Deleting...' : 'Yes, Delete' }}
+      </button>
     </div>
   </div>
 </div>

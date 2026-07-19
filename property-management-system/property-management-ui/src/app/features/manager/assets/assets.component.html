@@ -1,77 +1,446 @@
-<!-- Asset Management -->
-<div class="fade-in space-y-4">
-  <div class="pms-card">
-    <h4 class="section-title">Asset Management</h4>
-    <table class="pms-table">
-      <thead>
-        <tr><th>Asset ID</th><th>Name</th><th>Type</th><th>Location</th><th>Risk Score</th><th>Risk Level</th><th>Status</th></tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let a of assets">
-          <td class="font-mono text-xs text-blue">AST-{{ a.assetID }}</td>
-          <td class="font-semibold">{{ a.assetName }}</td>
-          <td>{{ a.assetType }}</td><td class="text-muted">{{ a.location }}</td>
-          <td class="font-bold" [class.text-danger]="a.riskScore >= 80" [class.text-warning]="a.riskScore >= 60 && a.riskScore < 80">
-            {{ a.riskScore | number:'1.1-1' }}
-          </td>
-          <td><app-status-badge [status]="a.riskLevel"></app-status-badge></td>
-          <td><app-status-badge [status]="a.status"></app-status-badge></td>
-        </tr>
-        <ng-container *ngIf="assets.length === 0">
-          <tr>
-            <td class="font-mono text-xs text-blue">AST-301</td>
-            <td class="font-semibold">Lift A</td><td>Lift</td><td class="text-muted">Block A</td>
-            <td class="font-bold text-warning">62.0</td>
-            <td><app-status-badge status="Medium"></app-status-badge></td>
-            <td><app-status-badge status="Active"></app-status-badge></td>
-          </tr>
-          <tr>
-            <td class="font-mono text-xs text-blue">AST-455</td>
-            <td class="font-semibold">Main Chiller</td><td>HVAC</td><td class="text-muted">Roof</td>
-            <td class="font-bold text-danger">82.5</td>
-            <td><app-status-badge status="High"></app-status-badge></td>
-            <td><app-status-badge status="InProgress"></app-status-badge></td>
-          </tr>
-        </ng-container>
-      </tbody>
-    </table>
+<div class="units-page">
+
+  <!-- ── Page Header ───────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">
+        <span class="title-icon">⚙️</span> Asset Management
+      </h1>
+      <p class="page-subtitle">Track shared building infrastructure and maintenance schedules</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-ghost" *ngIf="selectedAsset" (click)="openEditModal(selectedAsset)">
+        ✏️ Edit Asset
+      </button>
+      <button class="btn btn-ghost" *ngIf="selectedAsset" (click)="openHistoryModal(selectedAsset)">
+        📋 Add Maintenance Record
+      </button>
+      <button class="btn btn-danger-ghost" *ngIf="selectedAsset && selectedAsset.status === 'Active'" (click)="confirmDeactivate(selectedAsset)">
+        🔴 Deactivate
+      </button>
+      <button class="btn btn-primary" (click)="openCreateModal()">
+        + Register Asset
+      </button>
+    </div>
   </div>
 
-  <!-- Create / Update Asset -->
-  <div class="pms-card">
-    <h4 class="section-title">Create / Update Asset</h4>
-    <div class="form-grid">
-      <div class="space-y-1"><label class="pms-label">Asset Name</label>
-        <input [(ngModel)]="form.assetName" class="pms-input"/></div>
-      <div class="space-y-1"><label class="pms-label">Asset Type</label>
-        <select [(ngModel)]="form.assetType" class="pms-select">
-          <option>Lift</option><option>HVAC</option><option>Pump</option><option>Generator</option>
+  <!-- ── Alerts ─────────────────────────────────────────────────────────────── -->
+  <div class="alert alert-success" *ngIf="success">
+    <span>✅ {{ success }}</span>
+    <button class="alert-close" (click)="dismissAlert()">×</button>
+  </div>
+  <div class="alert alert-error" *ngIf="error && !showModal && !showHistoryModal">
+    <span>⚠️ {{ error }}</span>
+    <button class="alert-close" (click)="dismissAlert()">×</button>
+  </div>
+
+  <!-- ── Filter Bar ─────────────────────────────────────────────────────────── -->
+  <div class="filter-card">
+    <div class="filter-row">
+      <div class="filter-group search-group">
+        <span class="filter-icon">🔍</span>
+        <input type="text" class="filter-input" placeholder="Search asset name or location..."
+               [(ngModel)]="searchText" (keyup.enter)="applyFilters()">
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Property</label>
+        <select class="filter-select" [(ngModel)]="selectedPropertyId" (change)="applyFilters()">
+          <option [value]="undefined">All Properties</option>
+          <option *ngFor="let p of properties" [value]="p.id">{{ p.name }}</option>
         </select>
       </div>
-      <div class="space-y-1"><label class="pms-label">Location</label>
-        <input [(ngModel)]="form.location" class="pms-input"/></div>
-      <div class="space-y-1"><label class="pms-label">Installation Date</label>
-        <input [(ngModel)]="form.installationDate" type="date" class="pms-input"/></div>
-      <div class="space-y-1"><label class="pms-label">Manufacturer</label>
-        <input [(ngModel)]="form.manufacturer" class="pms-input"/></div>
-      <div class="space-y-1"><label class="pms-label">Model Number</label>
-        <input [(ngModel)]="form.modelNumber" class="pms-input"/></div>
-      <div class="space-y-1"><label class="pms-label">Maintenance Interval (days)</label>
-        <input [(ngModel)]="form.maintenanceIntervalDays" type="number" class="pms-input"/></div>
-      <div class="space-y-1"><label class="pms-label">Criticality Level (1-5)</label>
-        <input [(ngModel)]="form.criticalityLevel" type="number" min="1" max="5" class="pms-input"/></div>
-      <div class="space-y-1"><label class="pms-label">Expected Lifespan (years)</label>
-        <input [(ngModel)]="form.expLifespanYears" type="number" class="pms-input"/></div>
-      <div class="space-y-1"><label class="pms-label">Status</label>
-        <select [(ngModel)]="form.status" class="pms-select">
-          <option>Active</option><option>Maintenance</option><option>Retired</option>
+      <div class="filter-group">
+        <label class="filter-label">Asset Type</label>
+        <select class="filter-select" [(ngModel)]="filterType" (change)="applyFilters()">
+          <option value="">All Types</option>
+          <option *ngFor="let t of assetTypes" [value]="t">{{ getTypeIcon(t) }} {{ t }}</option>
         </select>
       </div>
+      <div class="filter-group">
+        <label class="filter-label">Status</label>
+        <select class="filter-select" [(ngModel)]="filterStatus" (change)="applyFilters()">
+          <option value="">All Status</option>
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+      <div class="filter-actions">
+        <button class="btn btn-sm btn-ghost" (click)="clearFilters()">Clear</button>
+      </div>
+      <div class="filter-count">
+        <span class="count-badge">{{ assets.length }} asset(s)</span>
+      </div>
     </div>
-    <div class="form-actions">
-      <button class="btn-outline" (click)="generateQR()">📱 Generate Asset QR</button>
-      <button class="btn-primary" (click)="saveAsset()">💾 Save Asset</button>
+  </div>
+
+  <!-- ── Content: Cards + Detail Panel ──────────────────────────────────────── -->
+  <div class="content-area" [class.with-panel]="!!selectedAsset">
+
+    <!-- Asset Grid -->
+    <div class="asset-grid">
+      <div class="table-loading" *ngIf="loading">
+        <div class="spinner"></div><span>Loading assets...</span>
+      </div>
+
+      <div class="table-empty" *ngIf="!loading && assets.length === 0">
+        <span class="empty-icon">⚙️</span>
+        <p>No assets found. Register your first building asset.</p>
+        <button class="btn btn-primary" (click)="openCreateModal()">+ Register Asset</button>
+      </div>
+
+      <div *ngFor="let asset of assets"
+           class="asset-card"
+           [class.card-selected]="selectedAsset?.assetId === asset.assetId"
+           [class.card-inactive]="asset.status === 'Inactive'"
+           (click)="selectAsset(asset)">
+
+        <div class="asset-card-header">
+          <span class="asset-type-icon">{{ getTypeIcon(asset.assetType) }}</span>
+          <div class="asset-card-info">
+            <strong class="asset-name">{{ asset.assetName }}</strong>
+            <span class="asset-type-label">{{ asset.assetType }}</span>
+          </div>
+          <span class="status-badge" [ngClass]="getStatusClass(asset.status)">{{ asset.status }}</span>
+        </div>
+
+        <div class="asset-card-body">
+          <div class="asset-meta">
+            <span class="meta-item">📍 {{ asset.location || 'No location' }}</span>
+            <span class="meta-item">🏭 {{ asset.manufacturer || '—' }}</span>
+            <span class="meta-item">🔧 Every {{ asset.maintenanceIntervalDays }} days</span>
+          </div>
+
+          <!-- Next Maintenance Due -->
+          <div class="due-date" [ngClass]="getDueClass(asset.nextMaintenanceDueDate)">
+            <span class="due-label">Next Due:</span>
+            <span class="due-value" *ngIf="asset.nextMaintenanceDueDate">
+              {{ asset.nextMaintenanceDueDate | date:'dd MMM yyyy' }}
+              <span class="due-days" *ngIf="getDaysUntilDue(asset.nextMaintenanceDueDate) !== null">
+                ({{ getDaysUntilDue(asset.nextMaintenanceDueDate)! > 0 ? getDaysUntilDue(asset.nextMaintenanceDueDate) + ' days' : 'OVERDUE' }})
+              </span>
+            </span>
+            <span class="due-value" *ngIf="!asset.nextMaintenanceDueDate">Not set</span>
+          </div>
+
+          <!-- QR Code Preview -->
+          <div class="qr-preview" *ngIf="asset.qrCode">
+            <span class="qr-code-text">🔲 {{ asset.qrCode }}</span>
+          </div>
+        </div>
+      </div>
     </div>
-    <div *ngIf="qrCode" class="mt-3 text-xs text-blue">QR Code: {{ qrCode }}</div>
+
+    <!-- ── Detail Side Panel ───────────────────────────────────────────────── -->
+    <div class="detail-panel" *ngIf="selectedAsset">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span>{{ getTypeIcon(selectedAsset.assetType) }}</span>
+          <span>{{ selectedAsset.assetName }}</span>
+        </div>
+        <div class="panel-header-actions">
+          <button class="btn btn-sm btn-ghost" (click)="openEditModal(selectedAsset)">✏️</button>
+          <button class="panel-close" (click)="closeDetail()">✕</button>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <!-- QR Code Large -->
+        <div class="qr-section" *ngIf="selectedAsset.qrCode">
+          <div class="qr-label">Scan QR Code</div>
+          <img [src]="getQrUrl(selectedAsset.qrCode)" alt="QR Code" class="qr-image" loading="lazy">
+          <div class="qr-code-text">{{ selectedAsset.qrCode }}</div>
+        </div>
+
+        <!-- Specs Grid -->
+        <div class="detail-grid">
+          <div class="detail-item">
+            <span class="detail-label">Property</span>
+            <span class="detail-value">{{ selectedAsset.propertyName || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Status</span>
+            <span class="status-badge" [ngClass]="getStatusClass(selectedAsset.status)">{{ selectedAsset.status }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Location</span>
+            <span class="detail-value">{{ selectedAsset.location || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Manufacturer</span>
+            <span class="detail-value">{{ selectedAsset.manufacturer || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Model</span>
+            <span class="detail-value">{{ selectedAsset.modelNumber || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Installed</span>
+            <span class="detail-value">{{ selectedAsset.installationDate | date:'dd MMM yyyy' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Lifespan</span>
+            <span class="detail-value">{{ selectedAsset.expLifespanYears }} years</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Maint. Interval</span>
+            <span class="detail-value">Every {{ selectedAsset.maintenanceIntervalDays }} days</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Supplier</span>
+            <span class="detail-value">{{ selectedAsset.supplierName || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Warranty Expiry</span>
+            <span class="detail-value">{{ selectedAsset.warrantyExpiryDate ? (selectedAsset.warrantyExpiryDate | date:'dd MMM yyyy') : '—' }}</span>
+          </div>
+          <div class="detail-item full-width" [ngClass]="getDueClass(selectedAsset.nextMaintenanceDueDate)">
+            <span class="detail-label">Next Maintenance Due</span>
+            <span class="detail-value">{{ selectedAsset.nextMaintenanceDueDate ? (selectedAsset.nextMaintenanceDueDate | date:'dd MMM yyyy') : 'Not set' }}</span>
+          </div>
+        </div>
+
+        <!-- Maintenance History (from detail load) -->
+        <div class="panel-section" *ngIf="selectedAssetDetail?.maintenanceHistory?.length > 0">
+          <h4 class="section-title">📋 Maintenance History</h4>
+          <div class="history-timeline">
+            <div class="history-item" *ngFor="let h of selectedAssetDetail.maintenanceHistory">
+              <div class="history-dot" [ngClass]="h.resultStatus === 'Completed' ? 'dot-green' : 'dot-amber'"></div>
+              <div class="history-content">
+                <div class="history-header">
+                  <strong>{{ h.maintenanceType }}</strong>
+                  <span class="history-date">{{ h.maintenanceDate | date:'dd MMM yyyy' }}</span>
+                </div>
+                <p class="history-desc">{{ h.description }}</p>
+                <div class="history-footer">
+                  <span *ngIf="h.performedBy">👷 {{ h.performedBy }}</span>
+                  <span *ngIf="h.cost">💰 RM {{ h.cost | number:'1.2-2' }}</span>
+                  <span class="badge-result">{{ h.resultStatus }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-section" *ngIf="!selectedAssetDetail?.maintenanceHistory?.length">
+          <div class="vacant-notice">No maintenance history yet. Add the first record.</div>
+        </div>
+
+        <!-- Panel Action Buttons -->
+        <div class="panel-action-buttons">
+          <button class="btn btn-ghost full-width" (click)="openHistoryModal(selectedAsset)">
+            📋 Add Maintenance Record
+          </button>
+          <button class="btn btn-danger-ghost full-width"
+                  *ngIf="selectedAsset?.status === 'Active'"
+                  (click)="confirmDeactivate(selectedAsset!)">
+            🔴 Deactivate Asset
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════════ -->
+<!-- ── Create / Edit Asset Modal ────────────────────────────────────────────── -->
+<!-- ════════════════════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-box modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ editMode ? '✏️ Edit Asset' : '+ Register New Asset' }}</h2>
+      <button class="modal-close" (click)="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="alert alert-error" *ngIf="error">⚠️ {{ error }}</div>
+
+      <div class="form-grid">
+        <!-- Property -->
+        <div class="form-group full-width" *ngIf="!editMode">
+          <label class="form-label required">Property</label>
+          <select class="form-control" [(ngModel)]="form.propertyId">
+            <option [value]="0">— Select Property —</option>
+            <option *ngFor="let p of properties" [value]="p.id">{{ p.name }}</option>
+          </select>
+        </div>
+
+        <!-- Asset Name -->
+        <div class="form-group">
+          <label class="form-label required">Asset Name</label>
+          <input class="form-control" type="text" [(ngModel)]="form.assetName"
+                 placeholder="e.g. Main Lobby Lift A">
+        </div>
+
+        <!-- Asset Type -->
+        <div class="form-group">
+          <label class="form-label">Asset Type</label>
+          <select class="form-control" [(ngModel)]="form.assetType">
+            <option *ngFor="let t of assetTypes" [value]="t">{{ getTypeIcon(t) }} {{ t }}</option>
+          </select>
+        </div>
+
+        <!-- Location -->
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input class="form-control" type="text" [(ngModel)]="form.location"
+                 placeholder="e.g. Ground Floor Lobby">
+        </div>
+
+        <!-- Installation Date -->
+        <div class="form-group">
+          <label class="form-label required">Installation Date</label>
+          <input class="form-control" type="date" [(ngModel)]="form.installationDate">
+        </div>
+
+        <!-- Manufacturer -->
+        <div class="form-group">
+          <label class="form-label">Manufacturer</label>
+          <input class="form-control" type="text" [(ngModel)]="form.manufacturer"
+                 placeholder="e.g. KONE Corporation">
+        </div>
+
+        <!-- Model Number -->
+        <div class="form-group">
+          <label class="form-label">Model Number</label>
+          <input class="form-control" type="text" [(ngModel)]="form.modelNumber"
+                 placeholder="e.g. KONE MonoSpace 500">
+        </div>
+
+        <!-- Supplier Name -->
+        <div class="form-group">
+          <label class="form-label">Supplier / Vendor</label>
+          <input class="form-control" type="text" [(ngModel)]="form.supplierName"
+                 placeholder="e.g. Otis Malaysia Sdn Bhd">
+        </div>
+
+        <!-- Warranty Expiry -->
+        <div class="form-group">
+          <label class="form-label">Warranty Expiry</label>
+          <input class="form-control" type="date" [(ngModel)]="form.warrantyExpiryDate">
+        </div>
+
+        <!-- Maintenance Interval -->
+        <div class="form-group">
+          <label class="form-label required">Maint. Interval (days)</label>
+          <input class="form-control" type="number" [(ngModel)]="form.maintenanceIntervalDays"
+                 min="1" max="365" placeholder="e.g. 30">
+          <small class="form-hint">As recommended by supplier</small>
+        </div>
+
+        <!-- Expected Lifespan -->
+        <div class="form-group">
+          <label class="form-label">Expected Lifespan (years)</label>
+          <input class="form-control" type="number" [(ngModel)]="form.expLifespanYears"
+                 min="1" max="100" placeholder="e.g. 15">
+        </div>
+
+        <!-- QR note -->
+        <div class="form-group full-width" *ngIf="!editMode">
+          <div class="info-box">
+            🔲 <strong>QR Code will be automatically generated</strong> on creation.
+            Print and attach it to the physical equipment for quick scanning by technicians.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" (click)="closeModal()" [disabled]="saving">Cancel</button>
+      <button class="btn btn-primary" (click)="saveAsset()" [disabled]="saving">
+        <span *ngIf="saving" class="spinner-sm"></span>
+        {{ saving ? 'Saving...' : (editMode ? 'Update Asset' : 'Register Asset') }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Maintenance History Modal ─────────────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="showHistoryModal" (click)="closeHistoryModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>📋 Add Maintenance Record</h2>
+      <button class="modal-close" (click)="closeHistoryModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-error" *ngIf="error">⚠️ {{ error }}</div>
+      <p class="text-muted">Asset: <strong>{{ selectedAsset?.assetName }}</strong></p>
+
+      <div class="history-list" *ngIf="history.length > 0">
+        <h4 class="section-title">Recent History</h4>
+        <div class="history-item compact" *ngFor="let h of history | slice:0:3">
+          <div class="history-dot dot-green"></div>
+          <div class="history-content">
+            <strong>{{ h.maintenanceType }}</strong> —
+            {{ h.maintenanceDate | date:'dd MMM yyyy' }} |
+            {{ h.performedBy }} |
+            <span class="badge-result">{{ h.resultStatus }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-grid" style="margin-top:1rem">
+        <div class="form-group">
+          <label class="form-label">Maintenance Type</label>
+          <select class="form-control" [(ngModel)]="historyForm.maintenanceType">
+            <option *ngFor="let t of maintenanceTypes" [value]="t.value">{{ t.label }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label required">Maintenance Date</label>
+          <input class="form-control" type="date" [(ngModel)]="historyForm.maintenanceDate">
+        </div>
+        <div class="form-group full-width">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" rows="3" [(ngModel)]="historyForm.description"
+                    placeholder="What was done? Any findings?"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Performed By</label>
+          <input class="form-control" type="text" [(ngModel)]="historyForm.performedBy"
+                 placeholder="Technician name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cost (RM)</label>
+          <input class="form-control" type="number" [(ngModel)]="historyForm.cost" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Result</label>
+          <select class="form-control" [(ngModel)]="historyForm.resultStatus">
+            <option value="Completed">Completed</option>
+            <option value="Partial">Partial</option>
+            <option value="Failed">Failed</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" (click)="closeHistoryModal()" [disabled]="saving">Cancel</button>
+      <button class="btn btn-primary" (click)="addHistoryRecord()" [disabled]="saving">
+        <span *ngIf="saving" class="spinner-sm"></span>
+        {{ saving ? 'Saving...' : 'Add Record' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Deactivate Confirm Modal ───────────────────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="showDeactivateConfirm" (click)="cancelDeactivate()">
+  <div class="modal-box modal-sm" (click)="$event.stopPropagation()">
+    <div class="modal-header danger">
+      <h2>🔴 Deactivate Asset</h2>
+      <button class="modal-close" (click)="cancelDeactivate()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to deactivate <strong>{{ selectedAsset?.assetName }}</strong>?</p>
+      <p class="text-muted">The asset will be marked as inactive but all historical records will be preserved.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" (click)="cancelDeactivate()" [disabled]="saving">Cancel</button>
+      <button class="btn btn-danger" (click)="deactivateAsset()" [disabled]="saving">
+        <span *ngIf="saving" class="spinner-sm"></span>
+        {{ saving ? 'Processing...' : 'Deactivate' }}
+      </button>
+    </div>
   </div>
 </div>

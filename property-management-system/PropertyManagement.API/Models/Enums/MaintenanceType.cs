@@ -2,8 +2,8 @@ namespace PropertyManagement.API.Models.Enums
 {
     public enum MaintenanceType
     {
-        Preventive = 1,
-        Corrective = 2,
-        Emergency = 3
+        Corrective  = 0,
+        Preventive  = 1,
+        Inspection  = 2
     }
 }

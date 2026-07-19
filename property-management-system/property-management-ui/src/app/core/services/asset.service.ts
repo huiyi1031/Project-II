@@ -1,50 +1,82 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Asset, MaintenancePlan, AssetMaintenanceHistory } from '../models';
+import { Asset, AssetMaintenanceHistory } from '../models';
+
+export interface CreateAssetDto {
+  propertyId: number;
+  assetName: string;
+  assetType?: string;
+  location?: string;
+  installationDate: string;
+  manufacturer?: string;
+  modelNumber?: string;
+  expLifespanYears: number;
+  maintenanceIntervalDays: number;
+  supplierName?: string;
+  warrantyExpiryDate?: string;
+}
+
+export interface UpdateAssetDto extends CreateAssetDto {
+  nextMaintenanceDueDate?: string;
+  status?: string;
+}
+
+export interface AddHistoryDto {
+  maintenanceType: number;  // 0=Corrective, 1=Preventive, 2=Inspection
+  description?: string;
+  cost?: number;
+  maintenanceDate: string;
+  resultStatus?: string;
+  performedBy?: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AssetService {
-  private base = 'http://localhost:5004/api';
+  private base = 'http://localhost:5004/api/Assets';
 
   constructor(private http: HttpClient) {}
 
-  // Assets
-  getAllAssets(): Observable<Asset[]> {
-    return this.http.get<Asset[]>(`${this.base}/Assets`);
+  getAll(filters?: {
+    search?: string;
+    assetType?: string;
+    status?: string;
+    propertyId?: number;
+  }): Observable<Asset[]> {
+    let params = new HttpParams();
+    if (filters?.search)    params = params.set('search', filters.search);
+    if (filters?.assetType) params = params.set('assetType', filters.assetType);
+    if (filters?.status)    params = params.set('status', filters.status);
+    if (filters?.propertyId) params = params.set('propertyId', filters.propertyId);
+    return this.http.get<Asset[]>(this.base, { params });
   }
 
-  getHighRiskAssets(): Observable<Asset[]> {
-    return this.http.get<Asset[]>(`${this.base}/Assets/high-risk`);
+  getById(id: number): Observable<any> {
+    return this.http.get<any>(`${this.base}/${id}`);
   }
 
-  getAssetById(id: number): Observable<Asset> {
-    return this.http.get<Asset>(`${this.base}/Assets/${id}`);
+  create(dto: CreateAssetDto): Observable<any> {
+    return this.http.post<any>(this.base, dto);
   }
 
-  createAsset(dto: Partial<Asset>): Observable<Asset> {
-    return this.http.post<Asset>(`${this.base}/Assets`, dto);
+  update(id: number, dto: UpdateAssetDto): Observable<any> {
+    return this.http.put<any>(`${this.base}/${id}`, dto);
   }
 
-  updateAsset(id: number, dto: Partial<Asset>): Observable<void> {
-    return this.http.put<void>(`${this.base}/Assets/${id}`, dto);
+  deactivate(id: number): Observable<any> {
+    return this.http.patch<any>(`${this.base}/${id}/deactivate`, {});
   }
 
-  generateQrCode(id: number): Observable<{ qrCode: string }> {
-    return this.http.post<{ qrCode: string }>(`${this.base}/Assets/${id}/qr`, {});
+  getHistory(id: number): Observable<AssetMaintenanceHistory[]> {
+    return this.http.get<AssetMaintenanceHistory[]>(`${this.base}/${id}/history`);
   }
 
-  // Maintenance Plans
-  getAllPlans(): Observable<MaintenancePlan[]> {
-    return this.http.get<MaintenancePlan[]>(`${this.base}/MaintenancePlans`);
+  addHistory(id: number, dto: AddHistoryDto): Observable<any> {
+    return this.http.post<any>(`${this.base}/${id}/history`, dto);
   }
 
-  createPlan(dto: Partial<MaintenancePlan>): Observable<MaintenancePlan> {
-    return this.http.post<MaintenancePlan>(`${this.base}/MaintenancePlans`, dto);
-  }
-
-  // Asset History
-  getAssetHistory(assetId: number): Observable<AssetMaintenanceHistory[]> {
-    return this.http.get<AssetMaintenanceHistory[]>(`${this.base}/Assets/${assetId}/history`);
+  /** Returns QR code image URL using free public API (no npm needed) */
+  getQrImageUrl(qrCode: string, size = 150): string {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(qrCode)}&format=png&margin=10`;
   }
 }

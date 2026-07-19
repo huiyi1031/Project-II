@@ -9,8 +9,8 @@ import { AssetService } from '../../../core/services/asset.service';
   standalone: false,
 })
 export class ManagerDashboardComponent implements OnInit {
-  requests:   MaintenanceRequest[] = [];
-  riskAssets: Asset[] = [];
+  requests:    MaintenanceRequest[] = [];
+  upcomingAssets: Asset[] = [];
 
   constructor(
     private mainSvc: MaintenanceService,
@@ -19,6 +19,7 @@ export class ManagerDashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.mainSvc.getAllRequests().subscribe({ next: d => (this.requests = d.slice(0, 5)), error: () => {} });
-    this.assetSvc.getHighRiskAssets().subscribe({ next: d => (this.riskAssets = d), error: () => {} });
+    // Show assets with upcoming maintenance (no more risk concept — shows all active assets)
+    this.assetSvc.getAll({ status: 'Active' }).subscribe({ next: d => (this.upcomingAssets = d.slice(0, 5)), error: () => {} });
   }
 }

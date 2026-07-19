@@ -64,36 +64,28 @@
       </table>
     </div>
 
-    <!-- High Risk Assets -->
+    <!-- Upcoming Maintenance Assets -->
     <div class="pms-card space-y-3">
-      <h4 class="section-title">⚠️ High Risk Assets</h4>
-      <div *ngFor="let a of riskAssets"
-           class="bg-[#fff8f0] border border-[#ffdbb5] rounded-xl p-3 text-sm">
-        <div class="font-semibold text-navy">{{ a.assetName }}</div>
-        <div class="text-muted text-xs">{{ a.location }}</div>
-        <div class="flex justify-between items-center mt-2">
-          <app-status-badge [status]="a.riskLevel"></app-status-badge>
-          <span class="font-bold text-danger">{{ a.riskScore }}</span>
-        </div>
-      </div>
-      <ng-container *ngIf="riskAssets.length === 0">
-        <div class="bg-[#fff8f0] border border-[#ffdbb5] rounded-xl p-3 text-sm">
-          <div class="font-semibold text-navy">Main Chiller</div>
-          <div class="text-muted text-xs">Roof · HVAC</div>
-          <div class="flex justify-between mt-2">
-            <app-status-badge status="High"></app-status-badge>
-            <span class="font-bold text-danger">82.5</span>
+      <h4 class="section-title">🔧 Upcoming Maintenance</h4>
+      <ng-container *ngIf="upcomingAssets.length > 0">
+        <div *ngFor="let a of upcomingAssets"
+             class="bg-[#f5f9ff] border border-[#dbe7fb] rounded-xl p-3 text-sm">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">{{ a.assetType === 'Elevator' ? '🛗' : a.assetType === 'HVAC' ? '❄️' : a.assetType === 'Fire System' ? '🚒' : a.assetType === 'Generator' ? '⚡' : '⚙️' }}</span>
+            <div>
+              <div class="font-semibold text-navy text-sm">{{ a.assetName }}</div>
+              <div class="text-muted text-xs">{{ a.location }}</div>
+            </div>
           </div>
-        </div>
-        <div class="bg-[#fffbeb] border border-[#fde68a] rounded-xl p-3 text-sm">
-          <div class="font-semibold text-navy">Lift B</div>
-          <div class="text-muted text-xs">Block B</div>
-          <div class="flex justify-between mt-2">
-            <app-status-badge status="Medium"></app-status-badge>
-            <span class="font-bold text-warning">68.0</span>
+          <div class="flex justify-between items-center mt-2" *ngIf="a.nextMaintenanceDueDate">
+            <span class="text-xs text-muted">Next Due:</span>
+            <span class="font-semibold text-xs text-navy">{{ a.nextMaintenanceDueDate | date:'dd MMM yyyy' }}</span>
           </div>
         </div>
       </ng-container>
+      <div *ngIf="upcomingAssets.length === 0" class="text-muted text-sm text-center py-4">
+        No active assets found.
+      </div>
       <button class="btn-outline w-full text-xs" routerLink="../assets">View All Assets</button>
     </div>
   </div>

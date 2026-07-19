@@ -22,33 +22,28 @@
       </div>
     </div>
 
-    <!-- High Risk Alert -->
+    <!-- Asset Maintenance Schedule -->
     <div class="pms-card space-y-3">
-      <h4 class="section-title">⚠️ High-Risk Asset Alert</h4>
+      <h4 class="section-title">🔧 Asset Maintenance Schedule</h4>
       <table class="pms-table">
-        <thead><tr><th>Asset</th><th>Risk Score</th><th>Level</th></tr></thead>
+        <thead><tr><th>Asset</th><th>Type</th><th>Next Due</th><th>Interval</th></tr></thead>
         <tbody>
           <tr *ngFor="let a of riskAssets">
             <td class="font-semibold">{{ a.assetName }}</td>
-            <td class="font-bold" [class.text-danger]="a.riskScore >= 80">{{ a.riskScore }}</td>
-            <td><app-status-badge [status]="a.riskLevel"></app-status-badge></td>
+            <td>{{ a.assetType }}</td>
+            <td>
+              <span *ngIf="a.nextMaintenanceDueDate">{{ a.nextMaintenanceDueDate | date:'dd MMM yyyy' }}</span>
+              <span *ngIf="!a.nextMaintenanceDueDate" class="text-muted text-xs">Not set</span>
+            </td>
+            <td>Every {{ a.maintenanceIntervalDays }}d</td>
           </tr>
-          <ng-container *ngIf="riskAssets.length === 0">
-            <tr>
-              <td class="font-semibold">Main Chiller</td>
-              <td class="font-bold text-danger">82.5</td>
-              <td><app-status-badge status="High"></app-status-badge></td>
-            </tr>
-            <tr>
-              <td class="font-semibold">Lift B</td>
-              <td class="font-bold text-warning">68.0</td>
-              <td><app-status-badge status="Medium"></app-status-badge></td>
-            </tr>
-          </ng-container>
+          <tr *ngIf="riskAssets.length === 0">
+            <td colspan="4" class="text-center text-muted">No assets found.</td>
+          </tr>
         </tbody>
       </table>
       <div class="form-actions">
-        <button class="btn-outline">📅 Reschedule Plan</button>
+        <button class="btn-outline" routerLink="../assets">📋 View All Assets</button>
         <button class="btn-primary">🔧 Create Work Order</button>
       </div>
     </div>
