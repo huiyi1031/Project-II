@@ -20,6 +20,8 @@ export interface Occupant {
   occupantType: string;     // 'Owner' | 'Tenant' | 'Resident'
   occupantStatus: string;
   email?: string;
+  unitID?: number;
+  unitNumber?: string;
 }
 
 export interface PropertyManager {
@@ -419,4 +421,5 @@ export interface ChangePasswordDto {
   newPassword:     string;
   confirmPassword: string;
 }
+
 
