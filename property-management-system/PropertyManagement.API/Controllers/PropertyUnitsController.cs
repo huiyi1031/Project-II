@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PropertyManagement.API.Data;
@@ -36,6 +37,7 @@ namespace PropertyManagement.API.Controllers
 
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class PropertyUnitsController : ControllerBase
     {
         private readonly AppDbContext _ctx;
