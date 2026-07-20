@@ -16,27 +16,32 @@ export class CreateRequestComponent implements OnInit {
   fileName = '';
   isLoading = false;
   successMsg = '';
-  errorMsg   = '';
+  errorMsg = '';
 
   constructor(
     private fb: FormBuilder,
     private maintenanceSvc: MaintenanceService,
     private occupantSvc: OccupantService,
     private router: Router
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.form = this.fb.group({
-      requestTitle:          ['', Validators.required],
-      issueCategory:         ['', Validators.required],
-      description:           ['', Validators.required],
-      unitID:                [1, Validators.required],
+      requestTitle: ['', Validators.required],
+      issueCategory: ['', Validators.required],
+      description: ['', Validators.required],
+      unitId: ['', Validators.required],
     });
 
-    // Load units for dropdown
+    // Load units for dropdown and pre-select the first one
     this.occupantSvc.getAllUnits().subscribe({
-      next: (data) => (this.units = data),
-      error: () => {}
+      next: (data) => {
+        this.units = data;
+        if (data.length > 0) {
+          this.form.patchValue({ unitId:  data[0].unitID });
+        }
+      },
+      error: () => { }
     });
   }
 
@@ -57,38 +62,39 @@ export class CreateRequestComponent implements OnInit {
 
   onSubmit(): void {
     if (this.form.invalid) return;
-    this.isLoading  = true;
+    this.isLoading = true;
     this.successMsg = '';
-    this.errorMsg   = '';
+    this.errorMsg = '';
 
     const formData = new FormData();
     formData.append('Title', this.form.value.requestTitle);
     formData.append('IssueCategory', this.form.value.issueCategory);
     formData.append('Description', this.form.value.description);
-    formData.append('UnitId', this.form.value.unitID);
-    
+    formData.append('UnitId', String(this.form.value.unitId));
+
     if (this.fileToUpload) {
       formData.append('Image', this.fileToUpload);
     }
 
     this.maintenanceSvc.createRequest(formData).subscribe({
       next: () => {
-        this.isLoading  = false;
+        this.isLoading = false;
         this.successMsg = 'Maintenance request submitted successfully! Redirecting...';
         setTimeout(() => this.router.navigate(['/tenant/track-request']), 2000);
       },
       error: (err) => {
         this.isLoading = false;
-        this.errorMsg  = err.error?.message || 'Failed to submit request. Please try again.';
+        this.errorMsg = err.error?.message || 'Failed to submit request. Please try again.';
       }
     });
   }
 
   resetForm(): void {
-    this.form.reset({ unitID: 1 });
+    const firstUnitId = this.units.length > 0 ?  this.units[0].unitID : '';
+    this.form.reset({ unitID: firstUnitId });
     this.fileName = '';
     this.fileToUpload = null;
     this.successMsg = '';
-    this.errorMsg   = '';
+    this.errorMsg = '';
   }
 }

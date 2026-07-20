@@ -9,10 +9,9 @@
         <!-- Request Title -->
         <div class="space-y-1.5">
           <label class="pms-label">Request Title *</label>
-          <input formControlName="requestTitle" class="pms-input"
-                 placeholder="e.g. Aircond leaking in bedroom"/>
-          <div *ngIf="f['requestTitle'].invalid && f['requestTitle'].touched"
-               class="text-red-500 text-xs">Title is required.</div>
+          <input formControlName="requestTitle" class="pms-input" placeholder="e.g. Aircond leaking in bedroom" />
+          <div *ngIf="f['requestTitle'].invalid && f['requestTitle'].touched" class="text-red-500 text-xs">Title is
+            required.</div>
         </div>
 
         <!-- Issue Category -->
@@ -32,13 +31,12 @@
         <!-- Location -->
         <div class="space-y-1.5">
           <label class="pms-label">Location (Unit / Area) *</label>
-          <select formControlName="unitID" class="pms-select">
+          <select formControlName="unitId" class="pms-select">
             <option value="">Select unit</option>
             <option *ngFor="let u of units" [value]="u.unitID">
               {{ u.unitNumber }} — Block {{ u.block }}
             </option>
-            <!-- Fallback option when API not connected -->
-            <option value="1">Unit A-12-05 (default)</option>
+            <option *ngIf="units.length === 0" disabled>(Loading units...)</option>
           </select>
         </div>
 
@@ -46,9 +44,9 @@
         <div class="space-y-1.5 md:col-span-2">
           <label class="pms-label">Description *</label>
           <textarea formControlName="description" class="pms-textarea"
-                    placeholder="Describe the issue in detail..."></textarea>
-          <div *ngIf="f['description'].invalid && f['description'].touched"
-               class="text-red-500 text-xs">Description is required.</div>
+            placeholder="Describe the issue in detail..."></textarea>
+          <div *ngIf="f['description'].invalid && f['description'].touched" class="text-red-500 text-xs">Description is
+            required.</div>
         </div>
 
         <!-- Attachment -->
@@ -62,8 +60,7 @@
               <div *ngIf="fileName" class="text-xs text-blue font-medium mt-1">📎 {{ fileName }}</div>
             </div>
           </div>
-          <input #fileInput type="file" class="hidden" accept="image/*"
-                 (change)="onFileSelected($event)"/>
+          <input #fileInput type="file" class="hidden" accept="image/*" (change)="onFileSelected($event)" />
         </div>
       </div>
 
