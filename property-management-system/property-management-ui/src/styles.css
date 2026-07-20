@@ -126,13 +126,141 @@ body {
   .kpi-title { @apply text-xs text-[#567299] font-medium; }
   .kpi-value { @apply text-2xl font-bold text-navy; }
 
-  /* Sidebar menu button */
-  .menu-btn {
-    @apply w-full text-left border-none bg-transparent text-[#eef5ff]
-           px-3 py-2.5 rounded-xl text-sm cursor-pointer transition-all
-           hover:bg-white/20 flex items-center gap-2.5;
+  /* ── Header Navigation Bar ─────────────────────────────────────────── */
+  .app-header {
+    position: sticky; top: 0; z-index: 100;
+    background: linear-gradient(135deg, #0b2d5c, #123f79);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 2px 12px rgba(11,45,92,0.25);
   }
-  .menu-btn.active { @apply bg-white/20 font-semibold; }
+  .header-inner {
+    max-width: 1400px; margin: 0 auto;
+    display: flex; align-items: center; gap: 1rem;
+    padding: 0 1.25rem; height: 56px;
+  }
+
+  /* Brand */
+  .brand {
+    display: flex; align-items: center; gap: 0.6rem;
+    cursor: pointer; flex-shrink: 0; margin-right: 0.5rem;
+  }
+  .brand-logo { width: 36px; height: 36px; flex-shrink: 0; }
+  .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
+  .brand-name { font-size: 0.85rem; font-weight: 700; color: #fff; white-space: nowrap; }
+  .brand-role { font-size: 0.65rem; color: #c2d9ff; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* Hamburger (mobile) */
+  .hamburger {
+    display: none; flex-direction: column; gap: 4px;
+    background: none; border: none; cursor: pointer; padding: 6px;
+  }
+  .hamburger span {
+    display: block; width: 20px; height: 2px; background: #fff;
+    border-radius: 2px; transition: all 0.2s;
+  }
+  .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(4px, 4px); }
+  .hamburger.active span:nth-child(2) { opacity: 0; }
+  .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(4px, -4px); }
+
+  /* Nav menu */
+  .nav-menu {
+    display: flex; align-items: center; gap: 2px; flex: 1;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 4px;
+    background: none; border: none; color: #d0e2ff;
+    font-size: 0.82rem; font-weight: 500; padding: 0.45rem 0.75rem;
+    border-radius: 8px; cursor: pointer; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.12); color: #fff; }
+  .nav-item.nav-active { background: rgba(255,255,255,0.18); color: #fff; font-weight: 600; }
+
+  /* Dropdown */
+  .nav-dropdown-wrap { position: relative; }
+  .chevron { transition: transform 0.2s; }
+  .chevron-open { transform: rotate(180deg); }
+  .nav-dropdown {
+    position: absolute; top: calc(100% + 6px); left: 0;
+    min-width: 180px; background: #fff; border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: 0 8px 24px rgba(11,45,92,0.15);
+    padding: 4px; z-index: 200;
+    animation: dropdownIn 0.15s ease;
+  }
+  .nav-dropdown-item {
+    display: block; width: 100%; text-align: left; background: none; border: none;
+    padding: 0.55rem 0.85rem; font-size: 0.82rem; color: var(--text);
+    border-radius: 6px; cursor: pointer; transition: all 0.1s;
+  }
+  .nav-dropdown-item:hover { background: var(--light-blue); color: var(--navy); }
+  .nav-dropdown-item.nav-active { background: var(--light-blue); color: var(--blue); font-weight: 600; }
+
+  /* Header right */
+  .header-right {
+    display: flex; align-items: center; gap: 0.75rem; margin-left: auto; flex-shrink: 0;
+  }
+  .user-info { display: flex; flex-direction: column; text-align: right; line-height: 1.2; }
+  .user-name { font-size: 0.78rem; font-weight: 600; color: #fff; }
+  .user-email { font-size: 0.65rem; color: #9fc1f5; }
+
+  /* Avatar */
+  .profile-wrap { position: relative; }
+  .avatar-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.3);
+    color: #fff; font-size: 0.85rem; font-weight: 700;
+    display: grid; place-items: center; cursor: pointer; transition: all 0.15s;
+  }
+  .avatar-btn:hover { background: rgba(255,255,255,0.25); }
+
+  /* Profile dropdown */
+  .profile-dropdown {
+    position: absolute; top: calc(100% + 8px); right: 0;
+    min-width: 180px; background: #fff; border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: 0 8px 24px rgba(11,45,92,0.15);
+    padding: 4px; z-index: 200;
+    animation: dropdownIn 0.15s ease;
+  }
+  .profile-item {
+    display: block; width: 100%; text-align: left; background: none; border: none;
+    padding: 0.55rem 0.85rem; font-size: 0.82rem; color: var(--text);
+    border-radius: 6px; cursor: pointer; transition: all 0.1s;
+  }
+  .profile-item:hover { background: var(--light-blue); }
+  .profile-logout { color: var(--danger); }
+  .profile-logout:hover { background: #fdf2f2; }
+  .profile-divider { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+
+  /* Main content area */
+  .app-main { padding: 1.25rem; min-height: calc(100vh - 56px); background: var(--bg); }
+
+  @keyframes dropdownIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Mobile responsive ──────────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .hamburger { display: flex; }
+    .user-info  { display: none; }
+    .nav-menu {
+      display: none; flex-direction: column; align-items: stretch;
+      position: absolute; top: 56px; left: 0; right: 0;
+      background: linear-gradient(180deg, #0b2d5c, #123f79);
+      padding: 0.5rem; gap: 2px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 8px 24px rgba(11,45,92,0.3);
+    }
+    .nav-menu.nav-open { display: flex; }
+    .nav-dropdown {
+      position: static; box-shadow: none; border: none;
+      background: rgba(255,255,255,0.05); border-radius: 8px;
+      margin-top: 2px;
+    }
+    .nav-dropdown-item { color: #d0e2ff; }
+    .nav-dropdown-item:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .nav-dropdown-item.nav-active { background: rgba(255,255,255,0.18); color: #fff; }
+  }
 
   /* Form grid */
   .form-grid { @apply grid grid-cols-1 md:grid-cols-2 gap-4; }

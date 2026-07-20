@@ -9,8 +9,14 @@ import { AssetService } from '../../../core/services/asset.service';
   standalone: false,
 })
 export class ManagerDashboardComponent implements OnInit {
-  requests:    MaintenanceRequest[] = [];
+  requests:       MaintenanceRequest[] = [];
   upcomingAssets: Asset[] = [];
+
+  /* Dynamic KPI counts */
+  openCount       = 0;
+  inProgressCount = 0;
+  completedCount  = 0;
+  assetsDueSoon   = 0;
 
   constructor(
     private mainSvc: MaintenanceService,
@@ -18,8 +24,45 @@ export class ManagerDashboardComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.mainSvc.getAllRequests().subscribe({ next: d => (this.requests = d.slice(0, 5)), error: () => {} });
-    // Show assets with upcoming maintenance (no more risk concept — shows all active assets)
-    this.assetSvc.getAll({ status: 'Active' }).subscribe({ next: d => (this.upcomingAssets = d.slice(0, 5)), error: () => {} });
+    /* Fetch all maintenance requests and compute KPI counts */
+    this.mainSvc.getAllRequests().subscribe({
+      next: (all: MaintenanceRequest[]) => {
+        this.requests = all.slice(0, 5);
+
+        this.openCount = all.filter(
+          r => r.status === 'Pending' || r.status === 'Open'
+        ).length;
+
+        this.inProgressCount = all.filter(
+          r => r.status === 'InProgress' || r.status === 'Assigned' || r.status === 'In Progress'
+        ).length;
+
+        this.completedCount = all.filter(
+          r => r.status === 'Completed'
+        ).length;
+      },
+      error: () => {}
+    });
+
+    /* Fetch active assets and count those due within 14 days */
+    this.assetSvc.getAll({ status: 'Active' }).subscribe({
+      next: (assets: Asset[]) => {
+        this.upcomingAssets = assets
+          .filter(a => a.nextMaintenanceDueDate)
+          .sort((a, b) =>
+            new Date(a.nextMaintenanceDueDate!).getTime() - new Date(b.nextMaintenanceDueDate!).getTime()
+          )
+          .slice(0, 5);
+
+        const now = Date.now();
+        const fourteenDays = 14 * 24 * 60 * 60 * 1000;
+        this.assetsDueSoon = assets.filter(a => {
+          if (!a.nextMaintenanceDueDate) return false;
+          const diff = new Date(a.nextMaintenanceDueDate).getTime() - now;
+          return diff <= fourteenDays;
+        }).length;
+      },
+      error: () => {}
+    });
   }
 }

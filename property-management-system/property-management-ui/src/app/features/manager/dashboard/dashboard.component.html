@@ -1,26 +1,29 @@
 <!-- Manager Dashboard -->
 <div class="space-y-4 fade-in">
+
+  <!-- ── Dynamic KPI Cards ─────────────────────────────────────────── -->
   <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
     <div class="kpi-card border-l-4 border-blue">
       <div class="kpi-title">Open Requests</div>
-      <div class="kpi-value text-blue">24</div>
+      <div class="kpi-value text-blue">{{ openCount }}</div>
     </div>
     <div class="kpi-card border-l-4 border-[#0b5f6e]">
       <div class="kpi-title">In Progress</div>
-      <div class="kpi-value text-[#0b5f6e]">11</div>
+      <div class="kpi-value text-[#0b5f6e]">{{ inProgressCount }}</div>
     </div>
     <div class="kpi-card border-l-4 border-success">
       <div class="kpi-title">Completed (Month)</div>
-      <div class="kpi-value text-success">134</div>
+      <div class="kpi-value text-success">{{ completedCount }}</div>
     </div>
-    <div class="kpi-card border-l-4 border-danger">
-      <div class="kpi-title">High Risk Assets</div>
-      <div class="kpi-value text-danger">8</div>
+    <div class="kpi-card border-l-4 border-warning">
+      <div class="kpi-title">Assets Due Soon</div>
+      <div class="kpi-value text-warning">{{ assetsDueSoon }}</div>
     </div>
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-[1.4fr_0.6fr] gap-4">
-    <!-- Recent Requests -->
+
+    <!-- ── Recent Requests ───────────────────────────────────────────── -->
     <div class="pms-card">
       <div class="flex justify-between items-center mb-3">
         <h4 class="section-title mb-0">Recent Maintenance Requests</h4>
@@ -41,37 +44,26 @@
             <td><app-status-badge [status]="r.priorityLevel"></app-status-badge></td>
             <td><app-status-badge [status]="r.status"></app-status-badge></td>
             <td>
-              <button class="btn-outline text-xs px-2 py-1">Manage</button>
+              <button class="btn-outline text-xs px-2 py-1" routerLink="../requests">Manage</button>
             </td>
           </tr>
-          <ng-container *ngIf="requests.length === 0">
-            <tr>
-              <td class="font-mono text-xs text-blue">REQ-2026-0012</td>
-              <td>HVAC</td><td class="text-muted">A-12-05</td>
-              <td><app-status-badge status="High"></app-status-badge></td>
-              <td><app-status-badge status="Pending"></app-status-badge></td>
-              <td><button class="btn-outline text-xs px-2 py-1">Manage</button></td>
-            </tr>
-            <tr>
-              <td class="font-mono text-xs text-blue">REQ-2026-0011</td>
-              <td>Plumbing</td><td class="text-muted">B-08-12</td>
-              <td><app-status-badge status="Medium"></app-status-badge></td>
-              <td><app-status-badge status="Assigned"></app-status-badge></td>
-              <td><button class="btn-outline text-xs px-2 py-1">View</button></td>
-            </tr>
-          </ng-container>
+          <tr *ngIf="requests.length === 0">
+            <td colspan="6" class="text-center text-muted py-6">No maintenance requests found.</td>
+          </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Upcoming Maintenance Assets -->
+    <!-- ── Upcoming Maintenance ──────────────────────────────────────── -->
     <div class="pms-card space-y-3">
-      <h4 class="section-title">🔧 Upcoming Maintenance</h4>
+      <h4 class="section-title">Upcoming Maintenance</h4>
       <ng-container *ngIf="upcomingAssets.length > 0">
         <div *ngFor="let a of upcomingAssets"
              class="bg-[#f5f9ff] border border-[#dbe7fb] rounded-xl p-3 text-sm">
           <div class="flex items-center gap-2">
-            <span class="text-lg">{{ a.assetType === 'Elevator' ? '🛗' : a.assetType === 'HVAC' ? '❄️' : a.assetType === 'Fire System' ? '🚒' : a.assetType === 'Generator' ? '⚡' : '⚙️' }}</span>
+            <div class="w-8 h-8 rounded-lg bg-[#eaf3ff] border border-[#dbe7fb] flex items-center justify-center text-xs font-bold text-[#1f5fae]">
+              {{ a.assetType ? a.assetType.substring(0,2).toUpperCase() : 'AS' }}
+            </div>
             <div>
               <div class="font-semibold text-navy text-sm">{{ a.assetName }}</div>
               <div class="text-muted text-xs">{{ a.location }}</div>
@@ -88,5 +80,6 @@
       </div>
       <button class="btn-outline w-full text-xs" routerLink="../assets">View All Assets</button>
     </div>
+
   </div>
 </div>

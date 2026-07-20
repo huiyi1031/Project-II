@@ -85,7 +85,7 @@ export class TenantsComponent implements OnInit {
   submitRemove(): void {
     if (!this.removeTarget) return;
     this.isSaving = true;
-    this.svc.removeTenant(this.removeTarget.occupantID).subscribe({
+    this.svc.removeTenant(this.removeTarget.occupantID, {}).subscribe({
       next: () => { this.isSaving = false; this.successMsg = 'Tenant removal request submitted.'; this.view = 'list'; this.loadTenants(); },
       error: () => {
         this.isSaving = false;

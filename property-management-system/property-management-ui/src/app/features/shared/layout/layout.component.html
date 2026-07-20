@@ -1,90 +1,115 @@
-<!-- Main App Shell: Sidebar + Content Area -->
-<div class="flex min-h-screen">
+<!-- ══════ HEADER NAV BAR ══════ -->
+<header class="app-header" (click)="$event.stopPropagation()">
+  <div class="header-inner">
 
-  <!-- ══════ SIDEBAR ══════ -->
-  <aside
-    class="w-[260px] flex-shrink-0 bg-sidebar-gradient text-white
-           flex flex-col sticky top-0 h-screen overflow-y-auto
-           border-r border-[#1e4f91] z-20">
-
-    <!-- Brand -->
-    <div class="px-4 pt-5 pb-2">
-      <div class="font-extrabold text-lg tracking-tight mb-1">🏢 PMS Portal</div>
-      <div class="text-xs text-[#c2d9ff] mb-3">Property Management System</div>
-      <!-- Role pill -->
-      <div class="inline-block bg-white/15 border border-white/25 rounded-full
-                  px-3 py-1 text-xs mb-1">
-        Role: <span class="font-semibold">{{ roleLabel }}</span>
+    <!-- ── Brand / Logo ─────────────────────────────────────────────── -->
+    <div class="brand" (click)="navigate({label:'Dashboard',route:'dashboard'})">
+      <svg class="brand-logo" width="36" height="36" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="110" cy="110" r="100" fill="#0f172a" />
+        <g opacity="0.25">
+          <path d="M45 55 Q50 70 65 75 Q50 80 45 95 Q40 80 25 75 Q40 70 45 55 Z" fill="#fbbf24" />
+          <path d="M175 45 Q178 55 188 58 Q178 61 175 71 Q172 61 162 58 Q172 55 175 45 Z" fill="#fbbf24" />
+          <path d="M35 155 Q38 165 48 168 Q38 171 35 181 Q32 171 22 168 Q32 165 35 155 Z" fill="#fbbf24" />
+        </g>
+        <rect x="55" y="105" width="110" height="65" rx="4" fill="#ffffff" />
+        <rect x="95" y="130" width="30" height="40" rx="3" fill="#0f172a" />
+        <circle cx="118" cy="150" r="2.5" fill="#ffffff" />
+        <rect x="68" y="118" width="18" height="18" rx="2" fill="#0f172a" opacity="0.6" />
+        <rect x="134" y="118" width="18" height="18" rx="2" fill="#0f172a" opacity="0.6" />
+        <path d="M55 105 C55 75, 75 55, 110 55 C145 55, 165 75, 165 105 L165 110 L55 110 Z" fill="#f59e0b" />
+        <rect x="100" y="48" width="20" height="20" rx="2" fill="#d97706" />
+        <rect x="52" y="105" width="116" height="6" rx="2" fill="#d97706" />
+        <path d="M185 95 Q188 108 201 111 Q188 114 185 127 Q182 114 169 111 Q182 108 185 95 Z" fill="#fbbf24" />
+        <path d="M35 85 Q38 98 51 101 Q38 104 35 117 Q32 104 19 101 Q32 98 35 85 Z" fill="#fbbf24" />
+        <path d="M160 145 Q162 152 169 154 Q162 156 160 163 Q158 156 151 154 Q158 152 160 145 Z" fill="#fbbf24" />
+      </svg>
+      <div class="brand-text">
+        <span class="brand-name">Maintenance &amp; Upkeep</span>
+        <span class="brand-role">{{ roleLabel }}</span>
       </div>
     </div>
 
-    <hr class="border-white/10 mx-4 mb-1"/>
+    <!-- ── Hamburger (mobile) ───────────────────────────────────────── -->
+    <button class="hamburger" (click)="toggleMobile()" [class.active]="isMobileMenuOpen">
+      <span></span><span></span><span></span>
+    </button>
 
-    <!-- Navigation Menu -->
-    <nav class="flex-1 px-2 py-2">
-      <div class="text-[10px] text-[#c2d9ff] uppercase tracking-widest px-2 mb-2 mt-1">
-        Navigation
-      </div>
-      <button
-        *ngFor="let item of menuItems"
-        (click)="navigate(item)"
-        [class.active]="activeItem === item.route"
-        class="menu-btn">
-        <span class="text-base leading-none">{{ item.icon }}</span>
-        <span>{{ item.label }}</span>
-      </button>
+    <!-- ── Desktop Nav ──────────────────────────────────────────────── -->
+    <nav class="nav-menu" [class.nav-open]="isMobileMenuOpen">
+      <ng-container *ngFor="let item of menuItems">
+
+        <!-- Simple link (no children) -->
+        <button *ngIf="!item.children"
+                class="nav-item"
+                [class.nav-active]="isActive(item)"
+                (click)="navigate(item)">
+          {{ item.label }}
+        </button>
+
+        <!-- Dropdown group -->
+        <div *ngIf="item.children" class="nav-dropdown-wrap" (click)="$event.stopPropagation()">
+          <button class="nav-item nav-has-dropdown"
+                  [class.nav-active]="isActive(item)"
+                  (click)="toggleDropdown(item.label, $event)">
+            {{ item.label }}
+            <svg class="chevron" [class.chevron-open]="openDropdown === item.label"
+                 width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" stroke-width="1.5"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div class="nav-dropdown" *ngIf="openDropdown === item.label">
+            <button *ngFor="let child of item.children"
+                    class="nav-dropdown-item"
+                    [class.nav-active]="activeItem === child.route"
+                    (click)="navigate(child)">
+              {{ child.label }}
+            </button>
+          </div>
+        </div>
+
+      </ng-container>
     </nav>
 
-    <!-- Logout -->
-    <div class="p-3 border-t border-white/10">
-      <button
-        (click)="logout()"
-        class="w-full bg-white/10 border border-white/25 text-white rounded-xl
-               py-2.5 text-sm font-semibold hover:bg-white/20 transition-all flex items-center justify-center gap-2">
-        🚪 Logout
-      </button>
-    </div>
-  </aside>
-
-  <!-- ══════ MAIN CONTENT ══════ -->
-  <div class="flex-1 flex flex-col min-w-0">
-
-    <!-- Top Bar -->
-    <header class="bg-white border-b border-border px-5 py-3
-                   flex justify-between items-center sticky top-0 z-10 shadow-sm">
-      <div>
-        <h3 class="font-bold text-navy text-base m-0">{{ pageTitle }}</h3>
-        <p class="text-xs text-muted m-0 mt-0.5">{{ breadcrumb }}</p>
+    <!-- ── Right section: User ──────────────────────────────────────── -->
+    <div class="header-right">
+      <div class="user-info">
+        <span class="user-name">{{ userName }}</span>
+        <span class="user-email">{{ userEmail }}</span>
       </div>
-      <div class="flex items-center gap-3 relative">
-        <div class="text-right hidden md:block">
-          <div class="text-sm font-semibold text-navy">{{ userName }}</div>
-          <div class="text-xs text-muted">{{ userEmail }}</div>
-        </div>
-        <button (click)="toggleProfileMenu()" class="w-9 h-9 rounded-full bg-light-blue border border-border grid place-items-center text-lg cursor-pointer hover:bg-gray-100 transition-colors">
-          👤
+      <div class="profile-wrap" (click)="$event.stopPropagation()">
+        <button class="avatar-btn" (click)="toggleProfileMenu($event)">
+          {{ getInitial() }}
         </button>
-        <!-- Dropdown Menu -->
-        <div *ngIf="isProfileMenuOpen" class="absolute top-12 right-0 w-48 bg-white rounded-xl shadow-lg border border-border py-2 z-50 animate-fade-in-down">
-          <button (click)="navigate({route: 'profile', label: 'My Profile', icon: '👤'}); isProfileMenuOpen = false" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex gap-2 items-center">
-            👤 My Profile
+        <div class="profile-dropdown" *ngIf="isProfileMenuOpen">
+          <button class="profile-item"
+                  (click)="navigate({label:'Profile',route:'profile'}); isProfileMenuOpen = false">
+            My Profile
           </button>
-          <button *ngIf="roleLabel === 'Occupant' && occupantType !== 'Tenant'" (click)="navigate({route: 'family', label: 'My Family Member', icon: '👨‍👩‍👧'}); isProfileMenuOpen = false" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex gap-2 items-center">
-            👨‍👩‍👧 My Family Member
+          <button *ngIf="roleLabel === 'Occupant' && occupantType !== 'Tenant'"
+                  class="profile-item"
+                  (click)="navigate({label:'Family',route:'family'}); isProfileMenuOpen = false">
+            My Family Member
           </button>
-          <button *ngIf="roleLabel === 'Occupant' && occupantType === 'Owner'" (click)="navigate({route: 'tenants', label: 'My Tenants', icon: '🔑'}); isProfileMenuOpen = false" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex gap-2 items-center">
-            🔑 My Tenants
+          <button *ngIf="roleLabel === 'Occupant' && occupantType === 'Owner'"
+                  class="profile-item"
+                  (click)="navigate({label:'Tenants',route:'tenants'}); isProfileMenuOpen = false">
+            My Tenants
+          </button>
+          <hr class="profile-divider"/>
+          <button class="profile-item profile-logout" (click)="logout()">
+            Logout
           </button>
         </div>
       </div>
-    </header>
-
-    <!-- Page Content -->
-    <main class="flex-1 p-5 bg-bg">
-      <div class="fade-in">
-        <router-outlet></router-outlet>
-      </div>
-    </main>
+    </div>
 
   </div>
-</div>
+</header>
+
+<!-- ══════ MAIN CONTENT ══════ -->
+<main class="app-main">
+  <div class="fade-in">
+    <router-outlet></router-outlet>
+  </div>
+</main>
