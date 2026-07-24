@@ -24,7 +24,11 @@ namespace PropertyManagement.API.Models.Entities
         [MaxLength(50)]
         public string? Position { get; set; }
         
+        [ForeignKey("Property")]
+        public long? PropertyId { get; set; }
+        
         // Navigation Properties
         public virtual UserAccount? UserAccount { get; set; }
+        public virtual Property? Property { get; set; }
     }
 }

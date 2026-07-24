@@ -1,70 +1,102 @@
-<!-- Work Order Management (Manager) -->
-<div class="fade-in space-y-4">
-  <div class="pms-card">
-    <h4 class="section-title">Work Order Management</h4>
-    <table class="pms-table">
-      <thead>
-        <tr><th>WO ID</th><th>Request ID</th><th>Technician</th><th>Schedule</th><th>Priority</th><th>Status</th></tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let wo of workOrders">
-          <td class="font-mono text-xs text-blue">WO-{{ wo.workOrderID }}</td>
-          <td class="font-mono text-xs text-muted">REQ-{{ wo.requestID }}</td>
-          <td>{{ wo.technicianName }}</td>
-          <td class="text-muted text-xs">{{ wo.scheduledDate | date:'dd MMM, HH:mm' }}</td>
-          <td><app-status-badge [status]="wo.priorityLevel"></app-status-badge></td>
-          <td><app-status-badge [status]="wo.status"></app-status-badge></td>
-        </tr>
-        <ng-container *ngIf="workOrders.length === 0">
-          <tr>
-            <td class="font-mono text-xs text-blue">WO-145</td>
-            <td class="font-mono text-xs text-muted">REQ-0012</td>
-            <td>Daniel Tan</td>
-            <td class="text-muted text-xs">10 Apr, 10:00</td>
-            <td><app-status-badge status="High"></app-status-badge></td>
-            <td><app-status-badge status="Assigned"></app-status-badge></td>
-          </tr>
-          <tr>
-            <td class="font-mono text-xs text-blue">WO-144</td>
-            <td class="font-mono text-xs text-muted">REQ-0010</td>
-            <td>Farid Hassan</td>
-            <td class="text-muted text-xs">10 Apr, 14:00</td>
-            <td><app-status-badge status="Medium"></app-status-badge></td>
-            <td><app-status-badge status="InProgress"></app-status-badge></td>
-          </tr>
-        </ng-container>
-      </tbody>
-    </table>
+<!-- Work Order Management -->
+<div class="fade-in space-y-6 max-w-6xl mx-auto p-4 md:p-6">
+  
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900">Work Orders</h1>
+      <p class="text-sm text-slate-500 mt-1">Manage and assign maintenance tasks to your technicians</p>
+    </div>
   </div>
 
-  <!-- Generate / Update Work Order -->
-  <div class="pms-card">
-    <h4 class="section-title">Generate / Update Work Order</h4>
-    <div class="form-grid">
-      <div class="space-y-1">
-        <label class="pms-label">Request ID</label>
-        <input [(ngModel)]="form.requestID" class="pms-input" placeholder="e.g. REQ-2026-0012"/>
-      </div>
-      <div class="space-y-1">
-        <label class="pms-label">Assign Technician</label>
-        <select [(ngModel)]="form.technicianID" class="pms-select">
-          <option value="1">Daniel Tan (HVAC · Rank 1)</option>
-          <option value="2">Farid Hassan (Plumbing · Rank 2)</option>
-        </select>
-      </div>
-      <div class="space-y-1">
-        <label class="pms-label">Schedule Date & Time</label>
-        <input type="datetime-local" [(ngModel)]="form.scheduledDate" class="pms-input"/>
-      </div>
-      <div class="space-y-1">
-        <label class="pms-label">Priority</label>
-        <select [(ngModel)]="form.priorityLevel" class="pms-select">
-          <option>High</option><option>Medium</option><option>Low</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-actions">
-      <button class="btn-primary" (click)="saveWorkOrder()">💾 Save Work Order</button>
+  <div class="pms-card space-y-4">
+    <div class="overflow-x-auto">
+      <table class="pms-table">
+        <thead>
+          <tr>
+            <th>WO ID</th>
+            <th>Type</th>
+            <th>Asset / Unit</th>
+            <th>Schedule</th>
+            <th>Status</th>
+            <th>Technician</th>
+            <th class="text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let wo of workOrders" class="hover:bg-slate-50">
+            <td class="font-mono text-xs font-bold text-indigo-600">WO-{{ wo.id }}</td>
+            <td class="font-semibold text-slate-700">{{ wo.workType }}</td>
+            <td>
+              <span *ngIf="wo.assetName" class="text-sm font-medium"><i class="fas fa-box text-slate-400 mr-1"></i> {{ wo.assetName }}</span>
+              <span *ngIf="wo.unitNumber" class="text-sm font-medium"><i class="fas fa-door-closed text-slate-400 mr-1"></i> {{ wo.unitNumber }}</span>
+            </td>
+            <td class="text-slate-600 font-medium">{{ wo.scheduleDate | date:'dd MMM yyyy, HH:mm' }}</td>
+            <td>
+              <span class="status-badge" 
+                    [ngClass]="{'badge-active': wo.status === 'Completed', 'badge-inactive': wo.status === 'Pending', 'badge-other': wo.status === 'Assigned'}">
+                {{ wo.status }}
+              </span>
+            </td>
+            <td>
+              <span *ngIf="wo.assignments && wo.assignments.length > 0" class="text-sm font-semibold text-slate-700">
+                <i class="fas fa-user-hard-hat text-indigo-500 mr-1"></i> {{ wo.assignments[0].technicianName }}
+              </span>
+              <span *ngIf="!wo.assignments || wo.assignments.length === 0" class="text-xs text-slate-400 italic">Unassigned</span>
+            </td>
+            <td class="text-right">
+              <button *ngIf="wo.status === 'Pending'" (click)="openAssignModal(wo)" class="btn-primary text-xs py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700">
+                <i class="fas fa-user-plus mr-1"></i> Assign
+              </button>
+            </td>
+          </tr>
+          
+          <tr *ngIf="workOrders.length === 0">
+            <td colspan="7" class="text-center text-slate-500 py-8">
+              <i class="fas fa-clipboard-check text-3xl text-emerald-400 mb-2 block"></i>
+              No work orders found.
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
+
+  <!-- Assignment Modal/Panel -->
+  <div *ngIf="selectedWo" class="pms-card border-l-4 border-indigo-500 max-w-2xl mx-auto mt-6 fade-in shadow-lg">
+    <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-4">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900">Assign Technician</h2>
+        <p class="text-sm text-slate-500">Assigning technician for <span class="font-bold text-indigo-600">WO-{{selectedWo.id}}</span></p>
+      </div>
+      <button (click)="closeAssignModal()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-xl"></i></button>
+    </div>
+
+    <div class="space-y-4">
+      <div class="bg-indigo-50 p-4 rounded-lg">
+        <p class="text-sm text-indigo-900"><span class="font-semibold">Task:</span> {{ selectedWo.description }}</p>
+        <p class="text-sm text-indigo-900 mt-1"><span class="font-semibold">Asset:</span> {{ selectedWo.assetName || selectedWo.unitNumber }}</p>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label required">Select Technician</label>
+        <select class="form-control" [(ngModel)]="selectedTechId" [disabled]="assigning">
+          <option [ngValue]="null" disabled selected>-- Select an available technician --</option>
+          <option *ngFor="let t of technicians" [value]="t.technicianId">
+            {{ t.fullName }} (Specialization: {{ t.serviceType }})
+          </option>
+        </select>
+        <p class="text-xs text-slate-500 mt-1" *ngIf="technicians.length > 0">
+          <i class="fas fa-filter text-indigo-400 mr-1"></i> List filtered by availability and specialization.
+        </p>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-4 mt-2">
+        <button class="btn-ghost" (click)="closeAssignModal()" [disabled]="assigning">Cancel</button>
+        <button class="btn-primary bg-indigo-600 hover:bg-indigo-700" (click)="assignTechnician()" [disabled]="assigning || !selectedTechId">
+          <i class="fas fa-spinner fa-spin mr-2" *ngIf="assigning"></i> Confirm Assignment
+        </button>
+      </div>
+    </div>
+  </div>
+
 </div>

@@ -30,10 +30,6 @@ namespace PropertyManagement.API.Models.Entities
         [MaxLength(20)]
         public string? UnitType { get; set; }
         
-        public int MaxOccupants { get; set; } = 4;
-        
-        public int CurrentOccupants { get; set; } = 0;
-        
         // Navigation Properties
         public virtual Property? Property { get; set; }
         public virtual ICollection<Contract> Contracts { get; set; } = new List<Contract>();

@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PropertyManagement.API.Data;
 using PropertyManagement.API.Models.Entities;
 using PropertyManagement.API.Models.Enums;
-
+using Microsoft.AspNetCore.Authorization;
 namespace PropertyManagement.API.Controllers
 {
     // ─── DTOs ────────────────────────────────────────────────────────────────────
@@ -50,11 +50,29 @@ namespace PropertyManagement.API.Controllers
 
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class AssetsController : ControllerBase
     {
         private readonly AppDbContext _ctx;
 
         public AssetsController(AppDbContext ctx) => _ctx = ctx;
+
+        private async Task<long?> GetManagerPropertyIdAsync()
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            var roleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role);
+
+            if (userIdClaim != null && roleClaim != null && roleClaim.Value == "PropertyManager")
+            {
+                var userId = long.Parse(userIdClaim.Value);
+                var pm = await _ctx.PropertyManagers.FirstOrDefaultAsync(m => m.UserAccountId == userId);
+                if (pm != null && pm.PropertyId.HasValue)
+                {
+                    return pm.PropertyId.Value;
+                }
+            }
+            return null;
+        }
 
         // ── GET /api/Assets ──────────────────────────────────────────────────────
         [HttpGet]
@@ -68,13 +86,23 @@ namespace PropertyManagement.API.Controllers
                 .Include(a => a.Property)
                 .Where(a => !a.IsDeleted);
 
-            if (propertyId.HasValue)
+            var managerPropertyId = await GetManagerPropertyIdAsync();
+            if (managerPropertyId.HasValue)
+            {
+                q = q.Where(a => a.PropertyId == managerPropertyId.Value);
+            }
+            else if (propertyId.HasValue)
+            {
                 q = q.Where(a => a.PropertyId == propertyId);
+            }
 
             if (!string.IsNullOrWhiteSpace(search))
-                q = q.Where(a => a.AssetName.Contains(search) ||
-                                 (a.Location != null && a.Location.Contains(search)) ||
-                                 (a.AssetType != null && a.AssetType.Contains(search)));
+            {
+                var lowerSearch = search.ToLower();
+                q = q.Where(a => a.AssetName.ToLower().Contains(lowerSearch) ||
+                                 (a.Location != null && a.Location.ToLower().Contains(lowerSearch)) ||
+                                 (a.AssetType != null && a.AssetType.ToLower().Contains(lowerSearch)));
+            }
 
             if (!string.IsNullOrWhiteSpace(assetType) && assetType != "All")
                 q = q.Where(a => a.AssetType == assetType);
@@ -114,10 +142,18 @@ namespace PropertyManagement.API.Controllers
         [HttpGet("{id:long}")]
         public async Task<IActionResult> GetById(long id)
         {
-            var asset = await _ctx.Assets
+            var q = _ctx.Assets
                 .Include(a => a.Property)
                 .Include(a => a.MaintenanceHistories.Where(h => !h.IsDeleted))
-                .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted);
+                .Where(a => a.Id == id && !a.IsDeleted);
+
+            var managerPropertyId = await GetManagerPropertyIdAsync();
+            if (managerPropertyId.HasValue)
+            {
+                q = q.Where(a => a.PropertyId == managerPropertyId.Value);
+            }
+
+            var asset = await q.FirstOrDefaultAsync();
 
             if (asset == null) return NotFound(new { message = "Asset not found." });
 
@@ -162,7 +198,10 @@ namespace PropertyManagement.API.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateAssetDto dto)
         {
-            var propertyExists = await _ctx.Properties.AnyAsync(p => p.Id == dto.PropertyId && !p.IsDeleted);
+            var managerPropertyId = await GetManagerPropertyIdAsync();
+            long propertyIdToUse = managerPropertyId ?? dto.PropertyId;
+
+            var propertyExists = await _ctx.Properties.AnyAsync(p => p.Id == propertyIdToUse && !p.IsDeleted);
             if (!propertyExists)
                 return BadRequest(new { message = "Property not found." });
 
@@ -181,7 +220,7 @@ namespace PropertyManagement.API.Controllers
 
             var asset = new Asset
             {
-                PropertyId              = dto.PropertyId,
+                PropertyId              = propertyIdToUse,
                 AssetName               = dto.AssetName,
                 AssetType               = dto.AssetType,
                 Location                = dto.Location,
@@ -214,8 +253,15 @@ namespace PropertyManagement.API.Controllers
         [HttpPut("{id:long}")]
         public async Task<IActionResult> Update(long id, [FromBody] UpdateAssetDto dto)
         {
-            var asset = await _ctx.Assets.FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted);
-            if (asset == null) return NotFound(new { message = "Asset not found." });
+            var q = _ctx.Assets.Where(a => a.Id == id && !a.IsDeleted);
+            var managerPropertyId = await GetManagerPropertyIdAsync();
+            if (managerPropertyId.HasValue)
+            {
+                q = q.Where(a => a.PropertyId == managerPropertyId.Value);
+            }
+
+            var asset = await q.FirstOrDefaultAsync();
+            if (asset == null) return NotFound(new { message = "Asset not found or unauthorized." });
 
             asset.AssetName               = dto.AssetName;
             asset.AssetType               = dto.AssetType;
@@ -240,8 +286,15 @@ namespace PropertyManagement.API.Controllers
         [HttpPatch("{id:long}/deactivate")]
         public async Task<IActionResult> Deactivate(long id)
         {
-            var asset = await _ctx.Assets.FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted);
-            if (asset == null) return NotFound(new { message = "Asset not found." });
+            var q = _ctx.Assets.Where(a => a.Id == id && !a.IsDeleted);
+            var managerPropertyId = await GetManagerPropertyIdAsync();
+            if (managerPropertyId.HasValue)
+            {
+                q = q.Where(a => a.PropertyId == managerPropertyId.Value);
+            }
+
+            var asset = await q.FirstOrDefaultAsync();
+            if (asset == null) return NotFound(new { message = "Asset not found or unauthorized." });
             if (asset.Status == "Inactive")
                 return BadRequest(new { message = "Asset is already inactive." });
 
@@ -256,8 +309,15 @@ namespace PropertyManagement.API.Controllers
         [HttpGet("{id:long}/history")]
         public async Task<IActionResult> GetHistory(long id)
         {
-            var assetExists = await _ctx.Assets.AnyAsync(a => a.Id == id && !a.IsDeleted);
-            if (!assetExists) return NotFound(new { message = "Asset not found." });
+            var q = _ctx.Assets.Where(a => a.Id == id && !a.IsDeleted);
+            var managerPropertyId = await GetManagerPropertyIdAsync();
+            if (managerPropertyId.HasValue)
+            {
+                q = q.Where(a => a.PropertyId == managerPropertyId.Value);
+            }
+
+            var assetExists = await q.AnyAsync();
+            if (!assetExists) return NotFound(new { message = "Asset not found or unauthorized." });
 
             var history = await _ctx.AssetMaintenanceHistories
                 .Where(h => h.AssetId == id && !h.IsDeleted)
@@ -279,12 +339,53 @@ namespace PropertyManagement.API.Controllers
             return Ok(history);
         }
 
+        // ── GET /api/Assets/histories ─────────────────────────────────────────
+        [HttpGet("histories")]
+        public async Task<IActionResult> GetAllHistories()
+        {
+            var managerPropertyId = await GetManagerPropertyIdAsync();
+            var q = _ctx.AssetMaintenanceHistories
+                .Include(h => h.Asset)
+                .Where(h => !h.IsDeleted);
+
+            if (managerPropertyId.HasValue)
+            {
+                q = q.Where(h => h.Asset.PropertyId == managerPropertyId.Value);
+            }
+
+            var history = await q
+                .OrderByDescending(h => h.MaintenanceDate)
+                .Select(h => new
+                {
+                    historyId       = h.Id,
+                    assetId         = h.AssetId,
+                    assetName       = h.Asset.AssetName,
+                    maintenanceType = h.MaintenanceType.ToString(),
+                    description     = h.Description,
+                    cost            = h.Cost,
+                    maintenanceDate = h.MaintenanceDate,
+                    resultStatus    = h.ResultStatus,
+                    performedBy     = h.PerformedBy,
+                    workOrderId     = h.WorkOrderId
+                })
+                .ToListAsync();
+
+            return Ok(history);
+        }
+
         // ── POST /api/Assets/{id}/history ────────────────────────────────────────
         [HttpPost("{id:long}/history")]
         public async Task<IActionResult> AddHistory(long id, [FromBody] AddMaintenanceHistoryDto dto)
         {
-            var asset = await _ctx.Assets.FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted);
-            if (asset == null) return NotFound(new { message = "Asset not found." });
+            var q = _ctx.Assets.Where(a => a.Id == id && !a.IsDeleted);
+            var managerPropertyId = await GetManagerPropertyIdAsync();
+            if (managerPropertyId.HasValue)
+            {
+                q = q.Where(a => a.PropertyId == managerPropertyId.Value);
+            }
+
+            var asset = await q.FirstOrDefaultAsync();
+            if (asset == null) return NotFound(new { message = "Asset not found or unauthorized." });
 
             var record = new AssetMaintenanceHistory
             {

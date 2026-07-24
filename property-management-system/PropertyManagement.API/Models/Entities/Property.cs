@@ -9,9 +9,7 @@ namespace PropertyManagement.API.Models.Entities
         [ForeignKey("Organisation")]
         public long? OrganisationId { get; set; }
 
-        // ── FK: The PropertyManager who manages this property (1 PM : 1 Property)
-        [ForeignKey("ManagedBy")]
-        public long? ManagedByManagerId { get; set; }
+
 
         [Required]
         [MaxLength(100)]
@@ -34,7 +32,7 @@ namespace PropertyManagement.API.Models.Entities
 
         // Navigation Properties
         public virtual Organisation? Organisation { get; set; }
-        public virtual PropertyManager? ManagedBy { get; set; }
+        public virtual ICollection<PropertyManager> PropertyManagers { get; set; } = new List<PropertyManager>();
         public virtual ICollection<PropertyUnit> PropertyUnits { get; set; } = new List<PropertyUnit>();
         public virtual ICollection<Asset> Assets { get; set; } = new List<Asset>();
         public virtual ICollection<PropertyServiceType> PropertyServiceTypes { get; set; } = new List<PropertyServiceType>();

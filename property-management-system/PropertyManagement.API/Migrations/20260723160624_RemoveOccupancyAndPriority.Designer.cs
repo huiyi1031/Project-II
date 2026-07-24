@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PropertyManagement.API.Data;
@@ -11,9 +12,11 @@ using PropertyManagement.API.Data;
 namespace PropertyManagement.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260723160624_RemoveOccupancyAndPriority")]
+    partial class RemoveOccupancyAndPriority
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -593,6 +596,9 @@ namespace PropertyManagement.API.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<long?>("ManagedByManagerId")
+                        .HasColumnType("bigint");
+
                     b.Property<long?>("OrganisationId")
                         .HasColumnType("bigint");
 
@@ -617,6 +623,8 @@ namespace PropertyManagement.API.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ManagedByManagerId");
 
                     b.HasIndex("OrganisationId");
 
@@ -660,9 +668,6 @@ namespace PropertyManagement.API.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<long?>("PropertyId")
-                        .HasColumnType("bigint");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -670,8 +675,6 @@ namespace PropertyManagement.API.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("PropertyId");
 
                     b.HasIndex("UserAccountId")
                         .IsUnique();
@@ -1151,28 +1154,28 @@ namespace PropertyManagement.API.Migrations
 
             modelBuilder.Entity("PropertyManagement.API.Models.Entities.Property", b =>
                 {
+                    b.HasOne("PropertyManagement.API.Models.Entities.PropertyManager", "ManagedBy")
+                        .WithMany()
+                        .HasForeignKey("ManagedByManagerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("PropertyManagement.API.Models.Entities.Organisation", "Organisation")
                         .WithMany("Properties")
                         .HasForeignKey("OrganisationId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ManagedBy");
 
                     b.Navigation("Organisation");
                 });
 
             modelBuilder.Entity("PropertyManagement.API.Models.Entities.PropertyManager", b =>
                 {
-                    b.HasOne("PropertyManagement.API.Models.Entities.Property", "Property")
-                        .WithMany("PropertyManagers")
-                        .HasForeignKey("PropertyId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("PropertyManagement.API.Models.Entities.UserAccount", "UserAccount")
                         .WithOne("PropertyManager")
                         .HasForeignKey("PropertyManagement.API.Models.Entities.PropertyManager", "UserAccountId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Property");
 
                     b.Navigation("UserAccount");
                 });
@@ -1302,8 +1305,6 @@ namespace PropertyManagement.API.Migrations
             modelBuilder.Entity("PropertyManagement.API.Models.Entities.Property", b =>
                 {
                     b.Navigation("Assets");
-
-                    b.Navigation("PropertyManagers");
 
                     b.Navigation("PropertyServiceTypes");
 

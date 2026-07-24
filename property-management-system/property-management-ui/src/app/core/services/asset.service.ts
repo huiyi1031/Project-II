@@ -71,6 +71,10 @@ export class AssetService {
     return this.http.get<AssetMaintenanceHistory[]>(`${this.base}/${id}/history`);
   }
 
+  getAllHistories(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.base}/histories`);
+  }
+
   addHistory(id: number, dto: AddHistoryDto): Observable<any> {
     return this.http.post<any>(`${this.base}/${id}/history`, dto);
   }

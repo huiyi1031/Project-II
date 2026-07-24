@@ -9,7 +9,7 @@
   </div>
   <table class="pms-table">
     <thead>
-      <tr><th>Request ID</th><th>Issue Type</th><th>Location</th><th>Requestor</th><th>Priority</th><th>Status</th><th>Action</th></tr>
+      <tr><th>Request ID</th><th>Issue Type</th><th>Location</th><th>Requestor</th><th>Status</th><th>Action</th></tr>
     </thead>
     <tbody>
       <tr *ngFor="let r of requests">
@@ -17,7 +17,7 @@
         <td>{{ r.issueCategory }}</td>
         <td class="text-muted">{{ r.unitNumber }}</td>
         <td class="text-muted">{{ r.occupantName }}</td>
-        <td><app-status-badge [status]="r.priorityLevel"></app-status-badge></td>
+
         <td><app-status-badge [status]="r.status"></app-status-badge></td>
         <td class="space-x-1">
           <button class="btn-success text-xs px-2 py-1" *ngIf="r.status === 'Pending'"
@@ -31,7 +31,7 @@
         <tr>
           <td class="font-mono text-xs text-blue">REQ-2026-0012</td>
           <td>HVAC</td><td class="text-muted">A-12-05</td><td class="text-muted">Nur Ain</td>
-          <td><app-status-badge status="High"></app-status-badge></td>
+
           <td><app-status-badge status="Pending"></app-status-badge></td>
           <td class="space-x-1">
             <button class="btn-success text-xs px-2 py-1">Approve</button>
@@ -42,7 +42,7 @@
         <tr>
           <td class="font-mono text-xs text-blue">REQ-2026-0011</td>
           <td>Plumbing</td><td class="text-muted">B-08-12</td><td class="text-muted">Ravi Kumar</td>
-          <td><app-status-badge status="Medium"></app-status-badge></td>
+
           <td><app-status-badge status="Assigned"></app-status-badge></td>
           <td><button class="btn-outline text-xs px-2 py-1">View</button></td>
         </tr>

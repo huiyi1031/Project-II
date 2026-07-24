@@ -91,7 +91,6 @@ namespace PropertyManagement.API.Controllers
                 UnitId = requestDto.UnitId,
                 OccupantId = occupant.Id,
                 ImagePath = imagePath,
-                PriorityLevel = PriorityLevel.Medium,
                 RequestDate = DateTime.UtcNow,
                 Status = RequestStatus.Pending
             };
@@ -236,7 +235,6 @@ namespace PropertyManagement.API.Controllers
                     requestTitle         = r.Title,
                     issueCategory        = r.AssetType ?? "",
                     description          = r.Description ?? "",
-                    priorityLevel        = r.PriorityLevel.ToString(),
                     status               = r.Status.ToString(),
                     submissionDate       = r.RequestDate,
                     attachmentPath       = r.ImagePath,

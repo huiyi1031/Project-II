@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { PropertyUnit } from '../../../core/models';
-import { UnitService, CreateUnitDto, UpdateUnitDto, UnitFilterOptions } from '../../../core/services/unit.service';
+import { UnitService, UnitFilterOptions } from '../../../core/services/unit.service';
 
 @Component({
   selector: 'app-units',
@@ -12,40 +13,33 @@ export class UnitsComponent implements OnInit {
   units: PropertyUnit[] = [];
   filteredUnits: PropertyUnit[] = [];
   filterOptions: UnitFilterOptions = { blocks: [], floors: [] };
-  properties: { id: number; name: string }[] = [];
 
   // ── UI State ─────────────────────────────────────────────────────
   loading   = false;
-  saving    = false;
   error     = '';
   success   = '';
-  showModal = false;
-  showDeleteConfirm = false;
-  showDetailPanel  = false;
-  editMode  = false;
+  
+  showFilters = true;
 
-  selectedUnit: PropertyUnit | null = null;
-  selectedUnitDetail: any = null;
-
-  // ── Filters ───────────────────────────────────────────────────────
+  // ── Filters & Sorting ───────────────────────────────────────────────
   searchText    = '';
+  sortBy        = 'floor_asc';
   filterBlock   = '';
   filterFloor   = '';
   filterType    = '';
   filterStatus  = '';
   filterMinSqft = '';
   filterMaxSqft = '';
-  selectedPropertyId: number | undefined;
 
   readonly unitTypes = ['Studio', '1-Bedroom', '2-Bedroom', '3-Bedroom'];
   readonly statusOptions = ['Vacant', 'Occupied', 'Under Maintenance'];
 
-  // ── Form ──────────────────────────────────────────────────────────
-  form: CreateUnitDto = this.emptyForm();
+  constructor(private unitSvc: UnitService, private router: Router) {}
 
-  constructor(private unitSvc: UnitService) {}
-
-  ngOnInit(): void { this.loadUnits(); }
+  ngOnInit(): void { 
+    this.loadUnits(); 
+    this.loadFilterOptions();
+  }
 
   // ── Load ─────────────────────────────────────────────────────────
   loadUnits(): void {
@@ -58,38 +52,46 @@ export class UnitsComponent implements OnInit {
       unitType:   this.filterType     || undefined,
       status:     this.filterStatus   || undefined,
       minSqft:    this.filterMinSqft  ? +this.filterMinSqft : undefined,
-      maxSqft:    this.filterMaxSqft  ? +this.filterMaxSqft : undefined,
-      propertyId: this.selectedPropertyId ? +this.selectedPropertyId : undefined,
+      maxSqft:    this.filterMaxSqft  ? +this.filterMaxSqft : undefined
     }).subscribe({
       next: units => {
         this.units = units;
-        this.filteredUnits = units;
+        this.filteredUnits = [...units];
+        this.applySort();
         this.loading = false;
-
-        // Derive unique property list from unit data
-        const propMap = new Map<number, string>();
-        units.forEach(u => {
-          if (u.propertyId && u.propertyName)
-            propMap.set(u.propertyId, u.propertyName);
-        });
-        this.properties = Array.from(propMap, ([id, name]) => ({ id, name }));
-
-        // Load filter options for dropdowns
-        if (this.selectedPropertyId)
-          this.loadFilterOptions();
       },
       error: () => { this.error = 'Failed to load units.'; this.loading = false; }
     });
   }
 
   loadFilterOptions(): void {
-    this.unitSvc.getFilterOptions(this.selectedPropertyId).subscribe({
+    this.unitSvc.getFilterOptions(undefined).subscribe({
       next: opts => this.filterOptions = opts,
       error: () => {}
     });
   }
 
   applyFilters(): void { this.loadUnits(); }
+
+  applySort(): void {
+    if (!this.filteredUnits) return;
+    this.filteredUnits.sort((a, b) => {
+      if (this.sortBy === 'unit_asc') {
+        return (a.unitNumber || '').localeCompare(b.unitNumber || '');
+      } else if (this.sortBy === 'unit_desc') {
+        return (b.unitNumber || '').localeCompare(a.unitNumber || '');
+      } else if (this.sortBy === 'floor_asc') {
+        const floorA = parseInt(a.floorLevel || '0', 10) || 0;
+        const floorB = parseInt(b.floorLevel || '0', 10) || 0;
+        return floorA - floorB;
+      } else if (this.sortBy === 'floor_desc') {
+        const floorA = parseInt(a.floorLevel || '0', 10) || 0;
+        const floorB = parseInt(b.floorLevel || '0', 10) || 0;
+        return floorB - floorA;
+      }
+      return 0;
+    });
+  }
 
   clearFilters(): void {
     this.searchText   = '';
@@ -99,141 +101,44 @@ export class UnitsComponent implements OnInit {
     this.filterStatus = '';
     this.filterMinSqft = '';
     this.filterMaxSqft = '';
-    this.selectedPropertyId = undefined;
     this.loadUnits();
   }
-
-  onPropertyChange(): void {
-    this.filterBlock = '';
-    this.filterFloor = '';
-    this.loadUnits();
-    this.loadFilterOptions();
+  
+  toggleFilters(): void {
+    this.showFilters = !this.showFilters;
+  }
+  
+  exportCsv(): void {
+    if (this.filteredUnits.length === 0) return;
+    const header = ['Unit No', 'Block', 'Floor', 'Type', 'Size(sqft)', 'Bedrooms', 'Bathrooms', 'Status'].join(',');
+    const rows = this.filteredUnits.map(u => 
+      [u.unitNumber, u.block || '', u.floorLevel || '', u.unitType || '', u.areaSqft || '', u.bedrooms || '', u.bathrooms || '', u.status].join(',')
+    );
+    const csvContent = [header, ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'Property_Units_Export.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
-  // ── Row Selection ─────────────────────────────────────────────────
+  // ── Actions ───────────────────────────────────────────────────────
   selectUnit(unit: PropertyUnit): void {
-    this.selectedUnit = unit;
-    this.showDetailPanel = true;
-    this.unitSvc.getById(unit.unitId).subscribe({
-      next: detail => this.selectedUnitDetail = detail,
-      error: () => this.selectedUnitDetail = unit
-    });
+    this.router.navigate(['/manager/units', unit.unitId]);
   }
 
-  closeDetailPanel(): void {
-    this.showDetailPanel = false;
-    this.selectedUnit    = null;
-    this.selectedUnitDetail = null;
-  }
-
-  // ── Create ────────────────────────────────────────────────────────
   openCreateModal(): void {
-    this.editMode = false;
-    this.form = this.emptyForm();
-    if (this.selectedPropertyId) this.form.propertyId = this.selectedPropertyId;
-    this.showModal = true;
-    this.error = '';
-    this.success = '';
+    this.router.navigate(['/manager/units/create']);
   }
 
-  // ── Edit ──────────────────────────────────────────────────────────
   openEditModal(unit: PropertyUnit): void {
-    this.editMode    = true;
-    this.selectedUnit = unit;
-    this.form = {
-      propertyId:   unit.propertyId,
-      unitNumber:   unit.unitNumber,
-      floorLevel:   unit.floorLevel,
-      block:        unit.block,
-      unitType:     unit.unitType || 'Studio',
-      areaSqft:     unit.areaSqft,
-      bedrooms:     unit.bedrooms,
-      bathrooms:    unit.bathrooms,
-      maxOccupants: unit.maxOccupants,
-      status:       unit.status
-    };
-    this.showModal = true;
-    this.error  = '';
-    this.success = '';
+    this.router.navigate(['/manager/units', unit.unitId, 'edit']);
   }
 
-  // ── Save ──────────────────────────────────────────────────────────
-  saveUnit(): void {
-    if (!this.form.unitNumber?.trim()) { this.error = 'Unit number is required.'; return; }
-    if (!this.form.propertyId)         { this.error = 'Please select a property.'; return; }
-
-    this.saving = true;
-    this.error  = '';
-
-    if (this.editMode && this.selectedUnit) {
-      const dto: UpdateUnitDto = {
-        unitNumber:   this.form.unitNumber,
-        floorLevel:   this.form.floorLevel,
-        block:        this.form.block,
-        unitType:     this.form.unitType,
-        areaSqft:     this.form.areaSqft,
-        bedrooms:     this.form.bedrooms,
-        bathrooms:    this.form.bathrooms,
-        maxOccupants: this.form.maxOccupants,
-        status:       this.form.status
-      };
-      this.unitSvc.update(this.selectedUnit.unitId, dto).subscribe({
-        next: () => { this.saving = false; this.showModal = false; this.success = 'Unit updated successfully!'; this.loadUnits(); },
-        error: err => { this.saving = false; this.error = err.error?.message || 'Update failed.'; }
-      });
-    } else {
-      this.unitSvc.create(this.form).subscribe({
-        next: () => { this.saving = false; this.showModal = false; this.success = 'Unit created successfully!'; this.loadUnits(); },
-        error: err => { this.saving = false; this.error = err.error?.message || 'Create failed.'; }
-      });
-    }
-  }
-
-  // ── Delete ────────────────────────────────────────────────────────
-  confirmDelete(unit: PropertyUnit): void {
-    this.selectedUnit     = unit;
-    this.showDeleteConfirm = true;
-  }
-
-  deleteUnit(): void {
-    if (!this.selectedUnit) return;
-    this.saving = true;
-    this.unitSvc.delete(this.selectedUnit.unitId).subscribe({
-      next: () => {
-        this.saving = false;
-        this.showDeleteConfirm = false;
-        this.showDetailPanel   = false;
-        this.selectedUnit      = null;
-        this.success = 'Unit deleted successfully!';
-        this.loadUnits();
-      },
-      error: err => {
-        this.saving = false;
-        this.showDeleteConfirm = false;
-        this.error = err.error?.message || 'Delete failed.';
-      }
-    });
-  }
-
-  closeModal():  void { this.showModal = false; this.error = ''; }
-  cancelDelete(): void { this.showDeleteConfirm = false; this.selectedUnit = null; }
   dismissAlert(): void { this.error = ''; this.success = ''; }
-
-  // ── Helpers ───────────────────────────────────────────────────────
-  emptyForm(): CreateUnitDto {
-    return {
-      propertyId:   this.selectedPropertyId || 0,
-      unitNumber:   '',
-      floorLevel:   '',
-      block:        'A',
-      unitType:     'Studio',
-      areaSqft:     520,
-      bedrooms:     1,
-      bathrooms:    1,
-      maxOccupants: 2,
-      status:       'Vacant'
-    };
-  }
 
   getStatusClass(status: string): string {
     switch (status?.toLowerCase()) {
@@ -250,16 +155,6 @@ export class UnitsComponent implements OnInit {
       case '2-Bedroom': return '2B';
       case '3-Bedroom': return '3B';
       default:          return 'U';
-    }
-  }
-
-  onUnitTypeChange(): void {
-    // Auto-fill sensible defaults when unit type changes
-    switch (this.form.unitType) {
-      case 'Studio':    this.form.areaSqft = 520;  this.form.bedrooms = 1; this.form.bathrooms = 1; this.form.maxOccupants = 2; break;
-      case '1-Bedroom': this.form.areaSqft = 720;  this.form.bedrooms = 1; this.form.bathrooms = 1; this.form.maxOccupants = 4; break;
-      case '2-Bedroom': this.form.areaSqft = 980;  this.form.bedrooms = 2; this.form.bathrooms = 2; this.form.maxOccupants = 6; break;
-      case '3-Bedroom': this.form.areaSqft = 1350; this.form.bedrooms = 3; this.form.bathrooms = 2; this.form.maxOccupants = 8; break;
     }
   }
 }

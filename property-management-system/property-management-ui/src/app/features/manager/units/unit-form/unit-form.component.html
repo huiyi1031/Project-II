@@ -1,0 +1,95 @@
+<div class="units-page fade-in max-w-6xl mx-auto py-8 px-4">
+  <!-- Back Button -->
+  <button class="flex items-center text-blue-600 font-semibold mb-6 hover:text-blue-700 transition-colors" (click)="cancel()">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="mr-1"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+    Back to Units
+  </button>
+
+  <div class="table-loading" *ngIf="loading">
+    <span class="spinner"></span>
+    <p>Loading...</p>
+  </div>
+
+  <ng-container *ngIf="!loading">
+    <!-- Header Block -->
+    <div class="flex items-center gap-4 mb-8">
+      <div class="w-16 h-16 rounded-2xl bg-[#eff4ff] text-blue-600 flex items-center justify-center shrink-0">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+      </div>
+      <div>
+        <h1 class="text-3xl font-bold text-[var(--navy)] tracking-tight">{{ editMode ? 'Edit Unit' : 'Create New Unit' }}</h1>
+        <p class="text-slate-500 mt-1 text-sm">{{ editMode ? 'Update the unit details below.' : 'Add a new unit to your property.' }}</p>
+      </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 max-w-4xl">
+      <h3 class="text-xl font-bold text-[var(--navy)] mb-6">Unit Information</h3>
+      
+      <div class="alert alert-error mb-6" *ngIf="error">⚠️ {{ error }}</div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
+        <!-- Unit Number -->
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-bold text-slate-500 uppercase tracking-wider required">Unit Number</label>
+          <input class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors" type="text" [(ngModel)]="form.unitNumber" placeholder="e.g. A-05-03" maxlength="20">
+        </div>
+
+        <!-- Block -->
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Block</label>
+          <input class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors" type="text" [(ngModel)]="form.block" placeholder="e.g. A" maxlength="10">
+        </div>
+
+        <!-- Floor -->
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Floor Level</label>
+          <input class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors" type="text" [(ngModel)]="form.floorLevel" placeholder="e.g. 5" maxlength="10">
+        </div>
+
+        <!-- Unit Type -->
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Unit Type</label>
+          <select class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors appearance-none cursor-pointer" [(ngModel)]="form.unitType" (change)="onUnitTypeChange()">
+            <option *ngFor="let t of unitTypes" [value]="t">{{ t }}</option>
+          </select>
+        </div>
+
+        <!-- Size -->
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Area (sqft)</label>
+          <input class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors" type="number" [(ngModel)]="form.areaSqft" min="300" max="5000" placeholder="e.g. 980">
+        </div>
+
+        <!-- Bedrooms -->
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Bedrooms</label>
+          <input class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors" type="number" [(ngModel)]="form.bedrooms" min="0" max="10">
+        </div>
+
+        <!-- Bathrooms -->
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Bathrooms</label>
+          <input class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors" type="number" [(ngModel)]="form.bathrooms" min="0" max="10">
+        </div>
+
+        <!-- Status -->
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Status</label>
+          <select class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors appearance-none cursor-pointer" [(ngModel)]="form.status">
+            <option *ngFor="let s of statusOptions" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="mt-10 pt-6 border-t border-slate-100 flex justify-end gap-3">
+        <button class="btn bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm px-6 py-2 rounded-lg font-semibold" (click)="cancel()" [disabled]="saving">Cancel</button>
+        <button class="btn bg-blue-600 hover:bg-blue-700 text-white shadow-sm px-6 py-2 rounded-lg font-semibold flex items-center justify-center min-w-[140px]" (click)="saveUnit()" [disabled]="saving">
+          <span *ngIf="saving" class="spinner-sm text-white mr-2"></span>
+          {{ saving ? 'Saving...' : (editMode ? 'Update Unit' : 'Create Unit') }}
+        </button>
+      </div>
+    </div>
+  </ng-container>
+</div>

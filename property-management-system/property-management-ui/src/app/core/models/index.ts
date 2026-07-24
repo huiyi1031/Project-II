@@ -85,8 +85,6 @@ export interface PropertyUnit {
   areaSqft?: number;
   bedrooms?: number;
   bathrooms?: number;
-  maxOccupants: number;
-  currentOccupants: number;
   status: string;         // 'Vacant' | 'Occupied'
   createdAt?: string;
 }
@@ -117,8 +115,7 @@ export interface MaintenanceRequest {
   requestTitle: string;
   issueCategory: string;
   description: string;
-  priorityLevel: string;    // 'Low' | 'Medium' | 'High'
-  status: string;           // 'Pending' | 'Assigned' | 'InProgress' | 'Completed' | 'Cancelled'
+  status: string;           // 'Pending' | 'InProgress' | 'Completed' | 'Cancelled'
   submissionDate: string;
   preferredScheduleDate?: string;
   attachmentPath?: string;
@@ -264,7 +261,6 @@ export interface CreateMaintenanceRequestDto {
   requestTitle:          string;
   issueCategory:         string;
   description:           string;
-  priorityLevel:         string;
   unitID:                number;
   preferredScheduleDate?: string;
 }

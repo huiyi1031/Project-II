@@ -1,0 +1,153 @@
+<div class="max-w-6xl mx-auto space-y-6">
+  
+  <!-- Header Section -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+    <div class="flex items-center gap-4">
+      <button (click)="goBack()" class="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-3">
+          <i class="fas text-indigo-600" [ngClass]="getTypeIcon(asset?.assetType)"></i>
+          {{ asset?.assetName || 'Loading...' }}
+        </h1>
+        <p class="text-sm text-slate-500 mt-1">
+          View asset details and history <span *ngIf="asset?.propertyName">| {{ asset?.propertyName }}</span>
+        </p>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-3" *ngIf="!loading && asset">
+      <button (click)="editAsset()" 
+        class="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors shadow-sm font-medium flex items-center gap-2">
+        <i class="fas fa-pen"></i> Edit
+      </button>
+      <button (click)="addMaintenance()" 
+        class="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-sm font-medium flex items-center gap-2">
+        <i class="fas fa-tools"></i> Add Maintenance
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="flex justify-center p-12">
+    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+  </div>
+
+  <div *ngIf="error" class="bg-red-50 text-red-700 p-4 rounded-xl flex items-center gap-3">
+    <i class="fas fa-exclamation-circle"></i>
+    <span>{{ error }}</span>
+  </div>
+
+  <div *ngIf="!loading && asset" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    
+    <!-- Left Column: Details -->
+    <div class="lg:col-span-2 space-y-6">
+      
+      <!-- Basic Details Card -->
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-lg font-bold text-slate-900"><i class="fas fa-info-circle text-indigo-500 mr-2"></i> Asset Overview</h2>
+          <span class="px-3 py-1 text-xs font-semibold rounded-full" [ngClass]="getStatusClass(asset.status)">
+            {{ asset.status }}
+          </span>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <p class="text-sm text-slate-500 mb-1">Asset Type</p>
+            <p class="font-medium text-slate-900">{{ asset.assetType || '-' }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-slate-500 mb-1">Location</p>
+            <p class="font-medium text-slate-900">{{ asset.location || '-' }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-slate-500 mb-1">Installation Date</p>
+            <p class="font-medium text-slate-900">{{ asset.installationDate | date:'mediumDate' }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-slate-500 mb-1">Manufacturer</p>
+            <p class="font-medium text-slate-900">{{ asset.manufacturer || '-' }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-slate-500 mb-1">Model Number</p>
+            <p class="font-medium text-slate-900">{{ asset.modelNumber || '-' }}</p>
+          </div>
+          <div>
+            <p class="text-sm text-slate-500 mb-1">Expected Lifespan</p>
+            <p class="font-medium text-slate-900">{{ asset.expLifespanYears }} Years</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Maintenance History -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+          <h2 class="text-lg font-bold text-slate-900"><i class="fas fa-history text-indigo-500 mr-2"></i> Maintenance History</h2>
+        </div>
+        <div class="p-0">
+          <div *ngIf="!asset.maintenanceHistory?.length" class="p-8 text-center text-slate-500">
+            <div class="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+              <i class="fas fa-clipboard-list text-2xl text-slate-400"></i>
+            </div>
+            <p>No maintenance records found.</p>
+          </div>
+          
+          <ul *ngIf="asset.maintenanceHistory?.length" class="divide-y divide-slate-100">
+            <li *ngFor="let h of asset.maintenanceHistory" class="p-6 hover:bg-slate-50/50 transition-colors">
+              <div class="flex items-start justify-between">
+                <div>
+                  <h4 class="font-semibold text-slate-900">{{ h.maintenanceType }} Maintenance</h4>
+                  <p class="text-sm text-slate-600 mt-1">{{ h.description || 'No description provided.' }}</p>
+                  <div class="flex items-center gap-4 mt-3 text-xs font-medium text-slate-500">
+                    <span class="flex items-center gap-1"><i class="far fa-calendar"></i> {{ h.maintenanceDate | date }}</span>
+                    <span class="flex items-center gap-1" *ngIf="h.performedBy"><i class="far fa-user"></i> {{ h.performedBy }}</span>
+                    <span class="flex items-center gap-1 text-emerald-600" *ngIf="h.cost"><i class="fas fa-tag"></i> RM {{ h.cost }}</span>
+                  </div>
+                </div>
+                <span class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100">
+                  {{ h.resultStatus }}
+                </span>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Sidebar (QR Code) -->
+    <div class="space-y-6">
+      
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 text-center">
+        <h3 class="text-sm font-semibold text-slate-700 uppercase tracking-wider mb-6">Asset Tag (QR Code)</h3>
+        
+        <div class="flex justify-center mb-4 bg-white p-4 border border-slate-200 rounded-xl inline-block shadow-sm">
+          <!-- angularx-qrcode component -->
+          <qrcode [qrdata]="qrCodeUrl" [width]="180" [errorCorrectionLevel]="'M'"></qrcode>
+        </div>
+        
+        <p class="text-xs text-slate-500 mb-1">Scan to view asset details directly.</p>
+        <p class="text-xs font-mono bg-slate-100 text-slate-600 py-1.5 px-3 rounded-lg inline-block mt-2 font-medium">
+          {{ asset.qrCode }}
+        </p>
+      </div>
+
+      <div class="bg-indigo-50 rounded-2xl p-6 border border-indigo-100">
+        <div class="flex items-center gap-3 mb-3 text-indigo-800">
+          <i class="fas fa-calendar-check text-xl"></i>
+          <h3 class="font-bold">Next Service Due</h3>
+        </div>
+        <p class="text-2xl font-black text-indigo-900 mb-1">
+          {{ asset.nextMaintenanceDueDate ? (asset.nextMaintenanceDueDate | date:'MMM dd, yyyy') : 'Not Scheduled' }}
+        </p>
+        <p class="text-sm text-indigo-700/80 font-medium">
+          Interval: Every {{ asset.maintenanceIntervalDays }} days
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

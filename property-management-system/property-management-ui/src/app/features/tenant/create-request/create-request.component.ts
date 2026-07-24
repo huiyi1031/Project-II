@@ -38,7 +38,7 @@ export class CreateRequestComponent implements OnInit {
       next: (data) => {
         this.units = data;
         if (data.length > 0) {
-          this.form.patchValue({ unitId:  data[0].unitID });
+          this.form.patchValue({ unitId:  data[0].unitId });
         }
       },
       error: () => { }
@@ -90,8 +90,8 @@ export class CreateRequestComponent implements OnInit {
   }
 
   resetForm(): void {
-    const firstUnitId = this.units.length > 0 ?  this.units[0].unitID : '';
-    this.form.reset({ unitID: firstUnitId });
+    const firstUnitId = this.units.length > 0 ?  this.units[0].unitId : '';
+    this.form.reset({ unitId: firstUnitId });
     this.fileName = '';
     this.fileToUpload = null;
     this.successMsg = '';

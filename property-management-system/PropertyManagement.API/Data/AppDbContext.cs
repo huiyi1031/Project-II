@@ -70,11 +70,11 @@ namespace PropertyManagement.API.Data
                 .HasForeignKey(p => p.OrganisationId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ── One-to-One: Property → PropertyManager (ManagedBy) ────────────────
-            modelBuilder.Entity<Property>()
-                .HasOne(p => p.ManagedBy)
-                .WithMany()
-                .HasForeignKey(p => p.ManagedByManagerId)
+            // ── One-to-Many: Property → PropertyManagers ──────────────────────────
+            modelBuilder.Entity<PropertyManager>()
+                .HasOne(pm => pm.Property)
+                .WithMany(p => p.PropertyManagers)
+                .HasForeignKey(pm => pm.PropertyId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             // ── MaintenanceRequest ↔ Chat / WorkOrder ──────────────────────────────
@@ -95,10 +95,6 @@ namespace PropertyManagement.API.Data
                 .Property(u => u.AccountStatus)
                 .HasDefaultValue(AccountStatus.Active)
                 .HasConversion<int>();
-
-            modelBuilder.Entity<PropertyUnit>()
-                .Property(pu => pu.CurrentOccupants)
-                .HasDefaultValue(0);
 
             modelBuilder.Entity<MaintenanceRequest>()
                 .Property(mr => mr.Status)

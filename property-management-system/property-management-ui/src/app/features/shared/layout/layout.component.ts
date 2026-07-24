@@ -12,31 +12,33 @@ export interface MenuItem {
 /* ── Menu definitions per role ────────────────────────────────────────── */
 const MENUS: Record<string, MenuItem[]> = {
   Occupant: [
-    { label: 'Dashboard',           route: 'dashboard' },
-    { label: 'New Request',         route: 'create-request' },
-    { label: 'Track Request',       route: 'track-request' },
-    { label: 'Chat',                route: 'chat' },
-    { label: 'My Property',         route: 'my-property' },
+    { label: 'Dashboard', route: 'dashboard' },
+    { label: 'New Request', route: 'create-request' },
+    { label: 'Track Request', route: 'track-request' },
+    { label: 'Chat', route: 'chat' },
+    { label: 'My Property', route: 'my-property' },
   ],
   Technician: [
-    { label: 'Dashboard',           route: 'dashboard' },
-    { label: 'Work Orders',         route: 'work-orders' },
-    { label: 'Execute Work',        route: 'execute-work' },
-    { label: 'Chat',                route: 'chat' },
-    { label: 'Report',              route: 'report' },
+    { label: 'Dashboard', route: 'dashboard' },
+    { label: 'Work Orders', route: 'work-orders' },
+    { label: 'Execute Work', route: 'execute-work' },
+    { label: 'Chat', route: 'chat' },
+    { label: 'Report', route: 'report' },
   ],
   PropertyManager: [
-    { label: 'Dashboard',           route: 'dashboard' },
-    { label: 'Account Management',  children: [
-      { label: 'Staff Accounts',    route: 'staff' },
-      { label: 'Owner / Tenant',    route: 'occupants' },
-    ]},
-    { label: 'Requests',            route: 'requests' },
-    { label: 'Work Orders',         route: 'work-orders' },
-    { label: 'Property Units',      route: 'units' },
-    { label: 'Assets',              route: 'assets' },
-    { label: 'Proactive',           route: 'proactive' },
-    { label: 'Chat',                route: 'chat' },
+    { label: 'Dashboard', route: 'dashboard' },
+    {
+      label: 'Account Management', children: [
+        { label: 'Staff Accounts', route: 'staff' },
+        { label: 'Owner / Tenant', route: 'occupants' },
+      ]
+    },
+    { label: 'Requests', route: 'requests' },
+    { label: 'Work Orders', route: 'work-orders' },
+    { label: 'Property Units', route: 'units' },
+    { label: 'Assets', route: 'assets' },
+    { label: 'Proactive', route: 'proactive' },
+    { label: 'Chat', route: 'chat' },
   ],
 };
 
@@ -48,30 +50,30 @@ const MENUS: Record<string, MenuItem[]> = {
 export class LayoutComponent implements OnInit, OnDestroy {
   @Input() rolePrefix = '';   // 'tenant' | 'technician' | 'manager'
 
-  menuItems:   MenuItem[] = [];
-  activeItem   = 'dashboard';
-  roleLabel    = '';
+  menuItems: MenuItem[] = [];
+  activeItem = 'dashboard';
+  roleLabel = '';
   occupantType = '';
-  userName     = '';
-  userEmail    = '';
+  userName = '';
+  userEmail = '';
 
   /* UI state */
   openDropdown: string | null = null;   // label of currently open dropdown
-  isMobileMenuOpen = false;
+  isSidebarOpen = window.innerWidth > 1024;
   isProfileMenuOpen = false;
 
   private sub!: Subscription;
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(private authService: AuthService, private router: Router) { }
 
   ngOnInit(): void {
     const user = this.authService.getCurrentUser();
     if (user) {
-      this.roleLabel    = user.role;
+      this.roleLabel = user.role;
       this.occupantType = (user as any).occupantType || '';
-      this.userName     = user.fullName || user.email;
-      this.userEmail    = user.email;
-      this.menuItems    = [...(MENUS[user.role] ?? [])];
+      this.userName = user.fullName || user.email;
+      this.userEmail = user.email;
+      this.menuItems = [...(MENUS[user.role] ?? [])];
     }
 
     this.sub = this.router.events
@@ -90,7 +92,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.router.navigate([base, item.route]);
     this.activeItem = item.route;
     this.openDropdown = null;
-    this.isMobileMenuOpen = false;
+    this.isSidebarOpen = window.innerWidth > 1024;
   }
 
   /* ── Dropdown toggle ─────────────────────────────────────────────────── */
@@ -99,10 +101,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.openDropdown = this.openDropdown === label ? null : label;
   }
 
-  /* ── Mobile hamburger ────────────────────────────────────────────────── */
-  toggleMobile(): void {
-    this.isMobileMenuOpen = !this.isMobileMenuOpen;
-    if (!this.isMobileMenuOpen) this.openDropdown = null;
+  /* ── Sidebar toggle ────────────────────────────────────────────────── */
+  toggleSidebar(): void {
+    this.isSidebarOpen = !this.isSidebarOpen;
+    if (!this.isSidebarOpen) this.openDropdown = null;
   }
 
   /* ── Profile dropdown ────────────────────────────────────────────────── */

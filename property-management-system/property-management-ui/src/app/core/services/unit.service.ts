@@ -17,7 +17,7 @@ export interface CreateUnitDto {
   areaSqft?: number;
   bedrooms?: number;
   bathrooms?: number;
-  maxOccupants: number;
+
   status: string;
 }
 
@@ -29,7 +29,7 @@ export interface UpdateUnitDto {
   areaSqft?: number;
   bedrooms?: number;
   bathrooms?: number;
-  maxOccupants: number;
+
   status?: string;
 }
 

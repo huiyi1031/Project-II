@@ -311,8 +311,6 @@ namespace PropertyManagement.API.Controllers
                 FloorLevel = parts[1],
                 Status = "Occupied",
                 UnitType = "Residential",
-                CurrentOccupants = 0,
-                MaxOccupants = 4,
                 CreatedAt = now
             };
             _context.PropertyUnits.Add(unit);

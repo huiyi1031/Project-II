@@ -24,8 +24,6 @@ namespace PropertyManagement.API.Models.Entities
         [MaxLength(255)]
         public string? ImagePath { get; set; }
         
-        public PriorityLevel PriorityLevel { get; set; } = PriorityLevel.Medium;
-        
         public DateTime RequestDate { get; set; } = DateTime.UtcNow;
         
         public RequestStatus Status { get; set; } = RequestStatus.Pending;

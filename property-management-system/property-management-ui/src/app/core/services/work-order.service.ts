@@ -29,6 +29,20 @@ export class WorkOrderService {
     return this.http.post<WorkOrder>(`${this.base}`, dto);
   }
 
+  createProactiveWorkOrder(dto: { assetId: number; description: string; scheduleDate: string }): Observable<any> {
+    return this.http.post<any>(`${this.base}/proactive`, dto);
+  }
+
+  getTechnicians(assetId?: number): Observable<any[]> {
+    let params = new HttpParams();
+    if (assetId) params = params.set('assetId', assetId.toString());
+    return this.http.get<any[]>(`${this.base}/technicians`, { params });
+  }
+
+  assignTechnician(workOrderId: number, technicianId: number): Observable<any> {
+    return this.http.post<any>(`${this.base}/${workOrderId}/assign`, { technicianId });
+  }
+
   updateWorkOrder(id: number, dto: Partial<WorkOrder>): Observable<void> {
     return this.http.put<void>(`${this.base}/${id}`, dto);
   }

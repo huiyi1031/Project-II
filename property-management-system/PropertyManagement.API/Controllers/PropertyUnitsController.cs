@@ -17,7 +17,6 @@ namespace PropertyManagement.API.Controllers
         decimal? AreaSqft,
         int? Bedrooms,
         int? Bathrooms,
-        int MaxOccupants,
         string Status
     );
 
@@ -29,7 +28,6 @@ namespace PropertyManagement.API.Controllers
         decimal? AreaSqft,
         int? Bedrooms,
         int? Bathrooms,
-        int MaxOccupants,
         string? Status
     );
 
@@ -43,6 +41,23 @@ namespace PropertyManagement.API.Controllers
         private readonly AppDbContext _ctx;
 
         public PropertyUnitsController(AppDbContext ctx) => _ctx = ctx;
+
+        private async Task<long?> GetManagerPropertyIdAsync()
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            var roleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role);
+
+            if (userIdClaim != null && roleClaim != null && roleClaim.Value == "PropertyManager")
+            {
+                var userId = long.Parse(userIdClaim.Value);
+                var pm = await _ctx.PropertyManagers.FirstOrDefaultAsync(m => m.UserAccountId == userId);
+                if (pm != null && pm.PropertyId.HasValue)
+                {
+                    return pm.PropertyId.Value;
+                }
+            }
+            return null;
+        }
 
         // ── GET /api/PropertyUnits ───────────────────────────────────────────────
         // Supports: search, block, floorLevel, unitType, minSqft, maxSqft, status, propertyId
@@ -60,6 +75,23 @@ namespace PropertyManagement.API.Controllers
             var q = _ctx.PropertyUnits
                 .Include(u => u.Property)
                 .Where(u => !u.IsDeleted);
+
+            var roleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role);
+            bool isPm = roleClaim != null && roleClaim.Value == "PropertyManager";
+            var managerPropertyId = await GetManagerPropertyIdAsync();
+            
+            if (isPm)
+            {
+                if (managerPropertyId.HasValue)
+                {
+                    q = q.Where(u => u.PropertyId == managerPropertyId.Value);
+                }
+                else
+                {
+                    // If PM is not assigned to any property, they should see 0 units, not all 120 units!
+                    return Ok(new List<object>());
+                }
+            }
 
             if (propertyId.HasValue)
                 q = q.Where(u => u.PropertyId == propertyId);
@@ -102,8 +134,6 @@ namespace PropertyManagement.API.Controllers
                     areaSqft     = u.AreaSqft,
                     bedrooms     = u.Bedrooms,
                     bathrooms    = u.Bathrooms,
-                    maxOccupants     = u.MaxOccupants,
-                    currentOccupants = u.CurrentOccupants,
                     status       = u.Status,
                     createdAt    = u.CreatedAt
                 })
@@ -116,11 +146,19 @@ namespace PropertyManagement.API.Controllers
         [HttpGet("{id:long}")]
         public async Task<IActionResult> GetById(long id)
         {
-            var u = await _ctx.PropertyUnits
+            var q = _ctx.PropertyUnits
                 .Include(u => u.Property)
                 .Include(u => u.Contracts.Where(c => !c.IsDeleted))
                     .ThenInclude(c => c.Occupant)
-                .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+                .Where(u => u.Id == id && !u.IsDeleted);
+
+            var managerPropertyId = await GetManagerPropertyIdAsync();
+            if (managerPropertyId.HasValue)
+            {
+                q = q.Where(u => u.PropertyId == managerPropertyId.Value);
+            }
+
+            var u = await q.FirstOrDefaultAsync();
 
             if (u == null) return NotFound(new { message = "Unit not found." });
 
@@ -148,8 +186,6 @@ namespace PropertyManagement.API.Controllers
                 areaSqft         = u.AreaSqft,
                 bedrooms         = u.Bedrooms,
                 bathrooms        = u.Bathrooms,
-                maxOccupants     = u.MaxOccupants,
-                currentOccupants = u.CurrentOccupants,
                 status           = u.Status,
                 createdAt        = u.CreatedAt,
                 activeContracts
@@ -160,14 +196,21 @@ namespace PropertyManagement.API.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreatePropertyUnitDto dto)
         {
+            long propertyIdToUse = dto.PropertyId;
+            var managerPropertyId = await GetManagerPropertyIdAsync();
+            if (managerPropertyId.HasValue)
+            {
+                propertyIdToUse = managerPropertyId.Value;
+            }
+
             // Check property exists
-            var propertyExists = await _ctx.Properties.AnyAsync(p => p.Id == dto.PropertyId && !p.IsDeleted);
+            var propertyExists = await _ctx.Properties.AnyAsync(p => p.Id == propertyIdToUse && !p.IsDeleted);
             if (!propertyExists)
                 return BadRequest(new { message = "Property not found." });
 
             // Check for duplicate unit number within the same property
             var duplicate = await _ctx.PropertyUnits.AnyAsync(u =>
-                u.PropertyId == dto.PropertyId &&
+                u.PropertyId == propertyIdToUse &&
                 u.UnitNumber == dto.UnitNumber &&
                 !u.IsDeleted);
 
@@ -176,7 +219,7 @@ namespace PropertyManagement.API.Controllers
 
             var unit = new PropertyUnit
             {
-                PropertyId   = dto.PropertyId,
+                PropertyId   = propertyIdToUse,
                 UnitNumber   = dto.UnitNumber,
                 FloorLevel   = dto.FloorLevel,
                 Block        = dto.Block,
@@ -184,9 +227,7 @@ namespace PropertyManagement.API.Controllers
                 AreaSqft     = dto.AreaSqft,
                 Bedrooms     = dto.Bedrooms,
                 Bathrooms    = dto.Bathrooms,
-                MaxOccupants = dto.MaxOccupants,
-                Status       = dto.Status ?? "Vacant",
-                CurrentOccupants = 0
+                Status       = dto.Status ?? "Vacant"
             };
 
             _ctx.PropertyUnits.Add(unit);
@@ -205,7 +246,13 @@ namespace PropertyManagement.API.Controllers
         [HttpPut("{id:long}")]
         public async Task<IActionResult> Update(long id, [FromBody] UpdatePropertyUnitDto dto)
         {
-            var unit = await _ctx.PropertyUnits.FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+            var q = _ctx.PropertyUnits.Where(u => u.Id == id && !u.IsDeleted);
+            var managerPropertyId = await GetManagerPropertyIdAsync();
+            if (managerPropertyId.HasValue)
+            {
+                q = q.Where(u => u.PropertyId == managerPropertyId.Value);
+            }
+            var unit = await q.FirstOrDefaultAsync();
             if (unit == null) return NotFound(new { message = "Unit not found." });
 
             // Check for duplicate unit number (exclude self)
@@ -228,7 +275,6 @@ namespace PropertyManagement.API.Controllers
             unit.AreaSqft     = dto.AreaSqft;
             unit.Bedrooms     = dto.Bedrooms;
             unit.Bathrooms    = dto.Bathrooms;
-            unit.MaxOccupants = dto.MaxOccupants;
             unit.Status       = dto.Status ?? unit.Status;
             unit.UpdatedAt    = DateTime.UtcNow;
 
@@ -241,9 +287,17 @@ namespace PropertyManagement.API.Controllers
         [HttpDelete("{id:long}")]
         public async Task<IActionResult> Delete(long id)
         {
-            var unit = await _ctx.PropertyUnits
-                .Include(u => u.Contracts.Where(c => c.Status == "Active" && !c.IsDeleted))
-                .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+            var q = _ctx.PropertyUnits
+                .Include(u => u.Contracts.Where(c => !c.IsDeleted))
+                .Where(u => u.Id == id && !u.IsDeleted);
+
+            var managerPropertyId = await GetManagerPropertyIdAsync();
+            if (managerPropertyId.HasValue)
+            {
+                q = q.Where(u => u.PropertyId == managerPropertyId.Value);
+            }
+            
+            var unit = await q.FirstOrDefaultAsync();
 
             if (unit == null) return NotFound(new { message = "Unit not found." });
 
