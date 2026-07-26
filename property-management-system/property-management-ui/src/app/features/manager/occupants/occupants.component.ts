@@ -1,4 +1,4 @@
-﻿import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { Occupant } from '../../../core/models';
 import { OccupantService } from '../../../core/services/occupant.service';
@@ -14,6 +14,7 @@ export class OccupantsComponent implements OnInit {
   search = '';
   filter = 'All';
   editMode = false;
+  formVisible = false;
   selectedOccupantId: number | null = null;
   form!: FormGroup;
   loading = false;
@@ -25,14 +26,13 @@ export class OccupantsComponent implements OnInit {
   successPopupMessage = '';
 
   currentPage = 1;
-  pageSize = 5;
+  pageSize = 10;
   totalItems = 0;
   totalPages = 1;
   pageSizeOptions = [5, 10, 20, 50];
   private searchTimer?: ReturnType<typeof setTimeout>;
 
   private readonly namePattern = /^[A-Za-z ]+$/;
-  private readonly identificationPattern = /^\d{6}-\d{2}-\d{4}$/;
   private readonly contactPattern = /^01\d-\d{7}$/;
   private readonly emailPattern = /^[^@\s]+@[^@\s]+\.com$/;
   private readonly unitNumberPattern = /^[A-C]-(0[1-9]|1[0-9]|20)-0[1-9]$/i;
@@ -42,7 +42,7 @@ export class OccupantsComponent implements OnInit {
   ngOnInit(): void {
     this.form = this.fb.group({
       fullName: ['', [Validators.required, Validators.maxLength(100), this.patternValidator(this.namePattern, 'nameFormat')]],
-      identificationNo: ['', [Validators.required, this.patternValidator(this.identificationPattern, 'identificationFormat')]],
+      identificationNo: ['', [Validators.required, this.malaysiaIdentificationValidator()]],
       contactNumber: ['', [Validators.required, this.patternValidator(this.contactPattern, 'contactFormat')]],
       email: ['', [this.optionalPatternValidator(this.emailPattern, 'emailFormat')]],
       unitNumber: ['', [Validators.required, this.patternValidator(this.unitNumberPattern, 'unitFormat')]],
@@ -113,6 +113,14 @@ export class OccupantsComponent implements OnInit {
     this.loadOccupants(1);
   }
 
+  openCreateForm(): void {
+    this.editMode = false;
+    this.selectedOccupantId = null;
+    this.formError = '';
+    this.form.reset({ occupantType: 'Tenant' });
+    this.formVisible = true;
+  }
+
   goToPage(page: number): void {
     if (page < 1 || page > this.totalPages || page === this.currentPage || this.loading) return;
     this.loadOccupants(page);
@@ -120,6 +128,7 @@ export class OccupantsComponent implements OnInit {
 
   editOccupant(occupant: Occupant): void {
     this.editMode = true;
+    this.formVisible = true;
     this.selectedOccupantId = occupant.occupantID;
     this.formError = '';
     this.form.reset({
@@ -175,6 +184,7 @@ export class OccupantsComponent implements OnInit {
 
   resetForm(): void {
     this.editMode = false;
+    this.formVisible = false;
     this.selectedOccupantId = null;
     this.formError = '';
     this.form.reset({ occupantType: 'Tenant' });
@@ -210,6 +220,33 @@ export class OccupantsComponent implements OnInit {
     this.successPopupMessage = '';
   }
 
+  private malaysiaIdentificationValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const value = String(control.value ?? '').trim();
+      if (!value) return null;
+
+      if (!/^\d{6}-\d{2}-\d{4}$/.test(value)) {
+        return { identificationFormat: true };
+      }
+
+      const yearPart = Number(value.substring(0, 2));
+      const month = Number(value.substring(2, 4));
+      const day = Number(value.substring(4, 6));
+      const fullYear = yearPart >= 40 ? 1900 + yearPart : 2000 + yearPart;
+
+      if (fullYear < 1940 || fullYear > 2008) {
+        return { identificationDateRange: true };
+      }
+
+      const date = new Date(fullYear, month - 1, day);
+      const isValidDate =
+        date.getFullYear() === fullYear &&
+        date.getMonth() === month - 1 &&
+        date.getDate() === day;
+
+      return isValidDate ? null : { identificationCalendarDate: true };
+    };
+  }
   private patternValidator(pattern: RegExp, errorKey: string): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
       if (!control.value) return null;
@@ -232,6 +269,9 @@ export class OccupantsComponent implements OnInit {
     return err.error?.message || fallback;
   }
 }
+
+
+
 
 
 

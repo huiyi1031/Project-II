@@ -16,19 +16,23 @@
         </p>
       </div>
 
-      <div class="occupants-filters">
-        <input
-          [(ngModel)]="search"
-          (ngModelChange)="onSearchChanged()"
-          placeholder="Name / ID / Unit"
-          class="pms-input occupants-search" />
+      <div class="occupants-actions">
+        <button type="button" class="btn-primary occupants-create-btn" (click)="openCreateForm()">Create Occupant</button>
 
-        <select [(ngModel)]="filter" (change)="onFilterChanged()" class="pms-select occupants-filter">
-          <option>All</option>
-          <option>Owner</option>
-          <option>Tenant</option>
-          <option>Resident</option>
-        </select>
+        <div class="occupants-filters">
+          <input
+            [(ngModel)]="search"
+            (ngModelChange)="onSearchChanged()"
+            placeholder="Name / ID / Unit"
+            class="pms-input occupants-search" />
+
+          <select [(ngModel)]="filter" (change)="onFilterChanged()" class="pms-select occupants-filter">
+            <option>All</option>
+            <option>Owner</option>
+            <option>Tenant</option>
+            <option>Resident</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -98,75 +102,77 @@
     </div>
   </div>
 
-  <div class="pms-card">
-    <h4 class="section-title">{{ editMode ? 'Update' : 'Create' }} Occupant Record</h4>
+  <div *ngIf="formVisible" class="fixed inset-0 z-40 flex items-center justify-center bg-black/30 px-4 py-6">
+    <div class="pms-card occupant-form-modal">
+      <h4 class="section-title">{{ editMode ? 'Update' : 'Create' }} Occupant Record</h4>
 
-    <form [formGroup]="form" (ngSubmit)="saveOccupant()" class="space-y-4">
-      <div class="form-grid">
-        <div class="space-y-1.5">
-          <label class="pms-label">Full Name *</label>
-          <input formControlName="fullName" class="pms-input" maxlength="100" placeholder="John Doe" />
-          <div *ngIf="f['fullName'].hasError('required') && f['fullName'].touched" class="text-red-500 text-xs">Name is required.</div>
-          <div *ngIf="f['fullName'].hasError('nameFormat') && f['fullName'].touched" class="text-red-500 text-xs">Only alphabets and spaces are allowed.</div>
+      <form [formGroup]="form" (ngSubmit)="saveOccupant()" class="space-y-4">
+        <div class="form-grid">
+          <div class="space-y-1.5">
+            <label class="pms-label">Full Name *</label>
+            <input formControlName="fullName" class="pms-input" maxlength="100" placeholder="John Doe" />
+            <div *ngIf="f['fullName'].hasError('required') && f['fullName'].touched" class="text-red-500 text-xs">Name is required.</div>
+            <div *ngIf="f['fullName'].hasError('nameFormat') && f['fullName'].touched" class="text-red-500 text-xs">Only alphabets and spaces are allowed.</div>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="pms-label">Identification No *</label>
+            <input formControlName="identificationNo" class="pms-input" maxlength="14" placeholder="yymmdd-xx-xxxx" />
+            <div *ngIf="f['identificationNo'].invalid && f['identificationNo'].touched" class="text-red-500 text-xs">Use Malaysia IC format yymmdd-xx-xxxx with a valid date from 1940 to 2008.</div>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="pms-label">Contact No *</label>
+            <input formControlName="contactNumber" class="pms-input" maxlength="11" placeholder="01x-xxxxxxx" />
+            <div *ngIf="f['contactNumber'].invalid && f['contactNumber'].touched" class="text-red-500 text-xs">Format must be 01x-xxxxxxx using numbers only.</div>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="pms-label">Email (optional)</label>
+            <input formControlName="email" class="pms-input" placeholder="name@example.com" />
+            <div *ngIf="f['email'].hasError('emailFormat') && f['email'].touched" class="text-red-500 text-xs">Email must be in &#64;xxx.com format.</div>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="pms-label">Property Unit *</label>
+            <input formControlName="unitNumber" class="pms-input uppercase" maxlength="7" placeholder="A-10-09" />
+            <div *ngIf="f['unitNumber'].hasError('unitFormat') && f['unitNumber'].touched" class="text-red-500 text-xs">Format must be A-C, 01-20, 01-09. Example: A-10-09.</div>
+            <div *ngIf="f['unitNumber'].hasError('required') && f['unitNumber'].touched" class="text-red-500 text-xs">Property Unit is required.</div>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="pms-label">Role Type *</label>
+            <select formControlName="occupantType" class="pms-select">
+              <option>Tenant</option>
+              <option>Owner</option>
+              <option>Resident</option>
+            </select>
+          </div>
         </div>
 
-        <div class="space-y-1.5">
-          <label class="pms-label">Identification No *</label>
-          <input formControlName="identificationNo" class="pms-input" maxlength="14" placeholder="xxxxxx-xx-xxxx" />
-          <div *ngIf="f['identificationNo'].invalid && f['identificationNo'].touched" class="text-red-500 text-xs">Format must be xxxxxx-xx-xxxx using numbers only.</div>
+        <div *ngIf="formError" class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm">
+          {{ formError }}
         </div>
 
-        <div class="space-y-1.5">
-          <label class="pms-label">Contact No *</label>
-          <input formControlName="contactNumber" class="pms-input" maxlength="11" placeholder="01x-xxxxxxx" />
-          <div *ngIf="f['contactNumber'].invalid && f['contactNumber'].touched" class="text-red-500 text-xs">Format must be 01x-xxxxxxx using numbers only.</div>
-        </div>
-
-        <div class="space-y-1.5">
-          <label class="pms-label">Email (optional)</label>
-          <input formControlName="email" class="pms-input" placeholder="name@example.com" />
-          <div *ngIf="f['email'].hasError('emailFormat') && f['email'].touched" class="text-red-500 text-xs">Email must be in &#64;xxx.com format.</div>
-        </div>
-
-        <div class="space-y-1.5">
-          <label class="pms-label">Property Unit *</label>
-          <input formControlName="unitNumber" class="pms-input uppercase" maxlength="7" placeholder="A-10-09" />
-          <div *ngIf="f['unitNumber'].hasError('unitFormat') && f['unitNumber'].touched" class="text-red-500 text-xs">Format must be A-C, 01-20, 01-09. Example: A-10-09.</div>
-          <div *ngIf="f['unitNumber'].hasError('required') && f['unitNumber'].touched" class="text-red-500 text-xs">Property Unit is required.</div>
-        </div>
-
-        <div class="space-y-1.5">
-          <label class="pms-label">Role Type *</label>
-          <select formControlName="occupantType" class="pms-select">
-            <option>Tenant</option>
-            <option>Owner</option>
-            <option>Resident</option>
-          </select>
-        </div>
-      </div>
-
-      <div *ngIf="formError" class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm">
-        {{ formError }}
-      </div>
-
-      <div class="form-actions occupant-form-actions">
-        <button
-          *ngIf="editMode"
-          class="btn-danger"
-          type="button"
-          [disabled]="deleting || saving"
-          (click)="deleteSelectedOccupant()">
-          {{ deleting ? 'Deleting...' : 'Delete Record' }}
-        </button>
-
-        <div class="occupant-save-actions">
-          <button class="btn-outline" type="button" (click)="resetForm()">Cancel</button>
-          <button class="btn-primary" type="submit" [disabled]="form.invalid || saving || deleting">
-            {{ saving ? 'Saving...' : 'Save Record' }}
+        <div class="form-actions occupant-form-actions">
+          <button
+            *ngIf="editMode"
+            class="btn-danger"
+            type="button"
+            [disabled]="deleting || saving"
+            (click)="deleteSelectedOccupant()">
+            {{ deleting ? 'Deleting...' : 'Delete Record' }}
           </button>
+
+          <div class="occupant-save-actions">
+            <button class="btn-outline" type="button" (click)="resetForm()">Cancel</button>
+            <button class="btn-primary" type="submit" [disabled]="form.invalid || saving || deleting">
+              {{ saving ? 'Saving...' : 'Save Record' }}
+            </button>
+          </div>
         </div>
-      </div>
-    </form>
+      </form>
+    </div>
   </div>
 </div>
 
