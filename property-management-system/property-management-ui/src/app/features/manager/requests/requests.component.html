@@ -1,53 +1,256 @@
-<!-- Maintenance Request Management (Manager) -->
-<div class="fade-in pms-card">
-  <div class="flex flex-wrap gap-3 items-end mb-3">
-    <h4 class="section-title mb-0 flex-1">Maintenance Request Management</h4>
-    <select [(ngModel)]="statusFilter" class="pms-select w-36">
-      <option>All</option><option>Pending</option><option>Assigned</option>
-      <option>InProgress</option><option>Completed</option>
-    </select>
+<div class="fade-in space-y-4">
+  <div *ngIf="showSuccessPopup" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
+    <div class="pms-card max-w-sm w-full text-center">
+      <h4 class="section-title mb-2">Request Saved</h4>
+      <p class="text-sm text-muted mb-4">{{ successPopupMessage }}</p>
+      <button type="button" class="btn-primary" (click)="closeSuccessPopup()">OK</button>
+    </div>
   </div>
-  <table class="pms-table">
-    <thead>
-      <tr><th>Request ID</th><th>Issue Type</th><th>Location</th><th>Requestor</th><th>Priority</th><th>Status</th><th>Action</th></tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let r of requests">
-        <td class="font-mono text-xs text-blue">REQ-{{ r.requestID | number:'4.0-0' }}</td>
-        <td>{{ r.issueCategory }}</td>
-        <td class="text-muted">{{ r.unitNumber }}</td>
-        <td class="text-muted">{{ r.occupantName }}</td>
-        <td><app-status-badge [status]="r.priorityLevel"></app-status-badge></td>
-        <td><app-status-badge [status]="r.status"></app-status-badge></td>
-        <td class="space-x-1">
-          <button class="btn-success text-xs px-2 py-1" *ngIf="r.status === 'Pending'"
-                  (click)="approve(r.requestID)">Approve</button>
-          <button class="btn-danger text-xs px-2 py-1" *ngIf="r.status === 'Pending'"
-                  (click)="reject(r.requestID)">Reject</button>
-          <button class="btn-outline text-xs px-2 py-1">View</button>
-        </td>
-      </tr>
-      <ng-container *ngIf="requests.length === 0">
-        <tr>
-          <td class="font-mono text-xs text-blue">REQ-2026-0012</td>
-          <td>HVAC</td><td class="text-muted">A-12-05</td><td class="text-muted">Nur Ain</td>
-          <td><app-status-badge status="High"></app-status-badge></td>
-          <td><app-status-badge status="Pending"></app-status-badge></td>
-          <td class="space-x-1">
-            <button class="btn-success text-xs px-2 py-1">Approve</button>
-            <button class="btn-danger text-xs px-2 py-1">Reject</button>
-            <button class="btn-outline text-xs px-2 py-1">View</button>
-          </td>
-        </tr>
-        <tr>
-          <td class="font-mono text-xs text-blue">REQ-2026-0011</td>
-          <td>Plumbing</td><td class="text-muted">B-08-12</td><td class="text-muted">Ravi Kumar</td>
-          <td><app-status-badge status="Medium"></app-status-badge></td>
-          <td><app-status-badge status="Assigned"></app-status-badge></td>
-          <td><button class="btn-outline text-xs px-2 py-1">View</button></td>
-        </tr>
-      </ng-container>
-    </tbody>
-  </table>
-  <div class="text-xs text-muted mt-3">On approval/rejection, relevant users will be notified automatically.</div>
-</div>
+  <div class="pms-card">
+    <div class="flex flex-wrap gap-3 items-end mb-4">
+      <div class="flex-1">
+        <h4 class="section-title mb-1">Maintenance Request Management</h4>
+        <p class="pagination-summary" *ngIf="!loading">
+          Showing {{ startItem }}-{{ endItem }} of {{ totalItems }} records
+        </p>
+      </div>
+      <button class="btn-primary" type="button" (click)="openCreate()">New Request</button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-6 gap-3 mb-4">
+      <div class="space-y-1 md:col-span-2">
+        <label class="pms-label">Search</label>
+        <input class="pms-input" [(ngModel)]="filters.search" (keyup.enter)="applyFilters()"
+          placeholder="Request no, title, requester" />
+      </div>
+      <div class="space-y-1">
+        <label class="pms-label">Status</label>
+        <select class="pms-select" [(ngModel)]="filters.status" (change)="applyFilters()">
+          <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+        </select>
+      </div>
+      <div class="space-y-1">
+        <label class="pms-label">Priority</label>
+        <select class="pms-select" [(ngModel)]="filters.priority" (change)="applyFilters()">
+          <option *ngFor="let priority of priorities" [value]="priority">{{ priority }}</option>
+        </select>
+      </div>
+      <div class="space-y-1">
+        <label class="pms-label">Date</label>
+        <input type="date" class="pms-input" [(ngModel)]="filters.createdFrom" (change)="applyDateFilter()" />
+      </div>
+      <div class="flex flex-wrap items-end gap-2">
+        <button class="btn-outline text-xs px-5 py-1.5" type="button" (click)="applyFilters()">Apply</button>
+        <button class="btn-outline text-xs px-5 py-1.5" type="button" (click)="clearFilters()">Clear</button>
+      </div>
+    </div>
+
+      <div *ngIf="errorMsg" class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm mb-3">
+        {{ errorMsg }}
+      </div>
+
+      <div *ngIf="loading" class="text-sm text-muted py-6 text-center">Loading maintenance requests...</div>
+
+      <table *ngIf="!loading" class="pms-table">
+        <thead>
+          <tr>
+            <th>Request ID</th>
+            <th>Issue Type</th>
+            <th>Unit</th>
+            <th>Requester</th>
+            <th>Priority</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of requests; trackBy: trackByRequest">
+            <td class="font-mono text-xs text-blue">{{ r.requestNumber }}</td>
+            <td>
+              <div class="font-medium">{{ r.issueCategory }}</div>
+              <div class="text-xs text-muted">{{ r.requestTitle }}</div>
+            </td>
+            <td class="text-muted">{{ r.unitNumber }}</td>
+            <td class="text-muted">{{ r.occupantName }}</td>
+            <td><app-status-badge [status]="r.priorityLevel"></app-status-badge></td>
+            <td><app-status-badge [status]="r.status"></app-status-badge></td>
+            <td class="text-muted text-xs">{{ r.submissionDate | date:'dd MMM yyyy' }}</td>
+            <td>
+              <div class="flex flex-wrap gap-1">
+                <button class="btn-outline text-xs px-2 py-1" type="button" (click)="viewRequest(r)">View</button>
+                <button *ngIf="canEdit(r)" class="btn-outline text-xs px-2 py-1" type="button"
+                  (click)="editRequest(r)">Edit</button>
+                <button *ngIf="canApprove(r)" class="btn-success text-xs px-2 py-1" type="button"
+                  (click)="approve(r)">Approve</button>
+                <button *ngIf="canReject(r)" class="btn-danger text-xs px-2 py-1" type="button"
+                  (click)="beginAction('reject', r)">Reject</button>
+                <button *ngIf="canCancel(r)" class="btn-outline text-xs px-2 py-1" type="button"
+                  (click)="beginAction('cancel', r)">Cancel</button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="requests.length === 0">
+            <td colspan="8" class="text-center text-muted py-6">No maintenance requests found.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div *ngIf="!loading" class="pagination-bar">
+        <div class="page-size-control">
+          <label for="requestPageSize">Rows per page</label>
+          <select id="requestPageSize" [(ngModel)]="pageSize" (change)="onPageSizeChanged()" class="pms-select page-size-select">
+            <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }}</option>
+          </select>
+        </div>
+
+        <div class="pagination-controls" *ngIf="totalItems > 0">
+          <button type="button" class="page-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">Prev</button>
+          <button
+            *ngFor="let page of pageNumbers"
+            type="button"
+            class="page-btn page-number"
+            [class.active]="page === currentPage"
+            (click)="goToPage(page)">
+            {{ page }}
+          </button>
+          <button type="button" class="page-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">Next</button>
+        </div>
+      </div>
+    </div>
+
+    <div #requestFormSection *ngIf="showForm" class="pms-card scroll-mt-24">
+      <div class="flex items-center gap-3 mb-3">
+        <h4 class="section-title mb-0 flex-1">{{ editingId ? 'Edit Request' : 'Create Request' }}</h4>
+        <button class="btn-outline text-xs px-3 py-1.5" type="button" (click)="closeForm()">Close</button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submitForm()" class="space-y-4">
+        <div class="form-grid">
+          <div class="space-y-1.5">
+            <label class="pms-label">Requester Full Name *</label>
+            <input class="pms-input" formControlName="requesterName" maxlength="100" placeholder="John Doe" />
+            <div *ngIf="f['requesterName'].hasError('required') && f['requesterName'].touched"
+              class="text-red-500 text-xs">Requester full name is required.</div>
+            <div *ngIf="f['requesterName'].hasError('requesterNameFormat') && f['requesterName'].touched"
+              class="text-red-500 text-xs">Only letters and spaces are allowed.</div>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="pms-label">Unit *</label>
+            <input class="pms-input uppercase" formControlName="unitNumber" maxlength="7" placeholder="A-10-09" />
+            <div *ngIf="f['unitNumber'].hasError('unitFormat') && f['unitNumber'].touched" class="text-red-500 text-xs">
+              Format must be A-C, 01-20, 01-09. Example: A-10-09.
+            </div>
+            <div *ngIf="f['unitNumber'].hasError('required') && f['unitNumber'].touched" class="text-red-500 text-xs">
+              Unit is required.</div>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="pms-label">Issue Type *</label>
+            <select class="pms-select" formControlName="issueCategory">
+              <option value="">Select issue type</option>
+              <option *ngFor="let type of issueTypes" [value]="type">{{ type }}</option>
+            </select>
+          </div>
+
+          <div *ngIf="form.value.issueCategory === 'Other'" class="space-y-1.5">
+            <label class="pms-label">Custom Issue Type *</label>
+            <input class="pms-input" formControlName="customIssueCategory" maxlength="100"
+              placeholder="Enter issue type" />
+            <div *ngIf="f['customIssueCategory'].invalid && f['customIssueCategory'].touched"
+              class="text-red-500 text-xs">Custom issue type is required, max 100 characters.</div>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="pms-label">Priority *</label>
+            <select class="pms-select" formControlName="priorityLevel">
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+
+          <div class="space-y-1.5 md:col-span-2">
+            <label class="pms-label">Description (optional)</label>
+            <textarea class="pms-textarea" formControlName="description" maxlength="2000"></textarea>
+            <div *ngIf="f['description'].hasError('maxlength') && f['description'].touched"
+              class="text-red-500 text-xs">Description must not exceed 2000 characters.</div>
+          </div>
+        </div>
+
+        <div *ngIf="formError" class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm">{{
+          formError }}</div>
+
+        <div class="form-actions">
+          <button class="btn-outline" type="button" (click)="closeForm()">Cancel</button>
+          <button class="btn-primary" type="submit" [disabled]="form.invalid || saving">{{ saving ? 'Saving...' : 'Save
+            Request' }}</button>
+        </div>
+      </form>
+    </div>
+
+    <div #requestActionSection *ngIf="actionMode && actionTarget" class="pms-card scroll-mt-24">
+      <h4 class="section-title">{{ actionMode === 'reject' ? 'Reject Request' : 'Cancel Request' }}</h4>
+      <div class="text-sm text-muted mb-3">{{ actionTarget.requestNumber }} - {{ actionTarget.requestTitle }}</div>
+      <textarea class="pms-textarea" [(ngModel)]="actionReason" maxlength="500" placeholder="Enter reason"></textarea>
+      <div *ngIf="actionError" class="text-red-500 text-xs mt-1">{{ actionError }}</div>
+      <div class="form-actions mt-3">
+        <button class="btn-outline" type="button" (click)="actionMode = null; actionTarget = null">Close</button>
+        <button class="btn-danger" type="button" (click)="submitAction()">Submit</button>
+      </div>
+    </div>
+
+    <div #requestDetailSection *ngIf="selected" class="pms-card scroll-mt-24">
+      <div class="flex flex-wrap items-start gap-3 mb-3">
+        <div class="flex-1">
+          <h4 class="section-title mb-1">{{ selected.requestTitle }}</h4>
+          <div class="font-mono text-xs text-blue">{{ selected.requestNumber }}</div>
+        </div>
+        <app-status-badge [status]="selected.status"></app-status-badge>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm mb-4">
+        <div>
+          <div class="pms-label">Requester</div>
+          <div>{{ selected.occupantName }}</div>
+        </div>
+        <div>
+          <div class="pms-label">Unit</div>
+          <div>{{ selected.unitNumber }}</div>
+        </div>
+        <div>
+          <div class="pms-label">Priority</div><app-status-badge [status]="selected.priorityLevel"></app-status-badge>
+        </div>
+        <div>
+          <div class="pms-label">Issue Type</div>
+          <div>{{ selected.issueCategory }}</div>
+        </div>
+        <div>
+          <div class="pms-label">Created Date</div>
+          <div>{{ selected.submissionDate | date:'dd MMM yyyy' }}</div>
+        </div>
+        <div>
+          <div class="pms-label">Status</div>
+          <div>{{ selected.status }}</div>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="pms-label">Description</div>
+        <p class="text-sm text-muted whitespace-pre-line">{{ selected.description }}</p>
+      </div>
+
+      <div>
+        <div class="pms-label mb-2">Status History</div>
+        <div *ngIf="selected.history.length === 0" class="text-sm text-muted">No history recorded.</div>
+        <div *ngFor="let item of selected.history" class="border-t border-[#e5edf8] py-2 text-sm">
+          <div class="font-medium">{{ item.action }} <span class="text-muted font-normal">to</span> {{ item.newStatus }}
+          </div>
+          <div class="text-xs text-muted">{{ item.performedAt | date:'dd MMM yyyy, HH:mm' }} by {{ item.performedBy }}
+          </div>
+          <div *ngIf="item.remarks" class="text-xs text-muted mt-1">{{ item.remarks }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
