@@ -278,17 +278,27 @@ export interface CreateStaffDto {
   email:              string;
   contactNumber:      string;
   roleType:           string;
+  gender?:            string;
+  dateOfBirth?:       string;
+  age?:               number;
+  propertyId?:        number;
   serviceTypeID?:     number;
   priorityRank?:      number;
   experienceLevel?:   string;
   availabilityStatus?: string;
+  position?:          string;
 }
 
 export interface UpdateStaffDto {
+  gender?:            string;
+  dateOfBirth?:       string;
+  age?:               number;
+  propertyId?:        number;
   serviceTypeID?:     number;
   priorityRank?:      number;
   availabilityStatus?: string;
   experienceLevel?:   string;
+  position?:          string;
 }
 
 // ─── Auth / Login DTOs ────────────────────────────────────────────────────────
@@ -395,9 +405,14 @@ export interface StaffRecord {
   accountID:        number;
   fullName:         string;
   email:            string;
+  contactNumber?:   string;
   roleType:         string;   // 'Technician' | 'PropertyManager'
   accountStatus:    string;
   lastLogin?:       string;
+  gender?:          string;
+  dateOfBirth?:     string;
+  age?:             number;
+  propertyId?:      number;
   // Technician-specific
   technicianID?:    number;
   serviceTypeName?: string;

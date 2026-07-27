@@ -10,6 +10,32 @@
     <span>⚠️</span><span>{{ errorMsg }}</span>
   </div>
 
+  <!-- Owner Info Card — shown only to Residents (family members) -->
+  <div *ngIf="isResident && ownerInfo" class="pms-card">
+    <h4 class="section-title mb-3">Property Owner</h4>
+    <div class="flex flex-wrap items-center gap-5">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-full bg-gradient-to-br from-[#c8a97e] to-[#4A2E18] flex items-center justify-center text-white font-bold text-lg shrink-0">
+          {{ ownerInfo.fullName?.charAt(0)?.toUpperCase() || 'O' }}
+        </div>
+        <div>
+          <div class="font-semibold text-[#4A2E18]">{{ ownerInfo.fullName }}</div>
+          <div class="text-xs text-[#6b7a90]">Property Owner</div>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-4 text-sm">
+        <div class="flex items-center gap-1.5 text-[#4A2E18]">
+          <span class="text-[#6b7a90]">✉</span>
+          <span>{{ ownerInfo.email || '—' }}</span>
+        </div>
+        <div class="flex items-center gap-1.5 text-[#4A2E18]">
+          <span class="text-[#6b7a90]">📞</span>
+          <span>{{ ownerInfo.contactNumber || '—' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══ VIEW: List ════════════════════════════════════════════════════════ -->
   <ng-container *ngIf="view === 'list'">
     <div class="pms-card">

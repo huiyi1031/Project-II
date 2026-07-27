@@ -1,7 +1,7 @@
 <div class="fade-in space-y-4">
   <!-- Loading -->
   <div *ngIf="isLoading" class="pms-card flex items-center gap-3 text-[#6b7a90]">
-    <div class="animate-spin w-5 h-5 border-2 border-[#1f5fae] border-t-transparent rounded-full"></div>
+    <div class="animate-spin w-5 h-5 border-2 border-[#c8a97e] border-t-transparent rounded-full"></div>
     Loading profile...
   </div>
 
@@ -9,7 +9,7 @@
     <!-- Profile header card -->
     <div class="pms-card flex flex-col sm:flex-row items-center gap-6">
       <div class="relative group">
-        <div class="w-20 h-20 rounded-full bg-gradient-to-br from-[#1f5fae] to-[#2f7de0] text-white text-3xl flex items-center justify-center font-bold shadow-md overflow-hidden border-2 border-white">
+        <div class="w-20 h-20 rounded-full bg-gradient-to-br from-[#c8a97e] to-[#4A2E18] text-white text-3xl flex items-center justify-center font-bold shadow-md overflow-hidden border-2 border-white">
           <img *ngIf="profile?.profilePictureUrl" [src]="profile?.profilePictureUrl" class="w-full h-full object-cover"/>
           <span *ngIf="!profile?.profilePictureUrl">{{ profile?.fullName?.[0]?.toUpperCase() || '?' }}</span>
         </div>
@@ -19,23 +19,25 @@
         </label>
       </div>
       <div class="text-center sm:text-left">
-        <h3 class="text-xl font-bold text-[#0b2d5c]">{{ profile?.fullName }}</h3>
+        <h3 class="text-xl font-bold text-[#2C1409]">{{ profile?.fullName }}</h3>
         <p class="text-sm text-[#6b7a90]">{{ profile?.email }}</p>
-        <span class="inline-block mt-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#eaf3ff] text-[#1f5fae]">{{ profile?.occupantType || profile?.role || 'Occupant' }}</span>
+        <span class="inline-block mt-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#FFF5E6] text-[#8C6A54]">
+          {{ profile?.occupantType || profile?.role || 'Occupant' }}
+        </span>
       </div>
     </div>
 
     <!-- Tabs -->
-    <div class="flex border-b border-[#dbe7fb]">
+    <div class="flex border-b border-[#e0c99e]">
       <button (click)="activeTab='info'" class="px-5 py-3 text-sm font-semibold border-b-2 transition-colors"
-              [class.border-[#1f5fae]]="activeTab==='info'" [class.text-[#1f5fae]]="activeTab==='info'"
+              [class.border-[#8C6A54]]="activeTab==='info'" [class.text-[#4A2E18]]="activeTab==='info'"
               [class.border-transparent]="activeTab!=='info'" [class.text-[#6b7a90]]="activeTab!=='info'">
-        👤 Personal Information
+        Personal Information
       </button>
       <button (click)="activeTab='password'" class="px-5 py-3 text-sm font-semibold border-b-2 transition-colors"
-              [class.border-[#1f5fae]]="activeTab==='password'" [class.text-[#1f5fae]]="activeTab==='password'"
+              [class.border-[#8C6A54]]="activeTab==='password'" [class.text-[#4A2E18]]="activeTab==='password'"
               [class.border-transparent]="activeTab!=='password'" [class.text-[#6b7a90]]="activeTab!=='password'">
-        🔒 Change Password
+        Change Password
       </button>
     </div>
 
@@ -52,23 +54,31 @@
       <h4 class="section-title">Edit Personal Information</h4>
       <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="space-y-4">
         <div class="form-grid">
+          <!-- Full Name -->
           <div class="space-y-1.5">
             <label class="pms-label">Full Name</label>
-            <input formControlName="fullName" class="pms-input"
+            <input formControlName="fullName" class="pms-input" placeholder="e.g. Ahmad Razak"
                    [class.border-red-400]="profileForm.get('fullName')?.invalid && profileForm.get('fullName')?.touched"/>
-            <p *ngIf="profileForm.get('fullName')?.invalid && profileForm.get('fullName')?.touched" class="text-xs text-red-500">Full name is required.</p>
+            <p *ngIf="profileForm.get('fullName')?.errors?.['required'] && profileForm.get('fullName')?.touched" class="text-xs text-red-500">Full name is required.</p>
+            <p *ngIf="profileForm.get('fullName')?.errors?.['pattern'] && profileForm.get('fullName')?.touched" class="text-xs text-red-500">Name must contain letters only (no numbers).</p>
+            <p *ngIf="profileForm.get('fullName')?.errors?.['minlength'] && profileForm.get('fullName')?.touched" class="text-xs text-red-500">Name must be at least 2 characters.</p>
           </div>
+          <!-- Contact Number -->
           <div class="space-y-1.5">
             <label class="pms-label">Contact Number</label>
             <input formControlName="contactNumber" placeholder="e.g. 012-3456789" class="pms-input"
                    [class.border-red-400]="profileForm.get('contactNumber')?.invalid && profileForm.get('contactNumber')?.touched"/>
-            <p *ngIf="profileForm.get('contactNumber')?.invalid && profileForm.get('contactNumber')?.touched" class="text-xs text-red-500">Enter a valid phone number (8–15 digits).</p>
+            <p *ngIf="profileForm.get('contactNumber')?.invalid && profileForm.get('contactNumber')?.touched" class="text-xs text-red-500">Enter a valid Malaysian number (e.g. 012-3456789 or +60123456789).</p>
           </div>
+          <!-- Email — now editable -->
           <div class="space-y-1.5">
             <label class="pms-label">Email Address</label>
-            <input [value]="profile?.email" disabled class="pms-input bg-[#f5f8ff] text-[#6b7a90] cursor-not-allowed"/>
-            <p class="text-xs text-[#6b7a90]">Email cannot be changed here. Contact your manager.</p>
+            <input formControlName="email" type="email" class="pms-input" placeholder="e.g. name@example.com"
+                   [class.border-red-400]="profileForm.get('email')?.invalid && profileForm.get('email')?.touched"/>
+            <p *ngIf="profileForm.get('email')?.errors?.['required'] && profileForm.get('email')?.touched" class="text-xs text-red-500">Email address is required.</p>
+            <p *ngIf="profileForm.get('email')?.errors?.['email'] && profileForm.get('email')?.touched" class="text-xs text-red-500">Enter a valid email format (e.g. name&#64;example.com).</p>
           </div>
+          <!-- Gender -->
           <div class="space-y-1.5">
             <label class="pms-label">Gender</label>
             <select formControlName="gender" class="pms-select">
@@ -81,7 +91,7 @@
         <div class="form-actions">
           <button type="button" (click)="ngOnInit()" class="btn-outline">↺ Reset</button>
           <button type="submit" [disabled]="isSaving" class="btn-primary">
-            {{ isSaving ? 'Saving...' : '💾 Save Changes' }}
+            {{ isSaving ? 'Saving...' : 'Save Changes' }}
           </button>
         </div>
       </form>
@@ -97,7 +107,18 @@
           <label class="pms-label">Current Password</label>
           <div class="relative">
             <input [type]="showCurrent ? 'text' : 'password'" formControlName="currentPassword" placeholder="Enter current password" class="pms-input pr-10"/>
-            <button type="button" (click)="showCurrent=!showCurrent" class="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7a90] hover:text-[#1f5fae]">{{ showCurrent ? '🙈' : '👁️' }}</button>
+            <button type="button" (click)="showCurrent=!showCurrent"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-[#8C6A54] hover:text-[#4A2E18] transition-colors">
+              <!-- Eye open SVG -->
+              <svg *ngIf="!showCurrent" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+              <!-- Eye slash SVG -->
+              <svg *ngIf="showCurrent" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.293-3.95M6.228 6.228A9.94 9.94 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.965 9.965 0 01-4.035 5.099M15 12a3 3 0 00-3-3m0 0a3 3 0 00-3 3m3-3l-9-9m9 9l9-9"/>
+              </svg>
+            </button>
           </div>
         </div>
         <!-- New Password -->
@@ -106,7 +127,16 @@
           <div class="relative">
             <input [type]="showNew ? 'text' : 'password'" formControlName="newPassword" placeholder="Min 8 chars, uppercase, number, special" class="pms-input pr-10"
                    [class.border-red-400]="passwordForm.get('newPassword')?.invalid && passwordForm.get('newPassword')?.touched"/>
-            <button type="button" (click)="showNew=!showNew" class="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7a90] hover:text-[#1f5fae]">{{ showNew ? '🙈' : '👁️' }}</button>
+            <button type="button" (click)="showNew=!showNew"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-[#8C6A54] hover:text-[#4A2E18] transition-colors">
+              <svg *ngIf="!showNew" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+              <svg *ngIf="showNew" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.293-3.95M6.228 6.228A9.94 9.94 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.965 9.965 0 01-4.035 5.099M15 12a3 3 0 00-3-3m0 0a3 3 0 00-3 3m3-3l-9-9m9 9l9-9"/>
+              </svg>
+            </button>
           </div>
           <!-- Strength bar -->
           <div *ngIf="passwordForm.get('newPassword')?.value" class="space-y-1">
@@ -131,14 +161,23 @@
           <div class="relative">
             <input [type]="showConfirm ? 'text' : 'password'" formControlName="confirmPassword" placeholder="Re-enter new password" class="pms-input pr-10"
                    [class.border-red-400]="passwordForm.hasError('mismatch') && passwordForm.get('confirmPassword')?.touched"/>
-            <button type="button" (click)="showConfirm=!showConfirm" class="absolute right-3 top-1/2 -translate-y-1/2 text-[#6b7a90] hover:text-[#1f5fae]">{{ showConfirm ? '🙈' : '👁️' }}</button>
+            <button type="button" (click)="showConfirm=!showConfirm"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-[#8C6A54] hover:text-[#4A2E18] transition-colors">
+              <svg *ngIf="!showConfirm" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+              <svg *ngIf="showConfirm" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.293-3.95M6.228 6.228A9.94 9.94 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.965 9.965 0 01-4.035 5.099M15 12a3 3 0 00-3-3m0 0a3 3 0 00-3 3m3-3l-9-9m9 9l9-9"/>
+              </svg>
+            </button>
           </div>
           <p *ngIf="passwordForm.hasError('mismatch') && passwordForm.get('confirmPassword')?.touched" class="text-xs text-red-500">Passwords do not match.</p>
         </div>
         <div class="form-actions">
           <button type="button" (click)="passwordForm.reset()" class="btn-outline">↺ Clear</button>
           <button type="submit" [disabled]="isSaving || passwordForm.invalid" class="btn-primary">
-            {{ isSaving ? 'Updating...' : '🔒 Update Password' }}
+            {{ isSaving ? 'Updating...' : 'Update Password' }}
           </button>
         </div>
       </form>

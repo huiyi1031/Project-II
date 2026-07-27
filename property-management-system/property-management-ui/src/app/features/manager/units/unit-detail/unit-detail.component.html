@@ -31,7 +31,7 @@
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
           Edit Unit
         </button>
-        <button class="btn border border-red-200 text-red-600 hover:bg-red-50 shadow-sm px-4 py-2 rounded-lg font-semibold flex items-center gap-2" *ngIf="unitDetail.status === 'Vacant'" (click)="confirmDelete()">
+        <button class="btn border border-red-200 text-red-600 hover:bg-red-50 shadow-sm px-4 py-2 rounded-lg font-semibold flex items-center gap-2" (click)="confirmDelete()">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
           Delete
         </button>
@@ -210,6 +210,26 @@
       
     </div>
   </ng-container>
+</div>
+
+<!-- ── Cannot Delete Warning Modal ─────────────────────────────────────────────── -->
+<div class="modal-overlay" *ngIf="showCannotDeleteModal" (click)="closeCannotDeleteModal()">
+  <div class="modal-box modal-sm" (click)="$event.stopPropagation()">
+    <div class="modal-header" style="background: #fef2f2; border-bottom: 1px solid #fee2e2; color: #991b1b;">
+      <div class="flex items-center gap-2">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <h2 style="color: #991b1b; font-size: 1.15rem; font-weight: 700; margin: 0;">Cannot Delete Unit</h2>
+      </div>
+      <button class="modal-close" (click)="closeCannotDeleteModal()">✕</button>
+    </div>
+    <div class="modal-body py-5 px-6">
+      <p class="text-base text-slate-700 mb-2">Unit <strong>{{ unitDetail?.unitNumber }}</strong> cannot be deleted because its current status is <span class="font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">{{ unitDetail?.status }}</span>.</p>
+      <p class="text-sm text-slate-500">Only units marked as <strong>Vacant</strong> can be deleted from the system. Please remove or reassign current occupants before deleting.</p>
+    </div>
+    <div class="modal-footer justify-end bg-slate-50 px-6 py-3 border-t border-slate-100">
+      <button class="btn btn-primary px-6" (click)="closeCannotDeleteModal()">Understood</button>
+    </div>
+  </div>
 </div>
 
 <!-- ── Delete Confirmation Modal ─────────────────────────────────────────────── -->

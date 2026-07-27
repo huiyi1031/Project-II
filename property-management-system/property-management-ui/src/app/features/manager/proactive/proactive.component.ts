@@ -71,20 +71,24 @@ export class ProactiveComponent implements OnInit {
   processData(): void {
     const now = new Date();
     now.setHours(0,0,0,0);
-    
-    // An asset is unscheduled if it has no pending work order
-    const pendingAssetIds = this.pendingWorkOrders.map(w => w.assetId).filter(id => id != null);
 
     this.unscheduledOverdue = this.allAssets.filter(a => {
       if (!a.nextMaintenanceDueDate) return false;
       const due = new Date(a.nextMaintenanceDueDate);
       due.setHours(0,0,0,0);
-      const isOverdue = due < now;
-      const hasPendingWO = pendingAssetIds.includes(a.assetId);
-      return isOverdue && !hasPendingWO;
+      return due < now;
     });
 
     this.unscheduledOverdue.sort((a, b) => new Date(a.nextMaintenanceDueDate!).getTime() - new Date(b.nextMaintenanceDueDate!).getTime());
+  }
+
+  scrollToOverdue(): void {
+    const el = document.getElementById('overdue-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el.classList.add('ring-4', 'ring-red-400', 'transition-all', 'duration-500');
+      setTimeout(() => el.classList.remove('ring-4', 'ring-red-400'), 2500);
+    }
   }
 
   // --- Calendar Logic ---

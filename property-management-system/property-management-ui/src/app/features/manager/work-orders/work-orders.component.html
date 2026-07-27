@@ -24,11 +24,11 @@
         </thead>
         <tbody>
           <tr *ngFor="let wo of workOrders" class="hover:bg-slate-50">
-            <td class="font-mono text-xs font-bold text-indigo-600">WO-{{ wo.id }}</td>
+            <td class="font-mono font-bold text-indigo-600">WO-{{ wo.id }}</td>
             <td class="font-semibold text-slate-700">{{ wo.workType }}</td>
             <td>
-              <span *ngIf="wo.assetName" class="text-sm font-medium"><i class="fas fa-box text-slate-400 mr-1"></i> {{ wo.assetName }}</span>
-              <span *ngIf="wo.unitNumber" class="text-sm font-medium"><i class="fas fa-door-closed text-slate-400 mr-1"></i> {{ wo.unitNumber }}</span>
+              <span *ngIf="wo.assetName" class="font-medium"><i class="fas fa-box text-slate-400 mr-1"></i> {{ wo.assetName }}</span>
+              <span *ngIf="wo.unitNumber" class="font-medium"><i class="fas fa-door-closed text-slate-400 mr-1"></i> {{ wo.unitNumber }}</span>
             </td>
             <td class="text-slate-600 font-medium">{{ wo.scheduleDate | date:'dd MMM yyyy, HH:mm' }}</td>
             <td>
@@ -38,10 +38,10 @@
               </span>
             </td>
             <td>
-              <span *ngIf="wo.assignments && wo.assignments.length > 0" class="text-sm font-semibold text-slate-700">
+              <span *ngIf="wo.assignments && wo.assignments.length > 0" class="font-semibold text-slate-700">
                 <i class="fas fa-user-hard-hat text-indigo-500 mr-1"></i> {{ wo.assignments[0].technicianName }}
               </span>
-              <span *ngIf="!wo.assignments || wo.assignments.length === 0" class="text-xs text-slate-400 italic">Unassigned</span>
+              <span *ngIf="!wo.assignments || wo.assignments.length === 0" class="text-slate-400 italic">Unassigned</span>
             </td>
             <td class="text-right">
               <button *ngIf="wo.status === 'Pending'" (click)="openAssignModal(wo)" class="btn-primary text-xs py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700">

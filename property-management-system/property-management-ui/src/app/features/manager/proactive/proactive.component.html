@@ -7,6 +7,24 @@
     </div>
   </div>
 
+  <!-- TOP OVERDUE ALERT BANNER -->
+  <div *ngIf="unscheduledOverdue.length > 0" 
+       class="mb-4 bg-gradient-to-r from-red-500 to-[#d9534f] text-white p-4 rounded-2xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 border-2 border-red-200 animate-pulse cursor-pointer transition-transform hover:scale-[1.01]"
+       (click)="scrollToOverdue()">
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-2xl shrink-0 backdrop-blur-sm">
+        ⚠️
+      </div>
+      <div>
+        <h2 class="text-lg font-extrabold text-white !drop-shadow-md">Action Required: {{ unscheduledOverdue.length }} Asset(s) Overdue for Maintenance!</h2>
+        <p class="text-xs md:text-sm text-red-100 font-medium">One or more assets (due yesterday or earlier) need immediate scheduling to maintain compliance.</p>
+      </div>
+    </div>
+    <button type="button" class="bg-white text-[#d9534f] hover:bg-red-50 font-black px-5 py-2.5 rounded-xl shadow-md transition-all text-sm whitespace-nowrap flex items-center gap-2 cursor-pointer">
+      <span>View & Schedule Overdue Assets</span> <span>👇</span>
+    </button>
+  </div>
+
   <!-- Calendar Controls -->
   <div class="pms-card space-y-4">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -31,14 +49,14 @@
 
       <!-- Right: View Toggles -->
       <div class="flex bg-slate-100 p-1 rounded-lg">
-        <button class="px-4 py-1.5 text-sm font-medium rounded-md transition-colors"
-                [ngClass]="viewMode === 'month' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-600 hover:text-slate-900'"
+        <button class="px-4 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer"
+                [ngClass]="viewMode === 'month' ? 'bg-white shadow-sm text-[var(--navy)] font-bold' : 'text-slate-600 hover:text-slate-900'"
                 (click)="changeView('month')">Month</button>
-        <button class="px-4 py-1.5 text-sm font-medium rounded-md transition-colors"
-                [ngClass]="viewMode === 'week' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-600 hover:text-slate-900'"
+        <button class="px-4 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer"
+                [ngClass]="viewMode === 'week' ? 'bg-white shadow-sm text-[var(--navy)] font-bold' : 'text-slate-600 hover:text-slate-900'"
                 (click)="changeView('week')">Week</button>
-        <button class="px-4 py-1.5 text-sm font-medium rounded-md transition-colors"
-                [ngClass]="viewMode === 'year' ? 'bg-white shadow-sm text-indigo-700' : 'text-slate-600 hover:text-slate-900'"
+        <button class="px-4 py-1.5 text-sm font-medium rounded-md transition-colors cursor-pointer"
+                [ngClass]="viewMode === 'year' ? 'bg-white shadow-sm text-[var(--navy)] font-bold' : 'text-slate-600 hover:text-slate-900'"
                 (click)="changeView('year')">Year</button>
       </div>
 
@@ -71,16 +89,16 @@
           <div class="mt-2 flex flex-col gap-1 z-10 relative">
             <!-- Upcoming Events -->
             <div *ngFor="let ev of d.upcomingEvents" 
-                 class="text-xs px-2 py-1 rounded truncate cursor-pointer transition-transform hover:scale-105 shadow-sm border"
-                 [ngClass]="{'bg-red-50 text-red-700 border-red-200': isOverdue(ev.nextMaintenanceDueDate), 'bg-indigo-50 text-indigo-700 border-indigo-200': !isOverdue(ev.nextMaintenanceDueDate)}"
+                 class="text-xs px-2 py-1 rounded truncate cursor-pointer transition-transform hover:scale-105 shadow-sm border font-bold"
+                 [ngClass]="{'bg-red-100 text-red-900 border-red-300 animate-pulse': isOverdue(ev.nextMaintenanceDueDate), 'bg-orange-100 text-orange-950 border-orange-300': !isOverdue(ev.nextMaintenanceDueDate)}"
                  (click)="onEventClick(ev, $event)"
                  title="Click to schedule Work Order for {{ ev.assetName }}">
-              <div class="font-bold truncate">{{ ev.assetName }}</div>
+               <div class="font-bold truncate">{{ ev.assetName }}</div>
             </div>
             
             <!-- History Events -->
             <div *ngFor="let h of d.historyEvents" 
-                 class="text-[10px] px-2 py-1 rounded cursor-pointer transition-transform hover:scale-105 shadow-sm border bg-teal-50 text-teal-700 border-teal-200"
+                 class="text-[10px] px-2 py-1 rounded cursor-pointer transition-transform hover:scale-105 shadow-sm border bg-green-100 text-green-900 border-green-300 font-bold"
                  (click)="onHistoryClick(h, $event)"
                  title="View History for {{ h.assetName }}">
               <div class="font-bold truncate"><i class="fas fa-history mr-1 opacity-60"></i>{{ h.assetName }}</div>
@@ -115,7 +133,7 @@
   </div>
 
   <!-- Overdue & Unscheduled Maintenance (Bottom Section) -->
-  <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-6 mt-8 shadow-sm">
+  <div id="overdue-section" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-6 mt-8 shadow-sm">
     <div class="flex items-start gap-4 flex-col md:flex-row">
       <div class="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center shrink-0 border border-amber-200 shadow-inner">
         <i class="fas fa-exclamation-triangle text-amber-600 text-xl"></i>

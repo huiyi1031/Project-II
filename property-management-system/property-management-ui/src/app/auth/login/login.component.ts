@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 
@@ -17,8 +17,10 @@ type LoginStep =
   templateUrl: './login.component.html',
   standalone: false,
 })
-export class LoginComponent {
+export class LoginComponent implements AfterViewInit {
   step: LoginStep = 'login';
+
+  @ViewChild('introVideo') introVideo?: ElementRef<HTMLVideoElement>;
 
   // Forms
   loginForm: FormGroup;
@@ -36,9 +38,45 @@ export class LoginComponent {
   errorMessage = '';
 
   // UI state
+  showIntroVideo = true;
   showPassword = false;
   showNewPassword = false;
   showConfirmPw = false;
+
+  isMuted = false;
+
+  ngAfterViewInit(): void {
+    if (this.showIntroVideo && this.introVideo?.nativeElement) {
+      const video = this.introVideo.nativeElement;
+      video.muted = false;
+      video.volume = 1.0;
+      this.isMuted = false;
+      video.play().catch(err => {
+        console.warn('Unmuted autoplay blocked by browser policy, falling back to muted autoplay:', err);
+        video.muted = true;
+        this.isMuted = true;
+        video.play().catch(e => {
+          console.warn('Video load or autoplay failed:', e);
+          this.onVideoEnded();
+        });
+      });
+    }
+  }
+
+  toggleMute(): void {
+    if (this.introVideo?.nativeElement) {
+      const video = this.introVideo.nativeElement;
+      video.muted = !video.muted;
+      this.isMuted = video.muted;
+      if (!video.muted) {
+        video.volume = 1.0;
+      }
+    }
+  }
+
+  onVideoEnded(): void {
+    this.showIntroVideo = false;
+  }
 
   // Password strength
   get pwStrength(): number { return this._calcStrength(this.setPasswordForm.get('newPassword')?.value || ''); }

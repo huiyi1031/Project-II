@@ -42,18 +42,120 @@ namespace PropertyManagement.API.Controllers
         }
 
         [HttpPut("me")]
-        public async Task<IActionResult> UpdateMyProfile([FromBody] Occupant request)
+        public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateProfileRequest request)
         {
             var userId = GetCurrentUserId();
-            var occupant = await _context.Occupants.FirstOrDefaultAsync(o => o.UserAccountId == userId);
+            var occupant = await _context.Occupants
+                .Include(o => o.UserAccount)
+                .FirstOrDefaultAsync(o => o.UserAccountId == userId);
             if (occupant == null) return NotFound();
 
             occupant.FullName = request.FullName;
             occupant.ContactNumber = request.ContactNumber;
-            occupant.Gender = request.Gender;
-            
+            occupant.Gender = request.Gender != null ? (request.Gender.Trim().ToUpper().StartsWith("M") ? "M" : (request.Gender.Trim().ToUpper().StartsWith("F") ? "F" : (request.Gender.Length > 0 ? request.Gender.Substring(0, 1) : null))) : null;
+
+            // Update email on UserAccount if provided and different
+            if (!string.IsNullOrWhiteSpace(request.Email) && occupant.UserAccount != null
+                && !string.Equals(occupant.UserAccount.Email, request.Email.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                var emailTaken = await _context.UserAccounts
+                    .AnyAsync(u => u.Email == request.Email.Trim().ToLower() && u.Id != userId && !u.IsDeleted);
+                if (emailTaken) return BadRequest(new { message = "This email is already in use by another account." });
+                occupant.UserAccount.Email = request.Email.Trim().ToLower();
+            }
+
             await _context.SaveChangesAsync();
-            return Ok(occupant);
+            return Ok(new {
+                fullName      = occupant.FullName,
+                contactNumber = occupant.ContactNumber,
+                gender        = occupant.Gender,
+                email         = occupant.UserAccount?.Email
+            });
+        }
+
+        // --- My Contracts (self-service) ---
+        [HttpGet("me/contracts")]
+        public async Task<IActionResult> GetMyContracts()
+        {
+            var userId = GetCurrentUserId();
+            var myOccupant = await _context.Occupants.FirstOrDefaultAsync(o => o.UserAccountId == userId);
+            if (myOccupant == null) return NotFound("Occupant not found");
+
+            var contracts = await _context.Contracts
+                .Include(c => c.PropertyUnit)
+                    .ThenInclude(u => u!.Property)
+                .Where(c => c.OccupantId == myOccupant.Id && c.Status == "Active")
+                .ToListAsync();
+
+            var result = contracts.Select(c => new {
+                contractID    = c.Id,
+                contractType  = c.ContractType,
+                status        = c.Status,
+                startDate     = c.StartDate.ToString("yyyy-MM-dd"),
+                endDate       = c.EndDate?.ToString("yyyy-MM-dd"),
+                isPrimary     = c.IsPrimaryOccupant,
+                unitID        = c.UnitId,
+                unitNumber    = c.PropertyUnit?.UnitNumber,
+                block         = c.PropertyUnit?.Block,
+                floorLevel    = c.PropertyUnit?.FloorLevel,
+                unitType      = c.PropertyUnit?.UnitType,
+                areaSqft      = c.PropertyUnit?.AreaSqft,
+                bedrooms      = c.PropertyUnit?.Bedrooms,
+                bathrooms     = c.PropertyUnit?.Bathrooms,
+                unitStatus    = c.PropertyUnit?.Status,
+                propertyName  = c.PropertyUnit?.Property?.PropertyName ?? "BlueBay Residence"
+            });
+
+            return Ok(result);
+        }
+
+        // --- Owner's Units (for tenant dropdown when adding new tenant) ---
+        [HttpGet("me/owner-units")]
+        public async Task<IActionResult> GetMyOwnerUnits()
+        {
+            var userId = GetCurrentUserId();
+            var myOccupant = await _context.Occupants.FirstOrDefaultAsync(o => o.UserAccountId == userId);
+            if (myOccupant == null) return NotFound("Occupant not found");
+
+            // Owner's own contracts (Ownership type)
+            var ownerContracts = await _context.Contracts
+                .Include(c => c.PropertyUnit)
+                .Where(c => c.OccupantId == myOccupant.Id && c.ContractType == "Ownership" && c.Status == "Active")
+                .ToListAsync();
+
+            var result = ownerContracts.Select(c => new {
+                unitId     = c.UnitId,
+                unitNumber = c.PropertyUnit?.UnitNumber ?? $"Unit {c.UnitId}"
+            });
+
+            return Ok(result);
+        }
+
+        // --- Get My Owner (for tenant/family member to see their property owner) ---
+        [HttpGet("me/owner")]
+        public async Task<IActionResult> GetMyOwner()
+        {
+            var userId = GetCurrentUserId();
+            var myOccupant = await _context.Occupants
+                .Include(o => o.UserAccount)
+                .FirstOrDefaultAsync(o => o.UserAccountId == userId);
+            if (myOccupant == null) return NotFound("Occupant not found");
+
+            // Find the owner: ParentOccupantId points to the owner's occupant record
+            if (myOccupant.ParentOccupantId == null)
+                return NotFound("No owner linked to this account");
+
+            var owner = await _context.Occupants
+                .Include(o => o.UserAccount)
+                .FirstOrDefaultAsync(o => o.Id == myOccupant.ParentOccupantId);
+
+            if (owner == null) return NotFound("Owner record not found");
+
+            return Ok(new {
+                fullName      = owner.FullName,
+                email         = owner.UserAccount?.Email,
+                contactNumber = owner.ContactNumber
+            });
         }
 
         // --- Family Members ---
@@ -108,7 +210,7 @@ namespace PropertyManagement.API.Controllers
                 UserAccountId = userAccount.Id,
                 FullName = request.FullName,
                 ContactNumber = request.ContactNumber,
-                Gender = request.Gender,
+                Gender = request.Gender != null ? (request.Gender.Trim().ToUpper().StartsWith("M") ? "M" : (request.Gender.Trim().ToUpper().StartsWith("F") ? "F" : (request.Gender.Length > 0 ? request.Gender.Substring(0, 1) : null))) : null,
                 DateOfBirth = DateTime.TryParse(request.DateOfBirth, out var dob) ? DateTime.SpecifyKind(dob, DateTimeKind.Utc) : null,
                 OccupantType = OccupantType.Resident,
                 OccupantStatus = "Active",
@@ -208,7 +310,7 @@ namespace PropertyManagement.API.Controllers
                 UserAccountId = userAccount.Id,
                 FullName = request.FullName,
                 ContactNumber = request.ContactNumber,
-                Gender = request.Gender,
+                Gender = request.Gender != null ? (request.Gender.Trim().ToUpper().StartsWith("M") ? "M" : (request.Gender.Trim().ToUpper().StartsWith("F") ? "F" : (request.Gender.Length > 0 ? request.Gender.Substring(0, 1) : null))) : null,
                 DateOfBirth = DateTime.TryParse(request.DateOfBirth, out var tdob) ? DateTime.SpecifyKind(tdob, DateTimeKind.Utc) : null,
                 OccupantType = OccupantType.Tenant,
                 OccupantStatus = "Active",
@@ -292,5 +394,13 @@ namespace PropertyManagement.API.Controllers
         public long UnitId { get; set; }
         public string StartDate { get; set; } = string.Empty;
         public string EndDate { get; set; } = string.Empty;
+    }
+
+    public class UpdateProfileRequest
+    {
+        public string FullName { get; set; } = string.Empty;
+        public string ContactNumber { get; set; } = string.Empty;
+        public string Gender { get; set; } = string.Empty;
+        public string? Email { get; set; }
     }
 }

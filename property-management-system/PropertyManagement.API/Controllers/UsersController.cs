@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PropertyManagement.API.Data;
 using PropertyManagement.API.Models.DTOs;
+using PropertyManagement.API.Models.Entities;
+using PropertyManagement.API.Models.Enums;
 using System.Security.Claims;
 
 namespace PropertyManagement.API.Controllers
@@ -51,24 +53,36 @@ namespace PropertyManagement.API.Controllers
                 ProfilePictureUrl = user.ProfilePictureUrl
             };
 
+            string? formatG(string? g)
+            {
+                if (string.IsNullOrWhiteSpace(g)) return null;
+                var val = g.Trim().ToUpper();
+                return val == "M" ? "Male" : (val == "F" ? "Female" : g);
+            }
+
             if (user.Occupant != null)
             {
                 dto.FullName = user.Occupant.FullName;
                 dto.ContactNumber = user.Occupant.ContactNumber;
-                dto.Gender = user.Occupant.Gender;
+                dto.Gender = formatG(user.Occupant.Gender);
                 dto.OccupantType = user.Occupant.OccupantType.ToString();
             }
             else if (user.PropertyManager != null)
             {
                 dto.FullName = user.PropertyManager.FullName;
                 dto.ContactNumber = user.PropertyManager.ContactNumber;
-                dto.Gender = user.PropertyManager.Gender;
+                dto.Gender = formatG(user.PropertyManager.Gender);
             }
             else if (user.Technician != null)
             {
                 dto.FullName = user.Technician.FullName;
                 dto.ContactNumber = user.Technician.ContactNumber;
-                dto.Gender = user.Technician.Gender;
+                dto.Gender = formatG(user.Technician.Gender);
+            }
+
+            if (string.IsNullOrEmpty(dto.FullName))
+            {
+                dto.FullName = user.Email;
             }
 
             return Ok(dto);
@@ -88,27 +102,61 @@ namespace PropertyManagement.API.Controllers
 
             if (user == null) return NotFound("User not found");
 
+            // Update email on UserAccount (all roles)
+            if (!string.IsNullOrWhiteSpace(request.Email)
+                && !string.Equals(user.Email, request.Email.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                var emailTaken = await _context.UserAccounts
+                    .AnyAsync(u => u.Email == request.Email.Trim().ToLower() && u.Id != userId && !u.IsDeleted);
+                if (emailTaken)
+                    return BadRequest(new { message = "This email is already in use by another account." });
+                user.Email = request.Email.Trim().ToLower();
+            }
+
+            if (user.Occupant == null && user.RoleType == RoleType.Occupant)
+            {
+                user.Occupant = new Occupant { UserAccountId = user.Id, FullName = request.FullName ?? user.Email };
+                _context.Occupants.Add(user.Occupant);
+            }
+            else if (user.PropertyManager == null && user.RoleType == RoleType.PropertyManager)
+            {
+                user.PropertyManager = new PropertyManager { UserAccountId = user.Id, FullName = request.FullName ?? user.Email };
+                _context.PropertyManagers.Add(user.PropertyManager);
+            }
+            else if (user.Technician == null && user.RoleType == RoleType.Technician)
+            {
+                user.Technician = new Technician { UserAccountId = user.Id, FullName = request.FullName ?? user.Email };
+                _context.Technicians.Add(user.Technician);
+            }
+
+            string? normGender = null;
+            if (request.Gender != null)
+            {
+                var g = request.Gender.Trim().ToUpper();
+                normGender = g.StartsWith("M") ? "M" : (g.StartsWith("F") ? "F" : (g.Length > 0 ? g.Substring(0, 1) : null));
+            }
+
             if (user.Occupant != null)
             {
                 if (request.FullName != null) user.Occupant.FullName = request.FullName;
                 if (request.ContactNumber != null) user.Occupant.ContactNumber = request.ContactNumber;
-                if (request.Gender != null) user.Occupant.Gender = request.Gender;
+                if (request.Gender != null) user.Occupant.Gender = normGender;
             }
             else if (user.PropertyManager != null)
             {
                 if (request.FullName != null) user.PropertyManager.FullName = request.FullName;
                 if (request.ContactNumber != null) user.PropertyManager.ContactNumber = request.ContactNumber;
-                if (request.Gender != null) user.PropertyManager.Gender = request.Gender;
+                if (request.Gender != null) user.PropertyManager.Gender = normGender;
             }
             else if (user.Technician != null)
             {
                 if (request.FullName != null) user.Technician.FullName = request.FullName;
                 if (request.ContactNumber != null) user.Technician.ContactNumber = request.ContactNumber;
-                if (request.Gender != null) user.Technician.Gender = request.Gender;
+                if (request.Gender != null) user.Technician.Gender = normGender;
             }
 
             await _context.SaveChangesAsync();
-            return Ok(new { message = "Profile updated successfully" });
+            return Ok(new { message = "Profile updated successfully", email = user.Email });
         }
 
         [HttpPost("profile/picture")]

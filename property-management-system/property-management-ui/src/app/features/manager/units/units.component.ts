@@ -18,8 +18,15 @@ export class UnitsComponent implements OnInit {
   loading   = false;
   error     = '';
   success   = '';
-  
   showFilters = true;
+
+  showCannotDeleteModal = false;
+  cannotDeleteUnitNumber = '';
+  cannotDeleteStatus = '';
+
+  showDeleteConfirmModal = false;
+  unitToDelete: PropertyUnit | null = null;
+  deleting = false;
 
   // ── Filters & Sorting ───────────────────────────────────────────────
   searchText    = '';
@@ -136,6 +143,47 @@ export class UnitsComponent implements OnInit {
 
   openEditModal(unit: PropertyUnit): void {
     this.router.navigate(['/manager/units', unit.unitId, 'edit']);
+  }
+
+  deleteUnit(unit: PropertyUnit): void {
+    if (unit.status?.toLowerCase() !== 'vacant') {
+      this.cannotDeleteUnitNumber = unit.unitNumber || '';
+      this.cannotDeleteStatus = unit.status || '';
+      this.showCannotDeleteModal = true;
+      return;
+    }
+    this.unitToDelete = unit;
+    this.showDeleteConfirmModal = true;
+  }
+
+  closeCannotDeleteModal(): void {
+    this.showCannotDeleteModal = false;
+  }
+
+  cancelDelete(): void {
+    this.showDeleteConfirmModal = false;
+    this.unitToDelete = null;
+  }
+
+  confirmDeleteUnit(): void {
+    if (!this.unitToDelete) return;
+    this.deleting = true;
+    const unitNum = this.unitToDelete.unitNumber;
+    this.unitSvc.delete(this.unitToDelete.unitId!).subscribe({
+      next: () => {
+        this.deleting = false;
+        this.showDeleteConfirmModal = false;
+        this.unitToDelete = null;
+        this.success = `Unit ${unitNum} deleted successfully!`;
+        this.loadUnits();
+      },
+      error: (err) => {
+        this.deleting = false;
+        this.showDeleteConfirmModal = false;
+        this.unitToDelete = null;
+        this.error = err.error?.message || `Failed to delete Unit ${unitNum}.`;
+      }
+    });
   }
 
   dismissAlert(): void { this.error = ''; this.success = ''; }

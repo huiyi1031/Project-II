@@ -1,59 +1,183 @@
-<!-- My Property -->
-<div class="fade-in space-y-4 max-w-3xl">
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <!-- Current unit -->
+<!-- My Property — fully utilises space, loads from DB -->
+<div class="fade-in space-y-5">
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="flex items-center justify-center py-16 text-[#6b7a90]">
+    <div class="text-center space-y-2">
+      <div class="w-8 h-8 border-2 border-[#c8a97e] border-t-transparent rounded-full animate-spin mx-auto"></div>
+      <p class="text-sm">Loading your property details...</p>
+    </div>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <!-- Top Row: Current Unit Card + Owner Info Card (side by side) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+      <!-- Current Unit Summary (2/3 width) -->
+      <div class="pms-card lg:col-span-2" *ngIf="currentUnit; else noUnit">
+        <div class="flex items-start justify-between mb-4">
+          <div>
+            <h4 class="section-title mb-1">Current Unit</h4>
+            <p class="text-xs text-[#6b7a90]">Your primary property assignment</p>
+          </div>
+          <app-status-badge [status]="currentUnit.unitStatus || 'Active'"></app-status-badge>
+        </div>
+
+        <!-- Unit Hero -->
+        <div class="bg-gradient-to-br from-[#fff8f0] to-[#fef3e2] border border-[#f0ddc0] rounded-2xl p-5 mb-4">
+          <div class="flex flex-wrap gap-6 items-center">
+            <div>
+              <div class="text-3xl font-black text-[#4A2E18]">{{ currentUnit.unitNumber }}</div>
+              <div class="text-sm text-[#6b7a90] mt-0.5">{{ currentUnit.propertyName }}</div>
+            </div>
+            <div class="flex gap-4 flex-wrap text-sm">
+              <div class="text-center" *ngIf="currentUnit.block">
+                <div class="font-bold text-[#4A2E18]">{{ currentUnit.block }}</div>
+                <div class="text-xs text-[#6b7a90]">Block</div>
+              </div>
+              <div class="text-center" *ngIf="currentUnit.floorLevel">
+                <div class="font-bold text-[#4A2E18]">{{ currentUnit.floorLevel }}</div>
+                <div class="text-xs text-[#6b7a90]">Floor</div>
+              </div>
+              <div class="text-center" *ngIf="currentUnit.bedrooms">
+                <div class="font-bold text-[#4A2E18]">{{ currentUnit.bedrooms }} bd</div>
+                <div class="text-xs text-[#6b7a90]">Bedrooms</div>
+              </div>
+              <div class="text-center" *ngIf="currentUnit.bathrooms">
+                <div class="font-bold text-[#4A2E18]">{{ currentUnit.bathrooms }} ba</div>
+                <div class="text-xs text-[#6b7a90]">Bathrooms</div>
+              </div>
+              <div class="text-center" *ngIf="currentUnit.areaSqft">
+                <div class="font-bold text-[#4A2E18]">{{ currentUnit.areaSqft }}</div>
+                <div class="text-xs text-[#6b7a90]">sqft</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contract Details -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+          <div class="bg-[#f8faff] rounded-xl p-3 border border-[#edf3ff]">
+            <div class="text-xs text-[#6b7a90] mb-0.5">Contract Type</div>
+            <div class="font-semibold text-[#4A2E18]">{{ currentUnit.contractType || '—' }}</div>
+          </div>
+          <div class="bg-[#f8faff] rounded-xl p-3 border border-[#edf3ff]">
+            <div class="text-xs text-[#6b7a90] mb-0.5">Start Date</div>
+            <div class="font-semibold text-[#4A2E18]">{{ currentUnit.startDate | date:'dd MMM yyyy' }}</div>
+          </div>
+          <div class="bg-[#f8faff] rounded-xl p-3 border border-[#edf3ff]">
+            <div class="text-xs text-[#6b7a90] mb-0.5">End Date</div>
+            <div class="font-semibold text-[#4A2E18]">{{ currentUnit.endDate ? (currentUnit.endDate | date:'dd MMM yyyy') : '—' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- No Unit State -->
+      <ng-template #noUnit>
+        <div class="pms-card lg:col-span-2 flex items-center justify-center py-10 text-[#6b7a90]">
+          <div class="text-center">
+            <div class="text-4xl mb-3">🏠</div>
+            <p class="font-semibold">No Active Unit</p>
+            <p class="text-sm mt-1">You have no active property assignment.</p>
+          </div>
+        </div>
+      </ng-template>
+
+      <!-- Owner Info Card (1/3 width) — shown for Tenant / Family Member -->
+      <div class="pms-card" *ngIf="!isOwner">
+        <h4 class="section-title mb-3">Property Owner</h4>
+        <div *ngIf="ownerLoading" class="text-center py-6 text-sm text-[#6b7a90]">Loading...</div>
+        <div *ngIf="!ownerLoading && ownerInfo" class="space-y-3">
+          <!-- Avatar -->
+          <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-full bg-gradient-to-br from-[#c8a97e] to-[#4A2E18] flex items-center justify-center text-white font-bold text-lg shrink-0">
+              {{ ownerInfo.fullName?.charAt(0)?.toUpperCase() || 'O' }}
+            </div>
+            <div>
+              <div class="font-semibold text-[#4A2E18]">{{ ownerInfo.fullName }}</div>
+              <div class="text-xs text-[#6b7a90]">Property Owner</div>
+            </div>
+          </div>
+          <div class="space-y-2 pt-1">
+            <div class="flex items-center gap-2 text-sm text-[#4A2E18]">
+              <span class="text-[#6b7a90]">✉</span>
+              <span class="break-all">{{ ownerInfo.email || '—' }}</span>
+            </div>
+            <div class="flex items-center gap-2 text-sm text-[#4A2E18]">
+              <span class="text-[#6b7a90]">📞</span>
+              <span>{{ ownerInfo.contactNumber || '—' }}</span>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="!ownerLoading && !ownerInfo" class="text-center py-6 text-sm text-[#6b7a90]">
+          <div class="text-3xl mb-2">👤</div>
+          <p>Owner info unavailable</p>
+        </div>
+      </div>
+
+      <!-- Unit Switcher (1/3 width) — shown only when user is Owner with multiple units -->
+      <div class="pms-card" *ngIf="isOwner && contracts.length > 1">
+        <h4 class="section-title mb-3">My Units</h4>
+        <div class="space-y-2">
+          <button *ngFor="let c of contracts"
+                  (click)="selectUnit(c)"
+                  [ngClass]="currentUnit?.unitID === c.unitID
+                    ? 'bg-[#4A2E18] text-white border-[#4A2E18]'
+                    : 'bg-white text-[#4A2E18] border-[#e0c99e] hover:border-[#c8a97e]'"
+                  class="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all">
+            <span>{{ c.unitNumber }}</span>
+            <app-status-badge [status]="c.unitStatus || 'Active'"></app-status-badge>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contracts Table -->
     <div class="pms-card">
-      <h4 class="section-title">Current Unit</h4>
-      <div class="bg-light-blue border border-border rounded-xl p-4 space-y-2">
-        <div class="font-bold text-navy text-xl">{{ currentUnit?.unitNumber || 'A-12-05' }}</div>
-        <div class="text-muted text-sm">BlueBay Residence · Block {{ currentUnit?.block || 'A' }}</div>
-        <app-status-badge [status]="currentUnit?.status || 'Occupied'"></app-status-badge>
-      </div>
-    </div>
+      <h4 class="section-title mb-3">
+        My Contracts
+        <span class="ml-2 text-xs font-normal text-[#6b7a90]">({{ contracts.length }} active)</span>
+      </h4>
 
-    <!-- Navigate -->
-    <div class="pms-card space-y-3">
-      <h4 class="section-title">Navigate Properties</h4>
-      <div class="space-y-1">
-        <label class="pms-label">Select Property Unit</label>
-        <select [(ngModel)]="selectedUnitId" class="pms-select">
-          <option *ngFor="let c of contracts" [value]="c.unitID">
-            {{ c.unitNumber }} {{ c.isPrimaryOccupant ? '(Primary)' : '' }}
-          </option>
-          <option value="1">A-12-05 (Primary)</option>
-          <option value="2">B-08-12</option>
-        </select>
+      <div *ngIf="contracts.length > 0; else noContracts" class="overflow-x-auto">
+        <table class="pms-table">
+          <thead>
+            <tr>
+              <th>Unit</th>
+              <th>Property</th>
+              <th>Block / Floor</th>
+              <th>Type</th>
+              <th>Start Date</th>
+              <th>End Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of contracts" class="cursor-pointer" (click)="selectUnit(c)">
+              <td class="font-semibold text-[#4A2E18]">{{ c.unitNumber }}</td>
+              <td class="text-[#6b7a90]">{{ c.propertyName }}</td>
+              <td class="text-[#6b7a90]">
+                <span *ngIf="c.block">Block {{ c.block }}</span>
+                <span *ngIf="c.block && c.floorLevel"> · </span>
+                <span *ngIf="c.floorLevel">Floor {{ c.floorLevel }}</span>
+                <span *ngIf="!c.block && !c.floorLevel">—</span>
+              </td>
+              <td>{{ c.contractType }}</td>
+              <td>{{ c.startDate | date:'dd MMM yyyy' }}</td>
+              <td>{{ c.endDate ? (c.endDate | date:'dd MMM yyyy') : '—' }}</td>
+              <td><app-status-badge [status]="c.status || 'Active'"></app-status-badge></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <button class="btn-primary w-full">Switch Unit</button>
-    </div>
-  </div>
 
-  <!-- Contracts table -->
-  <div class="pms-card">
-    <h4 class="section-title">My Contracts</h4>
-    <table class="pms-table">
-      <thead>
-        <tr><th>Unit</th><th>Property</th><th>Block</th><th>Type</th><th>Status</th></tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let c of contracts">
-          <td>{{ c.unitNumber }}</td>
-          <td>BlueBay Residence</td>
-          <td>A</td>
-          <td>{{ c.contractType }}</td>
-          <td><app-status-badge [status]="c.status"></app-status-badge></td>
-        </tr>
-        <ng-container *ngIf="contracts.length === 0">
-          <tr>
-            <td>A-12-05</td><td>BlueBay Residence</td><td>A</td><td>Tenancy</td>
-            <td><app-status-badge status="Active"></app-status-badge></td>
-          </tr>
-          <tr>
-            <td>B-08-12</td><td>BlueBay Residence</td><td>B</td><td>Ownership</td>
-            <td><app-status-badge status="Active"></app-status-badge></td>
-          </tr>
-        </ng-container>
-      </tbody>
-    </table>
-  </div>
+      <ng-template #noContracts>
+        <div class="text-center py-10 text-[#6b7a90]">
+          <div class="text-4xl mb-2">📋</div>
+          <p class="font-semibold">No contracts found</p>
+          <p class="text-sm mt-1">Contact your property manager for assistance.</p>
+        </div>
+      </ng-template>
+    </div>
+  </ng-container>
 </div>

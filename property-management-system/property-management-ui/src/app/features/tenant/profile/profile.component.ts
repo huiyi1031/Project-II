@@ -3,6 +3,11 @@ import { FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/fo
 import { UserService } from '../../../core/services/user.service';
 import { AuthService } from '../../../core/services/auth.service';
 
+// Malaysia phone: 01X-XXXXXXX or +601X-XXXXXXXX
+const MY_PHONE_REGEX = /^(\+?6?0)(1[0-9])[-\s]?[0-9]{7,8}$|^0(1[0-9])[-\s]?[0-9]{7,8}$/;
+// Full name: letters, spaces, hyphens, apostrophes, dots only — no numbers
+const FULL_NAME_REGEX = /^[a-zA-Z\s\-'\.@]+$/;
+
 @Component({
   selector: 'app-profile',
   templateUrl: './profile.component.html',
@@ -41,9 +46,10 @@ export class ProfileComponent implements OnInit {
     private authSvc: AuthService,
   ) {
     this.profileForm = fb.group({
-      fullName:      ['', [Validators.required, Validators.minLength(2)]],
-      contactNumber: ['', [Validators.required, Validators.pattern(/^[0-9+\-() ]{8,15}$/)]],
-      gender:        ['', Validators.required],
+      fullName:      ['', [Validators.required, Validators.minLength(2), Validators.pattern(FULL_NAME_REGEX)]],
+      contactNumber: ['', [Validators.required, Validators.pattern(MY_PHONE_REGEX)]],
+      email:         ['', [Validators.required, Validators.email]],
+      gender:        [''],
     });
 
     this.passwordForm = fb.group({
@@ -58,7 +64,12 @@ export class ProfileComponent implements OnInit {
     this.userSvc.getProfile().subscribe({
       next: (p) => {
         this.profile = p;
-        this.profileForm.patchValue({ fullName: p.fullName, contactNumber: p.contactNumber, gender: p.gender });
+        this.profileForm.patchValue({
+          fullName:      p.fullName,
+          contactNumber: p.contactNumber,
+          email:         p.email,
+          gender:        p.gender
+        });
         this.isLoading = false;
       },
       error: () => {
@@ -72,8 +83,18 @@ export class ProfileComponent implements OnInit {
     if (this.profileForm.invalid) { this.profileForm.markAllAsTouched(); return; }
     this.isSaving = true; this.errorMsg = ''; this.successMsg = '';
     this.userSvc.updateProfile(this.profileForm.value).subscribe({
-      next: () => { this.isSaving = false; this.successMsg = 'Profile updated successfully.'; setTimeout(() => this.successMsg = '', 3500); },
-      error: () => { this.isSaving = false; this.errorMsg = 'Failed to update profile.'; setTimeout(() => this.errorMsg = '', 3500); }
+      next: (res: any) => {
+        this.isSaving = false;
+        // Update stored email in case it changed
+        if (res?.email && this.profile) this.profile.email = res.email;
+        this.successMsg = 'Profile updated successfully.';
+        setTimeout(() => this.successMsg = '', 3500);
+      },
+      error: (err: any) => {
+        this.isSaving = false;
+        this.errorMsg = err?.error?.message || 'Failed to update profile.';
+        setTimeout(() => this.errorMsg = '', 4000);
+      }
     });
   }
 
@@ -107,8 +128,16 @@ export class ProfileComponent implements OnInit {
     };
 
     this.authSvc.changePassword(payload).subscribe({
-      next: () => { this.isSaving = false; this.successMsg = 'Password changed successfully.'; this.passwordForm.reset(); setTimeout(() => this.successMsg = '', 3500); },
-      error: () => { this.isSaving = false; this.errorMsg = 'Current password is incorrect or request failed.'; }
+      next: () => {
+        this.isSaving = false;
+        this.successMsg = 'Password changed successfully.';
+        this.passwordForm.reset();
+        setTimeout(() => this.successMsg = '', 3500);
+      },
+      error: () => {
+        this.isSaving = false;
+        this.errorMsg = 'Current password is incorrect or request failed.';
+      }
     });
   }
 
@@ -126,7 +155,7 @@ export class ProfileComponent implements OnInit {
     return np && cp && np !== cp ? { mismatch: true } : null;
   }
 
-  // ── Template helpers (replaces regex in templates — Angular doesn't allow /regex/) ──
+  // ── Template helpers ──────────────────────────────────────────────────────
   pwLen(n: number):   boolean { return (this.passwordForm.get('newPassword')?.value || '').length >= n; }
   pwHas(pattern: 'upper' | 'number' | 'special'): boolean {
     const v = this.passwordForm.get('newPassword')?.value || '';

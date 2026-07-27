@@ -14,6 +14,7 @@ export class UnitDetailComponent implements OnInit {
   error = '';
 
   showDeleteConfirm = false;
+  showCannotDeleteModal = false;
   deleting = false;
 
   constructor(
@@ -84,7 +85,15 @@ export class UnitDetailComponent implements OnInit {
 
   // ── Delete ────────────────────────────────────────────────────────
   confirmDelete(): void {
+    if (this.unitDetail?.status?.toLowerCase() !== 'vacant') {
+      this.showCannotDeleteModal = true;
+      return;
+    }
     this.showDeleteConfirm = true;
+  }
+
+  closeCannotDeleteModal(): void {
+    this.showCannotDeleteModal = false;
   }
 
   cancelDelete(): void {

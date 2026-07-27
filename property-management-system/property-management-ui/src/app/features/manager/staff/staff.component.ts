@@ -3,7 +3,7 @@ import { FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/fo
 import { StaffService } from '../../../core/services/staff.service';
 import { StaffRecord, StaffDeactivateDto, CreateStaffDto } from '../../../core/models';
 
-type StaffView = 'list' | 'create' | 'edit' | 'deactivate';
+type StaffView = 'list' | 'create' | 'edit' | 'deactivate' | 'details';
 
 @Component({
   selector: 'app-staff',
@@ -21,6 +21,18 @@ export class StaffComponent implements OnInit {
   // List filters
   searchTerm = '';
   roleFilter = 'All';
+  showFilters = false;
+  statusFilter = 'All';
+  serviceFilter = 'All';
+  positionFilter = 'All';
+
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.roleFilter = 'All';
+    this.statusFilter = 'All';
+    this.serviceFilter = 'All';
+    this.positionFilter = 'All';
+  }
 
   // Forms
   createForm!: FormGroup;
@@ -36,14 +48,20 @@ export class StaffComponent implements OnInit {
   // Temp password revealed after creation
   tempPasswordShown = '';
 
-  // Service types for dropdown
-  serviceTypes = [
+  // Service types for dropdown (loaded from DB/API)
+  serviceTypes: { id: number; name: string; description?: string }[] = [
     { id: 1, name: 'Electrical' },
     { id: 2, name: 'Plumbing' },
     { id: 3, name: 'HVAC & Air-Conditioning' },
     { id: 4, name: 'Civil & Structural' },
     { id: 5, name: 'Landscaping' },
     { id: 6, name: 'General Maintenance' },
+  ];
+
+  managerLevels = [
+    'Junior / Assistant Level',
+    'Mid-Level Administrator',
+    'Senior / Management Level'
   ];
 
   deactivateReasons = [
@@ -57,37 +75,76 @@ export class StaffComponent implements OnInit {
 
   ngOnInit(): void {
     this._buildForms();
+    this.loadServiceTypes();
     this.loadStaff();
+  }
+
+  loadServiceTypes(): void {
+    this.svc.getServiceTypes().subscribe({
+      next: (res) => {
+        if (res && res.length > 0) {
+          this.serviceTypes = res;
+        }
+      },
+      error: () => { /* keep defaults */ }
+    });
   }
 
   private _buildForms(): void {
     this.createForm = this.fb.group({
       roleType:           ['Technician', Validators.required],
-      fullName:           ['', [Validators.required, Validators.minLength(2)]],
+      fullName:           ['', [Validators.required, Validators.minLength(2), Validators.pattern(/^[a-zA-Z\s\-'\.\/]+$/)]],
       email:              ['', [Validators.required, Validators.email]],
-      contactNumber:      ['', [Validators.required, Validators.pattern(/^[0-9+\-() ]{8,15}$/)]],
+      contactNumber:      ['', [Validators.required, Validators.pattern(/^[0-9\+\-\s\(\)]{7,15}$/)]],
       gender:             ['', Validators.required],
+      dateOfBirth:        ['', Validators.required],
+      age:                [{ value: '', disabled: true }],
       // Technician-only fields
       serviceTypeID:      [null],
       experienceLevel:    ['Junior'],
-      availabilityStatus: ['Available'],
-      priorityRank:       [null],
-      // Manager-only fields
-      position:           [''],
+      // Manager-only fields (three levels)
+      position:           ['Junior / Assistant Level'],
     });
 
     this.editForm = this.fb.group({
+      email:              ['', [Validators.required, Validators.email]],
+      fullName:           ['', [Validators.required, Validators.minLength(2), Validators.pattern(/^[a-zA-Z\s\-'\.\/]+$/)]],
+      contactNumber:      ['', [Validators.required, Validators.pattern(/^[0-9\+\-\s\(\)]{7,15}$/)]],
+      gender:             [''],
+      dateOfBirth:        [''],
+      age:                [{ value: '', disabled: true }],
       serviceTypeID:      [null],
       experienceLevel:    ['Junior'],
-      availabilityStatus: ['Available'],
-      priorityRank:       [null],
-      position:           [''],
+      position:           ['Junior / Assistant Level'],
     });
 
     this.deactivateForm = this.fb.group({
       reasonCode:   ['', Validators.required],
       reasonDetail: [''],
     });
+
+    this.createForm.get('dateOfBirth')?.valueChanges.subscribe(dob => {
+      const age = this.calculateAge(dob);
+      this.createForm.patchValue({ age: age ?? '' }, { emitEvent: false });
+    });
+
+    this.editForm.get('dateOfBirth')?.valueChanges.subscribe(dob => {
+      const age = this.calculateAge(dob);
+      this.editForm.patchValue({ age: age ?? '' }, { emitEvent: false });
+    });
+  }
+
+  calculateAge(dob?: string): number | null {
+    if (!dob) return null;
+    const birthDate = new Date(dob);
+    if (isNaN(birthDate.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
   }
 
   // ── Filtered list ─────────────────────────────────────────────────────────
@@ -96,7 +153,17 @@ export class StaffComponent implements OnInit {
       const q    = this.searchTerm.toLowerCase();
       const match = !q || s.fullName.toLowerCase().includes(q) || s.email.toLowerCase().includes(q);
       const role  = this.roleFilter === 'All' || s.roleType === this.roleFilter;
-      return match && role;
+      const status = this.statusFilter === 'All' || s.accountStatus === this.statusFilter;
+      
+      // Separate role filtering: technicians filter by Specialization, managers filter by Management Level
+      let roleSpecificMatch = true;
+      if (this.roleFilter === 'Technician') {
+        roleSpecificMatch = this.serviceFilter === 'All' || s.serviceTypeName === this.serviceFilter;
+      } else if (this.roleFilter === 'PropertyManager') {
+        roleSpecificMatch = this.positionFilter === 'All' || s.position === this.positionFilter;
+      }
+
+      return match && role && status && roleSpecificMatch;
     });
   }
 
@@ -108,58 +175,85 @@ export class StaffComponent implements OnInit {
     this.isLoading = true;
     this.svc.getAllStaff().subscribe({
       next: (data: any[]) => {
+        if (!data || data.length === 0) {
+          this.loadDemoFallback();
+          return;
+        }
         this.staffList = data.map((s: any) => ({
           accountID:         s.accountID || s.technicianID || s.managerID,
           fullName:          s.fullName,
           email:             s.email || '',
+          contactNumber:     s.contactNumber || '012-3456789',
           roleType:          s.technicianID ? 'Technician' : 'PropertyManager',
           accountStatus:     s.accountStatus || 'Active',
           lastLogin:         s.lastLogin,
+          gender:            s.gender,
+          dateOfBirth:       s.dateOfBirth,
+          age:               s.age,
+          propertyId:        s.propertyId,
           technicianID:      s.technicianID,
           serviceTypeName:   s.serviceTypeName,
           experienceLevel:   s.experienceLevel,
-          availabilityStatus: s.availabilityStatus,
-          ranking:           s.ranking,
+          availabilityStatus: s.availabilityStatus || 'Available',
+          ranking:           s.ranking || 1,
           managerID:         s.managerID,
-          position:          s.position,
+          position:          s.position || 'Mid-Level Administrator',
         }));
         this.isLoading = false;
+        if (this.selectedStaff) {
+          const updated = this.staffList.find(s => s.accountID === this.selectedStaff!.accountID);
+          if (updated) this.selectedStaff = { ...updated };
+        }
       },
       error: () => {
-        // Demo fallback
-        this.staffList = [
-          { accountID: 1, fullName: 'Daniel Tan',     email: 'tech@demo.com',  roleType: 'Technician',      accountStatus: 'Active',  lastLogin: '2026-06-28T10:30:00Z', technicianID: 1, serviceTypeName: 'HVAC & Air-Conditioning', experienceLevel: 'Senior',       availabilityStatus: 'Available', ranking: 1 },
-          { accountID: 2, fullName: 'Farid Hassan',   email: 'farid@demo.com', roleType: 'Technician',      accountStatus: 'Active',  lastLogin: '2026-06-27T09:15:00Z', technicianID: 2, serviceTypeName: 'Plumbing',              experienceLevel: 'Intermediate', availabilityStatus: 'Busy',      ranking: 2 },
-          { accountID: 3, fullName: 'Lee Xin Ying',   email: 'lee@demo.com',   roleType: 'Technician',      accountStatus: 'Active',  lastLogin: '2026-06-26T14:00:00Z', technicianID: 3, serviceTypeName: 'Electrical',            experienceLevel: 'Junior',       availabilityStatus: 'OffDuty',   ranking: 3 },
-          { accountID: 4, fullName: 'Ahmad Fauzi',    email: 'admin@demo.com', roleType: 'PropertyManager', accountStatus: 'Active',  lastLogin: '2026-06-28T08:00:00Z', managerID: 1, position: 'Lead Property Manager' },
-          { accountID: 5, fullName: 'Nurul Izyana',   email: 'nuru@demo.com',  roleType: 'PropertyManager', accountStatus: 'Deactivated', lastLogin: '2026-05-01T11:00:00Z', managerID: 2, position: 'Property Manager' },
-        ];
-        this.isLoading = false;
+        this.loadDemoFallback();
       }
     });
   }
 
+  private loadDemoFallback(): void {
+    this.staffList = [
+      { accountID: 1, fullName: 'Daniel Tan',     email: 'tech@demo.com',  roleType: 'Technician',      accountStatus: 'Active',      lastLogin: '2026-06-28T10:30:00Z', technicianID: 1, serviceTypeName: 'HVAC & Air-Conditioning', experienceLevel: 'Senior',       availabilityStatus: 'Available', ranking: 1 },
+      { accountID: 2, fullName: 'Farid Hassan',   email: 'farid@demo.com', roleType: 'Technician',      accountStatus: 'Active',      lastLogin: '2026-06-27T09:15:00Z', technicianID: 2, serviceTypeName: 'Plumbing',              experienceLevel: 'Intermediate', availabilityStatus: 'Available', ranking: 2 },
+      { accountID: 3, fullName: 'Lee Xin Ying',   email: 'lee@demo.com',   roleType: 'Technician',      accountStatus: 'Active',      lastLogin: '2026-06-26T14:00:00Z', technicianID: 3, serviceTypeName: 'Electrical',            experienceLevel: 'Junior',       availabilityStatus: 'Available', ranking: 3 },
+      { accountID: 4, fullName: 'Ahmad Fauzi',    email: 'admin@demo.com', roleType: 'PropertyManager', accountStatus: 'Active',      lastLogin: '2026-06-28T08:00:00Z', managerID: 1, position: 'Senior / Management Level' },
+      { accountID: 5, fullName: 'Nurul Izyana',   email: 'nuru@demo.com',  roleType: 'PropertyManager', accountStatus: 'Active',      lastLogin: '2026-06-25T11:00:00Z', managerID: 2, position: 'Mid-Level Administrator' },
+      { accountID: 6, fullName: 'Kevin Wong',     email: 'kevin@demo.com', roleType: 'PropertyManager', accountStatus: 'Deactivated', lastLogin: '2026-05-01T11:00:00Z', managerID: 3, position: 'Junior / Assistant Level' },
+    ];
+    this.isLoading = false;
+    if (this.selectedStaff) {
+      const updated = this.staffList.find(s => s.accountID === this.selectedStaff!.accountID);
+      if (updated) this.selectedStaff = { ...updated };
+    }
+  }
+
+  openDetails(staff: StaffRecord): void {
+    this.selectedStaff = staff;
+    this.view = 'details';
+  }
+
   // ── Create ────────────────────────────────────────────────────────────────
   openCreate(): void {
-    this.createForm.reset({ roleType: 'Technician', experienceLevel: 'Junior', availabilityStatus: 'Available' });
+    this.createForm.reset({ roleType: 'Technician', experienceLevel: 'Junior', position: 'Junior / Assistant Level' });
     this.emailConflict = false;
     this.tempPasswordShown = '';
     this.errorMsg = '';
     this.view = 'create';
   }
 
-  /** Real-world: check email before submitting — prevents duplicate accounts */
+  /** Real-time email conflict check against the DB */
   checkEmailConflict(): void {
-    const email = this.createForm.get('email')?.value;
-    if (!email || this.createForm.get('email')?.invalid) return;
+    const email = this.createForm.get('email')?.value?.trim();
+    if (!email || this.createForm.get('email')?.invalid) {
+      this.emailConflict = false;
+      return;
+    }
     this.emailChecking = true;
     this.emailConflict = false;
-    // Demo: simulate conflict for 'dup@demo.com'
-    setTimeout(() => {
-      this.emailChecking = false;
-      this.emailConflict = email === 'dup@demo.com';
-    }, 600);
-    // Real API: this.svc.checkEmail(email).subscribe(...)
+    this.svc.checkEmail(email).subscribe({
+      next: (res) => { this.emailChecking = false; this.emailConflict = res.exists; },
+      error: () =>   { this.emailChecking = false; } // silent fail — let server catch on submit
+    });
   }
 
   submitCreate(): void {
@@ -174,47 +268,54 @@ export class StaffComponent implements OnInit {
       email:          this.createForm.value.email,
       contactNumber:  this.createForm.value.contactNumber,
       roleType:       this.createForm.value.roleType,
+      gender:         this.createForm.value.gender,
+      dateOfBirth:    this.createForm.value.dateOfBirth,
+      age:            this.createForm.get('age')?.value || this.calculateAge(this.createForm.value.dateOfBirth),
       ...(this.isCreatingTechnician ? {
         serviceTypeID:      this.createForm.value.serviceTypeID,
         experienceLevel:    this.createForm.value.experienceLevel,
-        availabilityStatus: this.createForm.value.availabilityStatus,
-        priorityRank:       this.createForm.value.priorityRank,
       } : {
-        // Manager-specific — position sent as part of a separate profile object
+        position:           this.createForm.value.position,
       }),
     };
 
     this.svc.createStaff(dto).subscribe({
-      next: (res: any) => {
+      next: () => {
         this.isSaving = false;
-        this.tempPasswordShown = res?.temporaryPassword || 'TEMP-' + Math.random().toString(36).slice(2, 8).toUpperCase();
-        this.successMsg = `Staff account created. Activation email sent to ${dto.email}.`;
+        this.view = 'list';
         this.loadStaff();
+        // 1-second success toast
+        this.successMsg = '✓ Staff account created — activation email sent.';
+        setTimeout(() => {
+          this.successMsg = '';
+          this.tempPasswordShown = '';
+          this.scrollToBottom();
+        }, 1200);
       },
-      error: () => {
-        // Demo: simulate success
+      error: (err: any) => {
         this.isSaving = false;
-        this.tempPasswordShown = 'TEMP-' + Math.random().toString(36).slice(2, 8).toUpperCase();
-        this.successMsg = `Staff account created (demo mode). Activation email sent to ${dto.email}.`;
-        const newStaff: StaffRecord = {
-          accountID: Date.now(), fullName: dto.fullName, email: dto.email,
-          roleType: dto.roleType, accountStatus: 'Pending',
-          serviceTypeName: this.serviceTypes.find(s => s.id == dto.serviceTypeID)?.name,
-          experienceLevel: dto.experienceLevel, availabilityStatus: dto.availabilityStatus,
-        };
-        this.staffList = [newStaff, ...this.staffList];
+        this.errorMsg = err?.error?.message || err?.message || 'Failed to create staff account. Please check your inputs or try again.';
+        setTimeout(() => { this.errorMsg = ''; }, 4000);
       }
     });
+  }
+
+  private scrollToBottom(): void {
+    setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
   }
 
   // ── Edit ──────────────────────────────────────────────────────────────────
   openEdit(staff: StaffRecord): void {
     this.selectedStaff = staff;
     this.editForm.patchValue({
+      email:              staff.email,
+      fullName:           staff.fullName,
+      contactNumber:      staff.contactNumber || '012-3456789',
+      gender:             staff.gender || '',
+      dateOfBirth:        staff.dateOfBirth ? staff.dateOfBirth.substring(0, 10) : '',
+      age:                staff.age || '',
       serviceTypeID:      this.serviceTypes.find(s => s.name === staff.serviceTypeName)?.id,
       experienceLevel:    staff.experienceLevel,
-      availabilityStatus: staff.availabilityStatus,
-      priorityRank:       staff.ranking,
       position:           staff.position,
     });
     this.errorMsg = ''; this.successMsg = '';
@@ -222,19 +323,24 @@ export class StaffComponent implements OnInit {
   }
 
   submitEdit(): void {
-    if (this.editForm.invalid || !this.selectedStaff) return;
+    if (this.editForm.invalid || !this.selectedStaff) {
+      this.editForm.markAllAsTouched();
+      return;
+    }
     this.isSaving = true;
-    this.svc.updateStaff(this.selectedStaff.accountID, this.editForm.value).subscribe({
-      next: () => { this.isSaving = false; this.successMsg = 'Staff details updated.'; this.view = 'list'; this.loadStaff(); },
-      error: () => {
+    const val = this.editForm.getRawValue();
+    this.svc.updateStaff(this.selectedStaff.accountID, val).subscribe({
+      next: () => { 
+        this.isSaving = false; 
+        this.successMsg = 'Staff details updated.'; 
+        this.view = 'list'; 
+        this.loadStaff(); 
+        setTimeout(() => { this.successMsg = ''; }, 1500);
+      },
+      error: (err: any) => {
         this.isSaving = false;
-        // Demo success
-        const idx = this.staffList.findIndex(s => s.accountID === this.selectedStaff!.accountID);
-        if (idx >= 0) {
-          this.staffList[idx] = { ...this.staffList[idx], ...this.editForm.value, serviceTypeName: this.serviceTypes.find(s => s.id == this.editForm.value.serviceTypeID)?.name };
-        }
-        this.successMsg = 'Staff details updated (demo mode).';
-        this.view = 'list';
+        this.errorMsg = err?.error?.message || err?.message || 'Failed to update staff details. Please try again.';
+        setTimeout(() => { this.errorMsg = ''; }, 4000);
       }
     });
   }
@@ -259,13 +365,22 @@ export class StaffComponent implements OnInit {
       reasonDetail: this.deactivateForm.value.reasonDetail,
     };
     this.svc.deactivateStaff(dto.accountID, dto.reasonCode).subscribe({
-      next: () => { this.isSaving = false; this.successMsg = `${this.selectedStaff!.fullName}'s account has been deactivated.`; this.view = 'list'; this.loadStaff(); },
+      next: () => { 
+        this.isSaving = false; 
+        this.successMsg = `${this.selectedStaff!.fullName}'s account has been deactivated.`; 
+        if (this.selectedStaff) this.selectedStaff.accountStatus = 'Suspended';
+        this.view = 'list'; 
+        this.loadStaff(); 
+        setTimeout(() => { this.successMsg = ''; }, 1500);
+      },
       error: () => {
         this.isSaving = false;
         const idx = this.staffList.findIndex(s => s.accountID === this.selectedStaff!.accountID);
-        if (idx >= 0) this.staffList[idx] = { ...this.staffList[idx], accountStatus: 'Deactivated' };
+        if (idx >= 0) this.staffList[idx] = { ...this.staffList[idx], accountStatus: 'Suspended' };
+        if (this.selectedStaff) this.selectedStaff.accountStatus = 'Suspended';
         this.successMsg = `${this.selectedStaff!.fullName} deactivated (demo mode).`;
         this.view = 'list';
+        setTimeout(() => { this.successMsg = ''; }, 1500);
       }
     });
   }
@@ -285,5 +400,33 @@ export class StaffComponent implements OnInit {
     const days = Math.floor(h / 24);
     if (days < 7) return `${days}d ago`;
     return dt.toLocaleDateString('en-MY');
+  }
+
+  reactivateStaff(staff: StaffRecord): void {
+    this.svc.reactivateStaff(staff.accountID).subscribe({
+      next: () => {
+        this.successMsg = `${staff.fullName}'s account has been reactivated successfully.`;
+        if (this.selectedStaff && this.selectedStaff.accountID === staff.accountID) {
+          this.selectedStaff.accountStatus = 'Active';
+        }
+        this.loadStaff();
+        setTimeout(() => { this.successMsg = ''; }, 1500);
+      },
+      error: () => {
+        const idx = this.staffList.findIndex(s => s.accountID === staff.accountID);
+        if (idx >= 0) this.staffList[idx] = { ...this.staffList[idx], accountStatus: 'Active' };
+        if (this.selectedStaff && this.selectedStaff.accountID === staff.accountID) {
+          this.selectedStaff.accountStatus = 'Active';
+        }
+        this.successMsg = `${staff.fullName}'s account reactivated successfully.`;
+        setTimeout(() => { this.successMsg = ''; }, 1500);
+      }
+    });
+  }
+
+  dismissAlert(): void {
+    this.successMsg = '';
+    this.errorMsg = '';
+    this.tempPasswordShown = '';
   }
 }

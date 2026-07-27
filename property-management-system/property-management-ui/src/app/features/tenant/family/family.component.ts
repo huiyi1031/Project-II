@@ -21,6 +21,8 @@ export class FamilyComponent implements OnInit {
   removeTargetName = '';
   showRemoveModal = false;
   selectedMember: FamilyMember | null = null;
+  ownerInfo:   any | null = null;
+  isResident   = false; // true if occupantType = 3 (family member)
 
   addForm: FormGroup;
 
@@ -37,6 +39,25 @@ export class FamilyComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadData();
+    this.loadMyRole();
+  }
+
+  loadMyRole(): void {
+    this.svc.getMyProfile().subscribe({
+      next: (p: any) => {
+        // OccupantType: 1=Owner, 2=Tenant, 3=Resident
+        this.isResident = p.occupantType === 3;
+        if (this.isResident) this.loadOwnerInfo();
+      },
+      error: () => {}
+    });
+  }
+
+  loadOwnerInfo(): void {
+    this.svc.getMyOwner().subscribe({
+      next: (o: any) => { this.ownerInfo = o; },
+      error: () => { this.ownerInfo = null; }
+    });
   }
 
   loadData(): void {

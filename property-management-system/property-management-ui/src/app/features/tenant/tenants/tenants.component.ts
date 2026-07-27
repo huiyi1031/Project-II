@@ -23,7 +23,7 @@ export class TenantsComponent implements OnInit {
   removeForm: FormGroup;
   selectedTenant: TenantRecord | null = null;
 
-  units: any[] = [{ unitId: 1, unitNumber: 'A-12-03' }]; // fallback
+  units: any[] = []; // loaded from API
 
   constructor(
     private fb: FormBuilder,
@@ -46,7 +46,17 @@ export class TenantsComponent implements OnInit {
     });
   }
 
-  ngOnInit(): void { this.loadTenants(); }
+  ngOnInit(): void {
+    this.loadTenants();
+    this.loadOwnerUnits();
+  }
+
+  loadOwnerUnits(): void {
+    this.svc.getOwnerUnits().subscribe({
+      next: (units) => { this.units = units; },
+      error: () => { this.units = []; }
+    });
+  }
 
   loadTenants(): void {
     this.isLoading = true;
@@ -67,11 +77,11 @@ export class TenantsComponent implements OnInit {
     this.svc.addTenant(this.step1Form.value).subscribe({
       next: (res: any) => {
         this.isSaving = false;
-        this.successMsg = `Tenant added. A temporary password (${res.tempPassword}) was sent via email.`;
+        this.successMsg = `✓ Tenant added — activation email sent.`;
         this.view = 'list';
         this.loadTenants();
         this.step1Form.reset();
-        setTimeout(() => this.successMsg = '', 6000);
+        setTimeout(() => this.successMsg = '', 1200);
       },
       error: (e) => {
         this.isSaving = false;

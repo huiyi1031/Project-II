@@ -9,6 +9,10 @@ export class StaffService {
 
   constructor(private http: HttpClient) {}
 
+  getServiceTypes(): Observable<{id: number, name: string, description?: string}[]> {
+    return this.http.get<{id: number, name: string, description?: string}[]>(`${this.base}/service-types`);
+  }
+
   getAllStaff(): Observable<(Technician | PropertyManager)[]> {
     return this.http.get<(Technician | PropertyManager)[]>(`${this.base}`);
   }
@@ -25,11 +29,19 @@ export class StaffService {
     return this.http.post<any>(`${this.base}`, dto);
   }
 
+  checkEmail(email: string): Observable<{ exists: boolean }> {
+    return this.http.get<{ exists: boolean }>(`${this.base}/check-email?email=${encodeURIComponent(email)}`);
+  }
+
   updateStaff(id: number, dto: UpdateStaffDto): Observable<void> {
     return this.http.put<void>(`${this.base}/${id}`, dto);
   }
 
   deactivateStaff(id: number, reason: string): Observable<void> {
     return this.http.patch<void>(`${this.base}/${id}/deactivate`, { reason });
+  }
+
+  reactivateStaff(id: number): Observable<void> {
+    return this.http.patch<void>(`${this.base}/${id}/reactivate`, {});
   }
 }

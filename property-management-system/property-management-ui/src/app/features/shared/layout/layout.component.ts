@@ -13,32 +13,52 @@ export interface MenuItem {
 const MENUS: Record<string, MenuItem[]> = {
   Occupant: [
     { label: 'Dashboard', route: 'dashboard' },
-    { label: 'New Request', route: 'create-request' },
-    { label: 'Track Request', route: 'track-request' },
-    { label: 'Chat', route: 'chat' },
-    { label: 'My Property', route: 'my-property' },
+    {
+      label: 'Property', children: [
+        { label: 'My Property', route: 'my-property' },
+      ]
+    },
+    {
+      label: 'Maintenance', children: [
+        { label: 'New Request', route: 'create-request' },
+        { label: 'Track Request', route: 'track-request' },
+        { label: 'Chat', route: 'chat' },
+      ]
+    },
   ],
   Technician: [
     { label: 'Dashboard', route: 'dashboard' },
-    { label: 'Work Orders', route: 'work-orders' },
-    { label: 'Execute Work', route: 'execute-work' },
-    { label: 'Chat', route: 'chat' },
-    { label: 'Report', route: 'report' },
+    {
+      label: 'Maintenance', children: [
+        { label: 'Work Orders', route: 'work-orders' },
+        { label: 'Execute Work', route: 'execute-work' },
+        { label: 'Report', route: 'report' },
+        { label: 'Chat', route: 'chat' },
+      ]
+    },
   ],
   PropertyManager: [
     { label: 'Dashboard', route: 'dashboard' },
     {
-      label: 'Account Management', children: [
-        { label: 'Staff Accounts', route: 'staff' },
-        { label: 'Owner / Tenant', route: 'occupants' },
+      label: 'Property', children: [
+        { label: 'Property Units', route: 'units' },
+        { label: 'Assets', route: 'assets' },
       ]
     },
-    { label: 'Requests', route: 'requests' },
-    { label: 'Work Orders', route: 'work-orders' },
-    { label: 'Property Units', route: 'units' },
-    { label: 'Assets', route: 'assets' },
-    { label: 'Proactive', route: 'proactive' },
-    { label: 'Chat', route: 'chat' },
+    {
+      label: 'Maintenance', children: [
+        { label: 'Maintenance Requests', route: 'requests' },
+        { label: 'Work Orders', route: 'work-orders' },
+        { label: 'Proactive Maintenance', route: 'proactive' },
+        { label: 'Chat', route: 'chat' },
+      ]
+    },
+    {
+      label: 'Account', children: [
+        { label: 'Owner / Tenant', route: 'occupants' },
+        { label: 'Staff Accounts', route: 'staff' },
+      ]
+    },
   ],
 };
 
@@ -58,8 +78,12 @@ export class LayoutComponent implements OnInit, OnDestroy {
   userEmail = '';
 
   /* UI state */
-  openDropdown: string | null = null;   // label of currently open dropdown
-  isSidebarOpen = window.innerWidth > 1024;
+  openGroups: Record<string, boolean> = {
+    'Property': true,
+    'Maintenance': true,
+    'Account': true,
+  };
+  isSidebarOpen = false;
   isProfileMenuOpen = false;
 
   private sub!: Subscription;
@@ -91,20 +115,44 @@ export class LayoutComponent implements OnInit, OnDestroy {
     const base = `/${this.rolePrefix}`;
     this.router.navigate([base, item.route]);
     this.activeItem = item.route;
-    this.openDropdown = null;
-    this.isSidebarOpen = window.innerWidth > 1024;
+    if (window.innerWidth <= 1024) {
+      this.isSidebarOpen = false;
+    }
+  }
+
+  /* ── Hover controls ──────────────────────────────────────────────────── */
+  onSidebarMouseEnter(): void {
+    if (window.innerWidth > 1024) {
+      this.isSidebarOpen = true;
+    }
+  }
+
+  onSidebarMouseLeave(): void {
+    if (window.innerWidth > 1024) {
+      this.isSidebarOpen = false;
+    }
+  }
+
+  onGroupHover(label: string): void {
+    if (this.isSidebarOpen) {
+      this.openGroups[label] = true;
+    }
   }
 
   /* ── Dropdown toggle ─────────────────────────────────────────────────── */
   toggleDropdown(label: string, event: Event): void {
     event.stopPropagation();
-    this.openDropdown = this.openDropdown === label ? null : label;
+    if (!this.isSidebarOpen) {
+      this.isSidebarOpen = true;
+      this.openGroups[label] = true;
+      return;
+    }
+    this.openGroups[label] = !this.openGroups[label];
   }
 
   /* ── Sidebar toggle ────────────────────────────────────────────────── */
   toggleSidebar(): void {
     this.isSidebarOpen = !this.isSidebarOpen;
-    if (!this.isSidebarOpen) this.openDropdown = null;
   }
 
   /* ── Profile dropdown ────────────────────────────────────────────────── */
@@ -116,7 +164,6 @@ export class LayoutComponent implements OnInit, OnDestroy {
   /* ── Click-outside to close dropdowns ────────────────────────────────── */
   @HostListener('document:click')
   onDocumentClick(): void {
-    this.openDropdown = null;
     this.isProfileMenuOpen = false;
   }
 
