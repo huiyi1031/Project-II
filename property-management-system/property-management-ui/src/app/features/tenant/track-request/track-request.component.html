@@ -1,91 +1,131 @@
-<!-- Track Maintenance Request -->
-<div class="fade-in space-y-4">
+﻿<div class="fade-in space-y-4">
+  <div class="pms-card">
+    <div class="flex flex-wrap items-start gap-3 mb-3">
+      <div class="flex-1">
+        <h4 class="section-title mb-1">Request Notifications</h4>
+        <p class="text-xs text-muted" *ngIf="!loadingNotifications">
+          {{ notifications.length }} approval update(s)
+        </p>
+      </div>
+    </div>
+
+    <div *ngIf="loadingNotifications" class="text-sm text-muted py-4 text-center">Loading notifications...</div>
+
+    <div *ngIf="!loadingNotifications && notifications.length === 0" class="text-sm text-muted py-4 text-center">
+      No approved or rejected request notifications yet.
+    </div>
+
+    <div *ngIf="!loadingNotifications && notifications.length > 0" class="space-y-2">
+      <button
+        *ngFor="let notification of notifications; trackBy: trackByNotification"
+        type="button"
+        class="w-full text-left border border-[#dbe7fb] rounded-lg bg-white px-3 py-2.5 hover:bg-light-blue transition-colors"
+        (click)="openNotification(notification)">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="font-mono text-xs text-blue">{{ notification.requestNumber }}</span>
+          <app-status-badge [status]="notification.status"></app-status-badge>
+          <span class="text-xs text-muted" *ngIf="notification.decidedAt">
+            {{ notification.decidedAt | date:'dd MMM yyyy, HH:mm' }}
+          </span>
+        </div>
+        <div class="text-sm font-semibold mt-1">{{ notification.message }} {{ notification.requestTitle }}</div>
+        <div *ngIf="notification.reason" class="text-xs text-muted mt-1">Reason: {{ notification.reason }}</div>
+      </button>
+    </div>
+  </div>
+
   <div class="pms-card">
     <div class="flex flex-wrap gap-3 items-end mb-4">
       <h4 class="section-title mb-0 flex-1">Track Maintenance Request</h4>
-      <div class="flex gap-3">
+      <div class="flex flex-wrap gap-3">
         <div class="space-y-1">
-          <label class="pms-label">Filter by Status</label>
+          <label class="pms-label">Status</label>
           <select [(ngModel)]="statusFilter" (change)="loadRequests()" class="pms-select w-40">
-            <option>All</option>
-            <option>Pending</option>
-            <option>Assigned</option>
-            <option>InProgress</option>
-            <option>Completed</option>
-            <option>Cancelled</option>
+            <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
           </select>
         </div>
         <div class="space-y-1">
           <label class="pms-label">Date</label>
-          <input type="date" [(ngModel)]="dateFilter" (change)="loadRequests()" class="pms-input w-40"/>
+          <input type="date" [(ngModel)]="dateFilter" (change)="applyDateFilter()" class="pms-input w-40" />
         </div>
       </div>
     </div>
 
-    <table class="pms-table">
+    <div *ngIf="errorMsg" class="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm mb-3">
+      {{ errorMsg }}
+    </div>
+
+    <div *ngIf="loading" class="text-sm text-muted py-6 text-center">Loading maintenance requests...</div>
+
+    <table *ngIf="!loading" class="pms-table">
       <thead>
         <tr>
-          <th>Case ID</th><th>Issue</th><th>Technician</th>
-          <th>Scheduled</th><th>Status</th><th>Action</th>
+          <th>Request ID</th>
+          <th>Issue</th>
+          <th>Location</th>
+          <th>Submitted</th>
+          <th>Status</th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let r of requests" (click)="selectRequest(r)"
-            class="cursor-pointer" [class.bg-light-blue]="selected?.requestID === r.requestID">
-          <td class="font-mono text-xs text-blue">REQ-{{ r.requestID | number:'4.0-0' }}</td>
-          <td class="font-medium">{{ r.requestTitle }}</td>
-          <td class="text-muted">{{ r.assignedTechnicianName || '—' }}</td>
-          <td class="text-muted text-xs">{{ r.scheduledDate ? (r.scheduledDate | date:'dd MMM yyyy, HH:mm') : '—' }}</td>
+        <tr *ngFor="let r of filteredRequests" (click)="selectRequest(r)" class="cursor-pointer" [class.bg-light-blue]="selected?.requestID === r.requestID">
+          <td class="font-mono text-xs text-blue">{{ r.requestNumber }}</td>
+          <td>
+            <div class="font-medium">{{ r.requestTitle }}</div>
+            <div class="text-xs text-muted">{{ r.issueCategory }}</div>
+          </td>
+          <td class="text-muted">{{ r.location || r.unitNumber }}</td>
+          <td class="text-muted text-xs">{{ r.submissionDate | date:'dd MMM yyyy, HH:mm' }}</td>
           <td><app-status-badge [status]="r.status"></app-status-badge></td>
           <td>
-            <button class="btn-outline text-xs px-2 py-1" (click)="selectRequest(r); $event.stopPropagation()">
-              Details
-            </button>
+            <button class="btn-outline text-xs px-2 py-1" type="button" (click)="selectRequest(r); $event.stopPropagation()">Details</button>
           </td>
         </tr>
-        <!-- Mock fallback -->
-        <ng-container *ngIf="requests.length === 0">
-          <tr (click)="selectMock()">
-            <td class="font-mono text-xs text-blue cursor-pointer">REQ-2026-0012</td>
-            <td>Aircond leaking</td><td class="text-muted">Mr. Daniel</td>
-            <td class="text-muted text-xs">10 Apr 2026, 10:00</td>
-            <td><app-status-badge status="InProgress"></app-status-badge></td>
-            <td><button class="btn-outline text-xs px-2 py-1">Details</button></td>
-          </tr>
-          <tr>
-            <td class="font-mono text-xs text-blue">REQ-2026-0009</td>
-            <td>Toilet clogging</td><td class="text-muted">Mr. Farid</td>
-            <td class="text-muted text-xs">08 Apr 2026, 14:00</td>
-            <td><app-status-badge status="Completed"></app-status-badge></td>
-            <td><button class="btn-outline text-xs px-2 py-1">Details</button></td>
-          </tr>
-        </ng-container>
+        <tr *ngIf="filteredRequests.length === 0">
+          <td colspan="6" class="text-center text-muted py-6">No maintenance requests found.</td>
+        </tr>
       </tbody>
     </table>
   </div>
 
-  <!-- Progress Detail (shows when a row is selected) -->
-  <div *ngIf="showProgress" class="pms-card">
-    <h4 class="section-title">Progress Detail — {{ selectedTitle }}</h4>
-    <div class="text-xs text-muted mb-3">{{ selectedId }}</div>
+  <div *ngIf="loadingDetail" class="pms-card text-sm text-muted py-6 text-center">Loading request details...</div>
 
-    <!-- Shopee-style progress bar -->
-    <div class="mb-3">
-      <div class="progress-track">
-        <div class="progress-fill" [style.width]="progressWidth"></div>
+  <div *ngIf="selected && !loadingDetail" class="pms-card">
+    <div class="flex flex-wrap items-start gap-3 mb-3">
+      <div class="flex-1">
+        <h4 class="section-title mb-1">{{ selected.requestTitle }}</h4>
+        <div class="font-mono text-xs text-blue">{{ selected.requestNumber }}</div>
       </div>
-      <div class="flex justify-between text-[10px] text-[#58739b] mt-1.5">
-        <span>Submitted</span><span>Assigned</span><span>Scheduled</span>
-        <span>In Progress</span><span>Completed</span>
-      </div>
+      <app-status-badge [status]="selected.status"></app-status-badge>
     </div>
 
-    <!-- Step indicators -->
-    <div class="flex flex-wrap gap-4 mt-3">
-      <div *ngFor="let step of steps; let i = index" class="flex items-center gap-2 text-xs">
-        <span [class]="step.done ? 'w-2.5 h-2.5 rounded-full bg-success flex-shrink-0'
-                                 : 'w-2.5 h-2.5 rounded-full bg-[#dbe7fb] flex-shrink-0'"></span>
-        <span [class]="step.done ? 'text-navy font-medium' : 'text-muted'">{{ step.label }}</span>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm mb-4">
+      <div><div class="pms-label">Issue Type</div><div>{{ selected.issueCategory }}</div></div>
+      <div><div class="pms-label">Location</div><div>{{ selected.location }}</div></div>
+      <div><div class="pms-label">Priority</div><app-status-badge [status]="selected.priorityLevel"></app-status-badge></div>
+      <div><div class="pms-label">Submitted</div><div>{{ selected.submissionDate | date:'dd MMM yyyy, HH:mm' }}</div></div>
+      <div><div class="pms-label">Preferred Access</div><div>{{ selected.preferredScheduleDate ? (selected.preferredScheduleDate | date:'dd MMM yyyy, HH:mm') : '-' }}</div></div>
+      <div><div class="pms-label">Current Status</div><div>{{ selected.status }}</div></div>
+    </div>
+
+    <div class="mb-4">
+      <div class="pms-label">Description</div>
+      <p class="text-sm text-muted whitespace-pre-line">{{ selected.description }}</p>
+    </div>
+
+    <div class="mb-4" *ngIf="selected.rejectionReason || selected.cancellationReason">
+      <div class="pms-label">Reason</div>
+      <p class="text-sm text-muted">{{ selected.rejectionReason || selected.cancellationReason }}</p>
+    </div>
+
+    <div>
+      <div class="pms-label mb-2">Status History</div>
+      <div *ngIf="selected.history.length === 0" class="text-sm text-muted">No history recorded.</div>
+      <div *ngFor="let item of selected.history" class="border-t border-[#e5edf8] py-2 text-sm">
+        <div class="font-medium">{{ item.action }} <span class="text-muted font-normal">to</span> {{ item.newStatus }}</div>
+        <div class="text-xs text-muted">{{ item.performedAt | date:'dd MMM yyyy, HH:mm' }} by {{ item.performedBy }}</div>
+        <div *ngIf="item.remarks" class="text-xs text-muted mt-1">{{ item.remarks }}</div>
       </div>
     </div>
   </div>

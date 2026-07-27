@@ -1,9 +1,10 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using PropertyManagement.API.Data;
 using PropertyManagement.API.Services;
+using PropertyManagement.API.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +16,7 @@ builder.Services.AddSwaggerGen();
 // Configure Database - PostgreSQL (Supabase)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));  // ← PostgreSQL / Supabase
+    options.UseNpgsql(connectionString));  // â† PostgreSQL / Supabase
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -49,6 +50,8 @@ builder.Services.AddCors(options =>
 // Register Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IMaintenanceRequestRepository, MaintenanceRequestRepository>();
+builder.Services.AddScoped<IMaintenanceRequestService, MaintenanceRequestService>();
 
 var app = builder.Build();
 
@@ -60,6 +63,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();

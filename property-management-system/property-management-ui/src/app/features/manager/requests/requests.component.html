@@ -85,8 +85,6 @@
                   (click)="approve(r)">Approve</button>
                 <button *ngIf="canReject(r)" class="btn-danger text-xs px-2 py-1" type="button"
                   (click)="beginAction('reject', r)">Reject</button>
-                <button *ngIf="canCancel(r)" class="btn-outline text-xs px-2 py-1" type="button"
-                  (click)="beginAction('cancel', r)">Cancel</button>
               </div>
             </td>
           </tr>

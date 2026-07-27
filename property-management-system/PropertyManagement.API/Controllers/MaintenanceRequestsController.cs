@@ -1,12 +1,8 @@
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using PropertyManagement.API.Data;
-using PropertyManagement.API.Models.DTOs;
-using PropertyManagement.API.Models.Entities;
-using PropertyManagement.API.Models.Enums;
-using System.Security.Claims;
-using System.IO;
+using PropertyManagement.API.Models.DTOs.MaintenanceRequests;
+using PropertyManagement.API.Services;
 
 namespace PropertyManagement.API.Controllers
 {
@@ -15,258 +11,221 @@ namespace PropertyManagement.API.Controllers
     [Authorize]
     public class MaintenanceRequestsController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private const long MaxImageBytes = 10 * 1024 * 1024;
+        private static readonly HashSet<string> AllowedImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".jpg",
+            ".jpeg",
+            ".png"
+        };
+
+        private readonly IMaintenanceRequestService _service;
         private readonly IWebHostEnvironment _environment;
 
-        public MaintenanceRequestsController(AppDbContext context, IWebHostEnvironment environment)
+        public MaintenanceRequestsController(IMaintenanceRequestService service, IWebHostEnvironment environment)
         {
-            _context = context;
+            _service = service;
             _environment = environment;
         }
 
-        private long GetCurrentUserId()
+        [HttpGet]
+        public async Task<ActionResult<PagedResponse<MaintenanceRequestListItemResponse>>> GetRequests([FromQuery] MaintenanceRequestFilterRequest filter, CancellationToken cancellationToken)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim != null && long.TryParse(userIdClaim.Value, out long userId))
-                return userId;
-            return 0;
+            return Ok(await _service.GetPagedAsync(filter, cancellationToken));
+        }
+
+        [HttpGet("my")]
+        public async Task<ActionResult<PagedResponse<MaintenanceRequestListItemResponse>>> GetMyRequests([FromQuery] MaintenanceRequestFilterRequest filter, CancellationToken cancellationToken)
+        {
+            return Ok(await _service.GetPagedAsync(filter, cancellationToken));
+        }
+
+        [HttpGet("requesters")]
+        public async Task<ActionResult<IReadOnlyList<MaintenanceRequesterResponse>>> GetRequesters(CancellationToken cancellationToken)
+        {
+            return Ok(await _service.GetRequestersAsync(cancellationToken));
+        }
+
+        [HttpGet("{id:long}")]
+        public async Task<ActionResult<MaintenanceRequestDetailResponse>> GetRequest(long id, CancellationToken cancellationToken)
+        {
+            var response = await _service.GetByIdAsync(id, cancellationToken);
+            return response is null ? NotFound(new { message = "Maintenance request was not found." }) : Ok(response);
+        }
+
+        [HttpGet("{id:long}/history")]
+        public async Task<ActionResult<IReadOnlyList<MaintenanceRequestHistoryResponse>>> GetHistory(long id, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return Ok(await _service.GetHistoryAsync(id, cancellationToken));
+            }
+            catch (MaintenanceRequestBusinessException exception)
+            {
+                return NotFound(new { message = exception.Message });
+            }
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateRequest([FromForm] CreateMaintenanceRequestDto requestDto)
+        [Consumes("application/json")]
+        public async Task<ActionResult<MaintenanceRequestDetailResponse>> Create([FromBody] CreateMaintenanceRequestRequest request, CancellationToken cancellationToken)
         {
-            var userId = GetCurrentUserId();
-            var occupant = await _context.Occupants.FirstOrDefaultAsync(o => o.UserAccountId == userId);
-            
-            if (occupant == null)
+            try
             {
-                // Auto-create occupant if it's missing (e.g. from a previous bug)
-                var user = await _context.UserAccounts.FindAsync(userId);
-                if (user != null)
-                {
-                    occupant = new Occupant
-                    {
-                        UserAccountId = userId,
-                        FullName = "Missing Profile",
-                        OccupantType = OccupantType.Resident,
-                        OccupantStatus = "Active"
-                    };
-                    _context.Occupants.Add(occupant);
-                    await _context.SaveChangesAsync();
-                }
-                else
-                {
-                    return BadRequest(new { message = $"Only occupants can create maintenance requests. (User ID {userId} not found)" });
-                }
+                var response = await _service.CreateAsync(request, GetPerformedBy(), cancellationToken);
+                return Created($"/api/MaintenanceRequests/{response.RequestID}", response);
             }
-
-            // Handle Image Upload
-            string? imagePath = null;
-            if (requestDto.Image != null && requestDto.Image.Length > 0)
+            catch (MaintenanceRequestValidationException exception)
             {
-                var webRoot = _environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-                var uploadsFolder = Path.Combine(webRoot, "uploads", "maintenance");
-                
-                if (!Directory.Exists(uploadsFolder))
-                {
-                    Directory.CreateDirectory(uploadsFolder);
-                }
-
-                var uniqueFileName = Guid.NewGuid().ToString() + "_" + requestDto.Image.FileName;
-                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                using (var fileStream = new FileStream(filePath, FileMode.Create))
-                {
-                    await requestDto.Image.CopyToAsync(fileStream);
-                }
-                
-                imagePath = $"/uploads/maintenance/{uniqueFileName}";
+                return BadRequest(new ValidationProblemDetails(ToValidationDictionary(exception.Errors)));
             }
-
-            var request = new MaintenanceRequest
+            catch (MaintenanceRequestBusinessException exception)
             {
-                Title = requestDto.Title,
-                AssetType = requestDto.IssueCategory, // We store the category in AssetType here
-                Description = requestDto.Description,
-                UnitId = requestDto.UnitId,
-                OccupantId = occupant.Id,
-                ImagePath = imagePath,
-                PriorityLevel = PriorityLevel.Medium,
-                RequestDate = DateTime.UtcNow,
-                Status = RequestStatus.Pending
-            };
-
-            _context.MaintenanceRequests.Add(request);
-            await _context.SaveChangesAsync();
-
-            // Auto-assign Technician logic
-            var availableTechnician = await _context.Technicians
-                .Include(t => t.ServiceType)
-                .Where(t => t.AvailabilityStatus == "Available" && 
-                            t.ServiceType != null && 
-                            t.ServiceType.Name == requestDto.IssueCategory && 
-                            !t.IsDeleted)
-                .FirstOrDefaultAsync();
-
-            WorkOrder? workOrder = null;
-            if (availableTechnician != null)
-            {
-                // Create Work Order
-                workOrder = new WorkOrder
-                {
-                    RequestId = request.Id,
-                    WorkType = requestDto.IssueCategory,
-                    Description = requestDto.Description,
-                    ScheduleDate = DateTime.UtcNow.AddDays(1), // default schedule for next day
-                    Status = "Assigned"
-                };
-                _context.WorkOrders.Add(workOrder);
-                await _context.SaveChangesAsync();
-
-                // Create Work Assignment
-                var assignment = new WorkAssignment
-                {
-                    WorkOrderId = workOrder.Id,
-                    TechnicianId = availableTechnician.Id,
-                    AssignedDate = DateTime.UtcNow,
-                    Status = "Assigned"
-                };
-                _context.WorkAssignments.Add(assignment);
-                
-                // Update Request Status
-                request.Status = RequestStatus.InProgress;
-                
-                await _context.SaveChangesAsync();
+                return Conflict(new { message = exception.Message });
             }
+        }
 
-            // Create Chat Room
-            var chat = new Chat
+        [HttpPost]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<MaintenanceRequestDetailResponse>> CreateFromForm([FromForm] CreateMaintenanceRequestFormRequest request, CancellationToken cancellationToken)
+        {
+            try
             {
-                RequestId = request.Id
-            };
-            _context.Chats.Add(chat);
-            await _context.SaveChangesAsync();
+                var imagePath = await SaveMaintenanceImageAsync(request.Image, cancellationToken);
+                var response = await _service.CreateAsync(request.ToCreateRequest(imagePath), GetPerformedBy(), cancellationToken);
+                return Created($"/api/MaintenanceRequests/{response.RequestID}", response);
+            }
+            catch (MaintenanceRequestValidationException exception)
+            {
+                return BadRequest(new ValidationProblemDetails(ToValidationDictionary(exception.Errors)));
+            }
+            catch (MaintenanceRequestBusinessException exception)
+            {
+                return Conflict(new { message = exception.Message });
+            }
+        }
 
-            // Add Participants to Chat
-            // 1. Tenant/Occupant
-            _context.ChatParticipants.Add(new ChatParticipant
+        [HttpPut("{id:long}")]
+        public async Task<ActionResult<MaintenanceRequestDetailResponse>> Update(long id, [FromBody] UpdateMaintenanceRequestRequest request, CancellationToken cancellationToken)
+        {
+            try
             {
-                ChatId = chat.Id,
-                UserAccountId = userId
-            });
+                return Ok(await _service.UpdateAsync(id, request, GetPerformedBy(), cancellationToken));
+            }
+            catch (MaintenanceRequestValidationException exception)
+            {
+                return BadRequest(new ValidationProblemDetails(ToValidationDictionary(exception.Errors)));
+            }
+            catch (MaintenanceRequestBusinessException exception)
+            {
+                return Conflict(new { message = exception.Message });
+            }
+        }
 
-            // 2. Property Manager
-            // Find a property manager to assign (get the first one for simplicity)
-            var propertyManager = await _context.PropertyManagers.FirstOrDefaultAsync(pm => !pm.IsDeleted);
-            if (propertyManager != null)
+        [HttpPost("{id:long}/approve")]
+        public async Task<IActionResult> Approve(long id, CancellationToken cancellationToken)
+        {
+            try
             {
-                _context.ChatParticipants.Add(new ChatParticipant
+                await _service.ApproveAsync(id, GetPerformedBy(), cancellationToken);
+                return NoContent();
+            }
+            catch (MaintenanceRequestBusinessException exception)
+            {
+                return Conflict(new { message = exception.Message });
+            }
+        }
+
+        [HttpPost("{id:long}/reject")]
+        public async Task<IActionResult> Reject(long id, [FromBody] RejectMaintenanceRequestRequest request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _service.RejectAsync(id, request, GetPerformedBy(), cancellationToken);
+                return NoContent();
+            }
+            catch (MaintenanceRequestValidationException exception)
+            {
+                return BadRequest(new ValidationProblemDetails(ToValidationDictionary(exception.Errors)));
+            }
+            catch (MaintenanceRequestBusinessException exception)
+            {
+                return Conflict(new { message = exception.Message });
+            }
+        }
+
+        [HttpPost("{id:long}/cancel")]
+        public async Task<IActionResult> Cancel(long id, [FromBody] CancelMaintenanceRequestRequest request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _service.CancelAsync(id, request, GetPerformedBy(), cancellationToken);
+                return NoContent();
+            }
+            catch (MaintenanceRequestValidationException exception)
+            {
+                return BadRequest(new ValidationProblemDetails(ToValidationDictionary(exception.Errors)));
+            }
+            catch (MaintenanceRequestBusinessException exception)
+            {
+                return Conflict(new { message = exception.Message });
+            }
+        }
+
+        private async Task<string?> SaveMaintenanceImageAsync(IFormFile? image, CancellationToken cancellationToken)
+        {
+            if (image is null || image.Length == 0) return null;
+
+            var extension = Path.GetExtension(image.FileName);
+            if (!AllowedImageExtensions.Contains(extension))
+            {
+                throw new MaintenanceRequestValidationException(new Dictionary<string, string[]>
                 {
-                    ChatId = chat.Id,
-                    UserAccountId = propertyManager.UserAccountId
+                    ["image"] = new[] { "Attachment must be a JPG or PNG image." }
                 });
             }
 
-            // 3. Technician (if assigned)
-            if (availableTechnician != null)
+            if (image.Length > MaxImageBytes)
             {
-                _context.ChatParticipants.Add(new ChatParticipant
+                throw new MaintenanceRequestValidationException(new Dictionary<string, string[]>
                 {
-                    ChatId = chat.Id,
-                    UserAccountId = availableTechnician.UserAccountId
+                    ["image"] = new[] { "Attachment must not exceed 10MB." }
                 });
             }
 
-            await _context.SaveChangesAsync();
-
-            return Ok(new
+            if (!string.IsNullOrWhiteSpace(image.ContentType) && !image.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
             {
-                requestId    = request.Id,
-                title        = request.Title,
-                status       = request.Status.ToString(),
-                requestDate  = request.RequestDate
-            });
-        }
-
-        // GET api/MaintenanceRequests/my  — returns the current occupant's requests
-        [HttpGet("my")]
-        public async Task<IActionResult> GetMyRequests([FromQuery] string? status)
-        {
-            var userId = GetCurrentUserId();
-            var occupant = await _context.Occupants.FirstOrDefaultAsync(o => o.UserAccountId == userId);
-            if (occupant == null)
-                return Ok(Array.Empty<object>());
-
-            var query = _context.MaintenanceRequests
-                .Include(r => r.PropertyUnit)
-                .Include(r => r.WorkOrder)
-                .Where(r => r.OccupantId == occupant.Id);
-
-            if (!string.IsNullOrEmpty(status) && status != "All" &&
-                Enum.TryParse<RequestStatus>(status, true, out var parsedStatus))
-                query = query.Where(r => r.Status == parsedStatus);
-
-            var requests = await query
-                .OrderByDescending(r => r.RequestDate)
-                .ToListAsync();
-
-            // Fetch technician names separately to avoid deep include chain
-            var workOrderIds = requests
-                .Where(r => r.WorkOrder != null)
-                .Select(r => r.WorkOrder!.Id)
-                .ToList();
-
-            var technicianNames = await _context.WorkAssignments
-                .Where(wa => workOrderIds.Contains(wa.WorkOrderId))
-                .Join(_context.Technicians,
-                      wa => wa.TechnicianId,
-                      t  => t.Id,
-                      (wa, t) => new { wa.WorkOrderId, t.FullName })
-                .ToListAsync();
-
-            var result = requests.Select(r =>
-            {
-                var techName = r.WorkOrder != null
-                    ? technicianNames.FirstOrDefault(x => x.WorkOrderId == r.WorkOrder.Id)?.FullName
-                    : null;
-
-                return new
+                throw new MaintenanceRequestValidationException(new Dictionary<string, string[]>
                 {
-                    requestID            = r.Id,
-                    requestTitle         = r.Title,
-                    issueCategory        = r.AssetType ?? "",
-                    description          = r.Description ?? "",
-                    priorityLevel        = r.PriorityLevel.ToString(),
-                    status               = r.Status.ToString(),
-                    submissionDate       = r.RequestDate,
-                    attachmentPath       = r.ImagePath,
-                    unitID               = r.UnitId,
-                    occupantID           = r.OccupantId,
-                    unitNumber           = r.PropertyUnit != null ? r.PropertyUnit.UnitNumber : "",
-                    assignedTechnicianName = techName,
-                    scheduledDate        = r.WorkOrder?.ScheduleDate,
-                    workOrderID          = r.WorkOrder?.Id
-                };
-            });
+                    ["image"] = new[] { "Attachment must be an image file." }
+                });
+            }
 
-            return Ok(result);
+            var webRoot = _environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            var uploadFolder = Path.Combine(webRoot, "uploads", "maintenance");
+            Directory.CreateDirectory(uploadFolder);
+
+            var fileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
+            var filePath = Path.Combine(uploadFolder, fileName);
+
+            await using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await image.CopyToAsync(stream, cancellationToken);
+            }
+
+            return $"{Request.Scheme}://{Request.Host}{Request.PathBase}/uploads/maintenance/{fileName}";
         }
 
-        [HttpGet("debug-occupant/{userId}")]
-        [AllowAnonymous]
-        public async Task<IActionResult> DebugOccupant(long userId)
+        private string GetPerformedBy()
         {
-            var user = await _context.UserAccounts.FindAsync(userId);
-            var occupant = await _context.Occupants.FirstOrDefaultAsync(o => o.UserAccountId == userId);
-            
-            return Ok(new {
-                UserExists = user != null,
-                UserRole = user?.RoleType.ToString(),
-                OccupantExists = occupant != null,
-                OccupantType = occupant?.OccupantType.ToString(),
-                OccupantId = occupant?.Id,
-                AllOccupants = await _context.Occupants.Select(o => new { o.Id, o.UserAccountId, Type = o.OccupantType.ToString() }).ToListAsync()
-            });
+            return User.FindFirst(ClaimTypes.Email)?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? "System";
+        }
+
+        private static Dictionary<string, string[]> ToValidationDictionary(IReadOnlyDictionary<string, string[]> errors)
+        {
+            return errors.ToDictionary(error => error.Key, error => error.Value);
         }
     }
 }
