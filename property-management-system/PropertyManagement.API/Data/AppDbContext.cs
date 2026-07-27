@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using PropertyManagement.API.Models.Entities;
 using PropertyManagement.API.Models.Enums;
 
@@ -23,6 +23,7 @@ namespace PropertyManagement.API.Data
         public DbSet<AssetMaintenanceHistory> AssetMaintenanceHistories { get; set; }
         public DbSet<MaintenancePlan> MaintenancePlans { get; set; }
         public DbSet<MaintenanceRequest> MaintenanceRequests { get; set; }
+        public DbSet<MaintenanceRequestStatusHistory> MaintenanceRequestStatusHistories { get; set; }
         public DbSet<WorkOrder> WorkOrders { get; set; }
         public DbSet<WorkAssignment> WorkAssignments { get; set; }
         public DbSet<Payment> Payments { get; set; }
@@ -85,10 +86,37 @@ namespace PropertyManagement.API.Data
                 .Property(pu => pu.CurrentOccupants)
                 .HasDefaultValue(0);
 
-            modelBuilder.Entity<MaintenanceRequest>()
-                .Property(mr => mr.Status)
-                .HasDefaultValue(RequestStatus.Pending)
-                .HasConversion<int>();
+            modelBuilder.Entity<MaintenanceRequest>(entity =>
+            {
+                entity.HasIndex(mr => mr.RequestNumber)
+                    .IsUnique();
+
+                entity.HasIndex(mr => mr.Status);
+
+                entity.HasIndex(mr => mr.PriorityLevel);
+
+                entity.HasIndex(mr => mr.CreatedAt);
+
+                entity.Property(mr => mr.Status)
+                    .HasDefaultValue(RequestStatus.Pending)
+                    .HasConversion<int>();
+
+                entity.HasMany(mr => mr.StatusHistories)
+                    .WithOne(history => history.MaintenanceRequest)
+                    .HasForeignKey(history => history.RequestId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<MaintenanceRequestStatusHistory>(entity =>
+            {
+                entity.HasIndex(history => history.RequestId);
+
+                entity.Property(history => history.PreviousStatus)
+                    .HasConversion<int?>();
+
+                entity.Property(history => history.NewStatus)
+                    .HasConversion<int>();
+            });
 
             // // Indexes
             // modelBuilder.Entity<UserAccount>()
@@ -106,3 +134,4 @@ namespace PropertyManagement.API.Data
         }
     }
 }
+

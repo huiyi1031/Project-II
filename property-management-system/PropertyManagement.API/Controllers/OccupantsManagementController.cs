@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PropertyManagement.API.Data;
 using PropertyManagement.API.Models.Entities;
 using PropertyManagement.API.Models.Enums;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace PropertyManagement.API.Controllers
@@ -249,8 +250,8 @@ namespace PropertyManagement.API.Controllers
             else if (!Regex.IsMatch(request.FullName.Trim(), "^[A-Za-z ]+$"))
                 errors["fullName"] = new[] { "Name can contain alphabets and spaces only." };
 
-            if (string.IsNullOrWhiteSpace(request.IdentificationNo) || !Regex.IsMatch(request.IdentificationNo.Trim(), @"^\d{6}-\d{2}-\d{4}$"))
-                errors["identificationNo"] = new[] { "Identification No format must be xxxxxx-xx-xxxx using numbers only." };
+            if (!IsValidMalaysiaIdentificationNo(request.IdentificationNo))
+                errors["identificationNo"] = new[] { "Identification No must follow Malaysia IC format yymmdd-xx-xxxx with a valid date from 1940 to 2008." };
 
             if (string.IsNullOrWhiteSpace(request.ContactNumber) || !Regex.IsMatch(request.ContactNumber.Trim(), @"^01\d-\d{7}$"))
                 errors["contactNumber"] = new[] { "Contact No format must be 01x-xxxxxxx using numbers only." };
@@ -267,6 +268,23 @@ namespace PropertyManagement.API.Controllers
             return errors;
         }
 
+        private static bool IsValidMalaysiaIdentificationNo(string? identificationNo)
+        {
+            var normalized = identificationNo?.Trim() ?? string.Empty;
+            if (!Regex.IsMatch(normalized, @"^\d{6}-\d{2}-\d{4}$")) return false;
+
+            var yearPart = int.Parse(normalized.Substring(0, 2));
+            var fullYear = yearPart >= 40 ? 1900 + yearPart : 2000 + yearPart;
+            if (fullYear < 1940 || fullYear > 2008) return false;
+
+            var dateText = $"{fullYear:D4}{normalized.Substring(2, 2)}{normalized.Substring(4, 2)}";
+            return DateTime.TryParseExact(
+                dateText,
+                "yyyyMMdd",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out _);
+        }
         private async Task<bool> HasDuplicateAsync(ManagerOccupantRequest request, long? currentOccupantId)
         {
             var identificationNo = request.IdentificationNo.Trim();
@@ -382,4 +400,7 @@ namespace PropertyManagement.API.Controllers
         public string OccupantType { get; set; } = "Tenant";
     }
 }
+
+
+
 
