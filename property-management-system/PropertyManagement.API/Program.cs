@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -11,7 +11,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.ResolveConflictingActions(apiDescriptions => apiDescriptions.First());
+});
 
 // Configure Database - PostgreSQL (Supabase)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -52,6 +55,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IMaintenanceRequestRepository, MaintenanceRequestRepository>();
 builder.Services.AddScoped<IMaintenanceRequestService, MaintenanceRequestService>();
+builder.Services.AddScoped<IChatService, ChatService>();
 
 var app = builder.Build();
 

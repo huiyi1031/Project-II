@@ -1,4 +1,4 @@
-﻿using PropertyManagement.API.Mappers;
+using PropertyManagement.API.Mappers;
 using PropertyManagement.API.Models.DTOs.MaintenanceRequests;
 using PropertyManagement.API.Models.Entities;
 using PropertyManagement.API.Models.Enums;
@@ -13,7 +13,9 @@ namespace PropertyManagement.API.Services
         Task<MaintenanceRequestDetailResponse?> GetByIdAsync(long id, CancellationToken cancellationToken);
         Task<MaintenanceRequestDetailResponse> CreateAsync(CreateMaintenanceRequestRequest request, string performedBy, CancellationToken cancellationToken);
         Task<MaintenanceRequestDetailResponse> UpdateAsync(long id, UpdateMaintenanceRequestRequest request, string performedBy, CancellationToken cancellationToken);
-        Task ApproveAsync(long id, string performedBy, CancellationToken cancellationToken);
+        Task ApproveAsync(long id, long performedById, string performedBy, CancellationToken cancellationToken);
+        Task TechnicianAcceptAsync(long id, long technicianId, string performedBy, CancellationToken cancellationToken);
+        Task ScheduleAsync(long id, ScheduleRequestDto request, string performedBy, CancellationToken cancellationToken);
         Task RejectAsync(long id, RejectMaintenanceRequestRequest request, string performedBy, CancellationToken cancellationToken);
         Task CancelAsync(long id, CancelMaintenanceRequestRequest request, string performedBy, CancellationToken cancellationToken);
         Task<IReadOnlyList<MaintenanceRequestHistoryResponse>> GetHistoryAsync(long id, CancellationToken cancellationToken);
@@ -23,10 +25,12 @@ namespace PropertyManagement.API.Services
     public class MaintenanceRequestService : IMaintenanceRequestService
     {
         private readonly IMaintenanceRequestRepository _repository;
+        private readonly PropertyManagement.API.Data.AppDbContext _context;
 
-        public MaintenanceRequestService(IMaintenanceRequestRepository repository)
+        public MaintenanceRequestService(IMaintenanceRequestRepository repository, PropertyManagement.API.Data.AppDbContext context)
         {
             _repository = repository;
+            _context = context;
         }
 
         public async Task<PagedResponse<MaintenanceRequestListItemResponse>> GetPagedAsync(MaintenanceRequestFilterRequest filter, CancellationToken cancellationToken)
@@ -94,9 +98,78 @@ namespace PropertyManagement.API.Services
             AddHistory(entity, null, RequestStatus.Pending, "Request created", null, performedBy, now);
             await _repository.AddAsync(entity, cancellationToken);
             await _repository.SaveChangesAsync(cancellationToken);
+            
+            var createdEntity = await _repository.GetByIdWithHistoryAsync(entity.Id, cancellationToken);
 
-            var created = await _repository.GetByIdWithHistoryAsync(entity.Id, cancellationToken);
-            return MaintenanceRequestMapper.ToDetail(created!);
+            // Auto-create chatroom and add occupants linked to the unit
+            var chat = new PropertyManagement.API.Models.Entities.Chat
+            {
+                RequestId = entity.Id,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
+            // Only add the requester as Admin
+            var requesterEntity = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
+                _context.Occupants, o => o.Id == requester.Id, cancellationToken);
+
+            if (requesterEntity != null && requesterEntity.UserAccountId > 0)
+            {
+                chat.Participants.Add(new PropertyManagement.API.Models.Entities.ChatParticipant
+                {
+                    UserAccountId = requesterEntity.UserAccountId,
+                    IsAdmin = true,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                });
+
+                // Auto-add the relevant owner to the chatroom if the requester is a tenant or family member (resident)
+                if ((requesterEntity.OccupantType == OccupantType.Tenant || requesterEntity.OccupantType == OccupantType.Resident) && requesterEntity.ParentOccupantId.HasValue)
+                {
+                    var ownerEntity = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
+                        _context.Occupants, o => o.Id == requesterEntity.ParentOccupantId.Value, cancellationToken);
+                        
+                    if (ownerEntity != null && ownerEntity.UserAccountId > 0)
+                    {
+                        chat.Participants.Add(new PropertyManagement.API.Models.Entities.ChatParticipant
+                        {
+                            UserAccountId = ownerEntity.UserAccountId,
+                            IsAdmin = false,
+                            CreatedAt = now,
+                            UpdatedAt = now
+                        });
+                    }
+                }
+            }
+
+            // Auto-add property managers based on PropertyType
+            var propertyUnit = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
+                Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.Include(_context.PropertyUnits, u => u.Property), 
+                u => u.Id == unit.Id, cancellationToken);
+                
+            if (propertyUnit?.Property != null && !string.IsNullOrEmpty(propertyUnit.Property.PropertyType))
+            {
+                var propertyType = propertyUnit.Property.PropertyType;
+                var managers = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+                    System.Linq.Queryable.Where(_context.PropertyManagers, pm => pm.Position == propertyType && pm.UserAccountId > 0), 
+                    cancellationToken);
+                    
+                foreach (var manager in managers)
+                {
+                    chat.Participants.Add(new PropertyManagement.API.Models.Entities.ChatParticipant
+                    {
+                        UserAccountId = manager.UserAccountId,
+                        IsAdmin = true,
+                        CreatedAt = now,
+                        UpdatedAt = now
+                    });
+                }
+            }
+
+            _context.Chats.Add(chat);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return MaintenanceRequestMapper.ToDetail(createdEntity!);
         }
 
         public async Task<MaintenanceRequestDetailResponse> UpdateAsync(long id, UpdateMaintenanceRequestRequest request, string performedBy, CancellationToken cancellationToken)
@@ -105,31 +178,40 @@ namespace PropertyManagement.API.Services
             if (errors.Count > 0) throw new MaintenanceRequestValidationException(errors);
 
             var entity = await GetEntityOrThrowAsync(id, cancellationToken);
-            if (entity.Status != RequestStatus.Pending)
-                throw new MaintenanceRequestBusinessException("Only pending requests may be edited.");
+            if (entity.Status != RequestStatus.Pending && entity.Status != RequestStatus.Approved)
+                throw new MaintenanceRequestBusinessException("Only pending or approved requests may be edited.");
 
-            var unit = await ResolveUnitAsync(request.UnitId, request.UnitNumber, cancellationToken);
-            if (unit is null)
-                throw new MaintenanceRequestBusinessException("Property unit was not found.");
+            if (entity.Status == RequestStatus.Pending)
+            {
+                var unit = await ResolveUnitAsync(request.UnitId, request.UnitNumber, cancellationToken);
+                if (unit is null)
+                    throw new MaintenanceRequestBusinessException("Property unit was not found.");
 
-            entity.UnitId = unit.Id;
-            entity.AssetType = request.IssueType.Trim();
-            entity.Title = BuildRequestTitle(request.Title, request.IssueType);
+                entity.UnitId = unit.Id;
+                entity.AssetType = request.IssueType.Trim();
+                entity.Title = BuildRequestTitle(request.Title, request.IssueType);
+                entity.Location = GetRequestLocation(request.Location, unit.UnitNumber);
+                entity.PriorityLevel = ParsePriority(request.Priority);
+                entity.PreferredAccessDateTime = request.PreferredAccessDateTime?.ToUniversalTime();
+            }
+
             entity.Description = request.Description?.Trim() ?? string.Empty;
-            entity.Location = GetRequestLocation(request.Location, unit.UnitNumber);
-            entity.PriorityLevel = ParsePriority(request.Priority);
-            entity.PreferredAccessDateTime = request.PreferredAccessDateTime?.ToUniversalTime();
+            
+            if (!string.IsNullOrEmpty(request.ImagePath))
+            {
+                entity.ImagePath = request.ImagePath;
+            }
             entity.UpdatedAt = DateTime.UtcNow;
             entity.UpdatedBy = performedBy;
 
-            AddHistory(entity, RequestStatus.Pending, RequestStatus.Pending, "Request edited", null, performedBy, DateTime.UtcNow);
+            AddHistory(entity, entity.Status, entity.Status, "Request edited", null, performedBy, DateTime.UtcNow);
             await _repository.SaveChangesAsync(cancellationToken);
 
             var updated = await _repository.GetByIdWithHistoryAsync(id, cancellationToken);
             return MaintenanceRequestMapper.ToDetail(updated!);
         }
 
-        public async Task ApproveAsync(long id, string performedBy, CancellationToken cancellationToken)
+        public async Task ApproveAsync(long id, long performedById, string performedBy, CancellationToken cancellationToken)
         {
             var entity = await GetEntityOrThrowAsync(id, cancellationToken);
             if (entity.Status != RequestStatus.Pending)
@@ -143,6 +225,88 @@ namespace PropertyManagement.API.Services
             entity.UpdatedAt = now;
             entity.UpdatedBy = performedBy;
             AddHistory(entity, previousStatus, entity.Status, "Request approved", null, performedBy, now);
+            
+            // Add manager to chat
+            var chat = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
+                _context.Chats, c => c.RequestId == entity.Id, cancellationToken);
+            
+            if (chat != null && performedById > 0)
+            {
+                var participant = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
+                    System.Linq.Queryable.Where(_context.ChatParticipants, cp => cp.ChatId == chat.Id && cp.UserAccountId == performedById), cancellationToken);
+                
+                if (participant == null)
+                {
+                    _context.ChatParticipants.Add(new PropertyManagement.API.Models.Entities.ChatParticipant
+                    {
+                        ChatId = chat.Id,
+                        UserAccountId = performedById,
+                        IsAdmin = true,
+                        CreatedAt = now,
+                        UpdatedAt = now
+                    });
+                }
+                else
+                {
+                    participant.IsAdmin = true;
+                }
+            }
+
+            await _repository.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task TechnicianAcceptAsync(long id, long technicianId, string performedBy, CancellationToken cancellationToken)
+        {
+            var entity = await GetEntityOrThrowAsync(id, cancellationToken);
+            if (entity.Status != RequestStatus.Approved)
+                throw new MaintenanceRequestBusinessException("Only approved requests may be accepted by a technician.");
+
+            var now = DateTime.UtcNow;
+            var previousStatus = entity.Status;
+            entity.Status = RequestStatus.Scheduling;
+            entity.UpdatedAt = now;
+            entity.UpdatedBy = performedBy;
+            AddHistory(entity, previousStatus, entity.Status, "Technician accepted request", null, performedBy, now);
+            
+            // Add technician to chat
+            var chat = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
+                _context.Chats, c => c.RequestId == entity.Id, cancellationToken);
+            
+            if (chat != null && technicianId > 0)
+            {
+                var exists = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync(
+                    System.Linq.Queryable.Where(_context.ChatParticipants, cp => cp.ChatId == chat.Id && cp.UserAccountId == technicianId), cancellationToken);
+                
+                if (!exists)
+                {
+                    _context.ChatParticipants.Add(new PropertyManagement.API.Models.Entities.ChatParticipant
+                    {
+                        ChatId = chat.Id,
+                        UserAccountId = technicianId,
+                        IsAdmin = false,
+                        CreatedAt = now,
+                        UpdatedAt = now
+                    });
+                }
+            }
+
+            await _repository.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task ScheduleAsync(long id, ScheduleRequestDto request, string performedBy, CancellationToken cancellationToken)
+        {
+            var entity = await GetEntityOrThrowAsync(id, cancellationToken);
+            if (entity.Status != RequestStatus.Scheduling)
+                throw new MaintenanceRequestBusinessException("Only requests in Scheduling state can be Scheduled.");
+
+            var now = DateTime.UtcNow;
+            var previousStatus = entity.Status;
+            entity.Status = RequestStatus.Scheduled;
+            entity.ScheduledDate = request.ScheduledDate.ToUniversalTime();
+            entity.UpdatedAt = now;
+            entity.UpdatedBy = performedBy;
+            AddHistory(entity, previousStatus, entity.Status, "Maintenance date and time scheduled", null, performedBy, now);
+
             await _repository.SaveChangesAsync(cancellationToken);
         }
 

@@ -18,6 +18,39 @@ namespace PropertyManagement.API.Controllers
             _context = context;
         }
 
+        private long GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim != null && long.TryParse(userIdClaim.Value, out long userId))
+                return userId;
+            return 0;
+        }
+
+        // GET: api/PropertyUnits/my
+        [HttpGet("my")]
+        public async Task<IActionResult> GetMyUnits()
+        {
+            var userId = GetCurrentUserId();
+            var occupant = await _context.Occupants.FirstOrDefaultAsync(o => o.UserAccountId == userId);
+            if (occupant == null) return NotFound(new { message = "Occupant profile not found" });
+
+            var units = await _context.Contracts
+                .Include(c => c.PropertyUnit)
+                .Where(c => c.OccupantId == occupant.Id && c.Status == "Active" && !c.IsDeleted && c.PropertyUnit != null && !c.PropertyUnit.IsDeleted)
+                .Select(c => new
+                {
+                    unitID   = c.PropertyUnit!.Id,
+                    unitNumber = c.PropertyUnit.UnitNumber,
+                    block    = c.PropertyUnit.Block,
+                    floor    = c.PropertyUnit.FloorLevel,
+                    unitType = c.PropertyUnit.UnitType,
+                    status   = c.PropertyUnit.Status
+                })
+                .ToListAsync();
+
+            return Ok(units);
+        }
+
         // GET: api/PropertyUnits
         [HttpGet]
         public async Task<IActionResult> GetAll()

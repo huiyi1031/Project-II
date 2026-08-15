@@ -1,4 +1,4 @@
-﻿namespace PropertyManagement.API.Models.DTOs.MaintenanceRequests
+namespace PropertyManagement.API.Models.DTOs.MaintenanceRequests
 {
     public class CreateMaintenanceRequestRequest
     {
@@ -58,6 +58,36 @@
         public string Location { get; set; } = string.Empty;
         public string Priority { get; set; } = "Medium";
         public DateTime? PreferredAccessDateTime { get; set; }
+        public string? ImagePath { get; set; }
+    }
+
+    public class UpdateMaintenanceRequestFormRequest
+    {
+        public long UnitId { get; set; }
+        public string UnitNumber { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string IssueType { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Location { get; set; } = string.Empty;
+        public string Priority { get; set; } = "Medium";
+        public DateTime? PreferredAccessDateTime { get; set; }
+        public Microsoft.AspNetCore.Http.IFormFile? Image { get; set; }
+
+        public UpdateMaintenanceRequestRequest ToUpdateRequest(string? imagePath)
+        {
+            return new UpdateMaintenanceRequestRequest
+            {
+                UnitId = UnitId,
+                UnitNumber = UnitNumber,
+                Title = Title,
+                IssueType = IssueType,
+                Description = Description,
+                Location = Location,
+                Priority = Priority,
+                PreferredAccessDateTime = PreferredAccessDateTime,
+                ImagePath = imagePath
+            };
+        }
     }
 
     public class MaintenanceRequestFilterRequest
@@ -68,6 +98,7 @@
         public string? Priority { get; set; }
         public DateTime? CreatedFrom { get; set; }
         public DateTime? CreatedTo { get; set; }
+        public long? OccupantId { get; set; }
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 10;
     }
@@ -98,7 +129,16 @@
         public DateTime SubmissionDate { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? PreferredScheduleDate { get; set; }
+        public DateTime? ScheduledDate { get; set; }
         public string? AttachmentPath { get; set; }
+
+        public string PropertyName { get; set; } = string.Empty;
+        public string PropertyAddress { get; set; } = string.Empty;
+        public string PropertyCity { get; set; } = string.Empty;
+        public string PropertyState { get; set; } = string.Empty;
+        public string PropertyPostcode { get; set; } = string.Empty;
+
+        public DateTime? ResolvedDate { get; set; }
     }
 
     public class MaintenanceRequestDetailResponse : MaintenanceRequestListItemResponse

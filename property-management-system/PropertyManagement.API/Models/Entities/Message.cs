@@ -14,6 +14,9 @@ namespace PropertyManagement.API.Models.Entities
         [Required]
         public string MessageContent { get; set; } = string.Empty;
         
+        [MaxLength(20)]
+        public string MessageType { get; set; } = "User";
+        
         [MaxLength(255)]
         public string? AttachmentPath { get; set; }
         

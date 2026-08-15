@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using PropertyManagement.API.Data;
 using PropertyManagement.API.Models.DTOs.MaintenanceRequests;
 using PropertyManagement.API.Models.Entities;
@@ -21,6 +21,7 @@ namespace PropertyManagement.API.Repositories
                 .AsNoTracking()
                 .Include(request => request.Occupant)
                 .Include(request => request.PropertyUnit)
+                    .ThenInclude(unit => unit!.Property)
                 .Where(request => !request.IsDeleted)
                 .AsQueryable();
 
@@ -35,9 +36,9 @@ namespace PropertyManagement.API.Repositories
                     (request.Occupant != null && request.Occupant.FullName.ToLower().Contains(search)));
             }
 
-            if (TryParseStatus(filter.Status, out var status))
+            if (TryParseStatus(filter.Status, out var statusList))
             {
-                query = query.Where(request => request.Status == status);
+                query = query.Where(request => statusList.Contains(request.Status));
             }
 
             if (!string.IsNullOrWhiteSpace(filter.IssueType))
@@ -63,6 +64,11 @@ namespace PropertyManagement.API.Repositories
                 query = query.Where(request => request.CreatedAt <= createdTo);
             }
 
+            if (filter.OccupantId.HasValue)
+            {
+                query = query.Where(request => request.OccupantId == filter.OccupantId.Value);
+            }
+
             var totalCount = await query.CountAsync(cancellationToken);
             var pageNumber = Math.Max(filter.PageNumber, 1);
             var pageSize = Math.Clamp(filter.PageSize, 1, 50);
@@ -81,6 +87,7 @@ namespace PropertyManagement.API.Repositories
             return _context.MaintenanceRequests
                 .Include(request => request.Occupant)
                 .Include(request => request.PropertyUnit)
+                    .ThenInclude(unit => unit!.Property)
                 .FirstOrDefaultAsync(request => request.Id == id && !request.IsDeleted, cancellationToken);
         }
 
@@ -89,6 +96,7 @@ namespace PropertyManagement.API.Repositories
             return _context.MaintenanceRequests
                 .Include(request => request.Occupant)
                 .Include(request => request.PropertyUnit)
+                    .ThenInclude(unit => unit!.Property)
                 .Include(request => request.StatusHistories)
                 .FirstOrDefaultAsync(request => request.Id == id && !request.IsDeleted, cancellationToken);
         }
@@ -206,7 +214,7 @@ namespace PropertyManagement.API.Repositories
                 request.Status == RequestStatus.Pending &&
                 request.Title.ToLower() == normalizedTitle &&
                 request.AssetType != null && request.AssetType.ToLower() == normalizedIssueType &&
-                request.Description.ToLower() == normalizedDescription,
+                request.Description != null && request.Description.ToLower() == normalizedDescription,
                 cancellationToken);
         }
 
@@ -268,9 +276,23 @@ namespace PropertyManagement.API.Repositories
             return _context.SaveChangesAsync(cancellationToken);
         }
 
-        private static bool TryParseStatus(string? value, out RequestStatus status)
+        private static bool TryParseStatus(string? value, out List<RequestStatus> statuses)
         {
-            return Enum.TryParse(value, true, out status) && Enum.IsDefined(typeof(RequestStatus), status);
+            statuses = new List<RequestStatus>();
+            if (string.IsNullOrWhiteSpace(value)) return false;
+            
+            var normalized = value.Replace(" ", "").Replace("_", "");
+            if (Enum.TryParse<RequestStatus>(normalized, true, out var status) && Enum.IsDefined(typeof(RequestStatus), status))
+            {
+                statuses.Add(status);
+                // For tenant UI compatibility: If filtering by Approved, also return Assigned
+                if (status == RequestStatus.Approved)
+                {
+                    statuses.Add(RequestStatus.Assigned);
+                }
+                return true;
+            }
+            return false;
         }
 
         private static bool TryParsePriority(string? value, out PriorityLevel priority)

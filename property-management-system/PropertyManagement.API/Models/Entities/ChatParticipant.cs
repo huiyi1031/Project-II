@@ -10,6 +10,8 @@ namespace PropertyManagement.API.Models.Entities
         [ForeignKey("UserAccount")]
         public long UserAccountId { get; set; }
         
+        public bool IsAdmin { get; set; } = false;
+        
         // Navigation Properties
         public virtual Chat? Chat { get; set; }
         public virtual UserAccount? UserAccount { get; set; }

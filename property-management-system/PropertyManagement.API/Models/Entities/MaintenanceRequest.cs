@@ -30,10 +30,49 @@ namespace PropertyManagement.API.Models.Entities
         
         public RequestStatus Status { get; set; } = RequestStatus.Pending;
         
+        [MaxLength(50)]
+        public string RequestNumber { get; set; } = string.Empty;
+        
+        [MaxLength(200)]
+        public string Location { get; set; } = string.Empty;
+        
+        public DateTime? PreferredAccessDateTime { get; set; }
+
         [MaxLength(500)]
         public string? ResolutionNotes { get; set; }
         
         public DateTime? ResolvedDate { get; set; }
+        
+        public DateTime? ScheduledDate { get; set; }
+        
+        [MaxLength(100)]
+        public string CreatedBy { get; set; } = string.Empty;
+        
+        [MaxLength(100)]
+        public string? UpdatedBy { get; set; }
+        
+        public DateTime? ApprovedAt { get; set; }
+        
+        [MaxLength(100)]
+        public string? ApprovedBy { get; set; }
+        
+        public DateTime? RejectedAt { get; set; }
+        
+        [MaxLength(100)]
+        public string? RejectedBy { get; set; }
+        
+        [MaxLength(500)]
+        public string? RejectionReason { get; set; }
+        
+        public DateTime? CancelledAt { get; set; }
+        
+        [MaxLength(100)]
+        public string? CancelledBy { get; set; }
+        
+        [MaxLength(500)]
+        public string? CancellationReason { get; set; }
+        
+        public virtual ICollection<MaintenanceRequestStatusHistory> StatusHistories { get; set; } = new List<MaintenanceRequestStatusHistory>();
         
         // Navigation Properties
         public virtual Occupant? Occupant { get; set; }

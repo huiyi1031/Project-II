@@ -1,4 +1,4 @@
-﻿using PropertyManagement.API.Models.DTOs.MaintenanceRequests;
+using PropertyManagement.API.Models.DTOs.MaintenanceRequests;
 using PropertyManagement.API.Models.Entities;
 
 namespace PropertyManagement.API.Mappers
@@ -23,7 +23,14 @@ namespace PropertyManagement.API.Mappers
                 SubmissionDate = request.RequestDate,
                 CreatedAt = request.CreatedAt,
                 PreferredScheduleDate = request.PreferredAccessDateTime,
-                AttachmentPath = request.ImagePath
+                ScheduledDate = request.ScheduledDate,
+                AttachmentPath = request.ImagePath,
+                PropertyName = request.PropertyUnit?.Property?.PropertyName ?? string.Empty,
+                PropertyAddress = request.PropertyUnit?.Property?.Address ?? string.Empty,
+                PropertyCity = request.PropertyUnit?.Property?.City ?? string.Empty,
+                PropertyState = request.PropertyUnit?.Property?.State ?? string.Empty,
+                PropertyPostcode = request.PropertyUnit?.Property?.Postcode ?? string.Empty,
+                ResolvedDate = request.ResolvedDate
             };
         }
 
@@ -35,7 +42,7 @@ namespace PropertyManagement.API.Mappers
                 RequestNumber = request.RequestNumber,
                 RequestTitle = request.Title,
                 IssueCategory = request.AssetType ?? string.Empty,
-                Description = request.Description,
+                Description = request.Description ?? string.Empty,
                 Location = request.Location,
                 OccupantID = request.OccupantId,
                 OccupantName = request.Occupant?.FullName ?? string.Empty,
@@ -49,6 +56,7 @@ namespace PropertyManagement.API.Mappers
                 CreatedBy = request.CreatedBy,
                 UpdatedBy = request.UpdatedBy,
                 PreferredScheduleDate = request.PreferredAccessDateTime,
+                ScheduledDate = request.ScheduledDate,
                 ApprovedAt = request.ApprovedAt,
                 ApprovedBy = request.ApprovedBy,
                 RejectedAt = request.RejectedAt,
@@ -57,6 +65,12 @@ namespace PropertyManagement.API.Mappers
                 CancelledAt = request.CancelledAt,
                 CancelledBy = request.CancelledBy,
                 CancellationReason = request.CancellationReason,
+                PropertyName = request.PropertyUnit?.Property?.PropertyName ?? string.Empty,
+                PropertyAddress = request.PropertyUnit?.Property?.Address ?? string.Empty,
+                PropertyCity = request.PropertyUnit?.Property?.City ?? string.Empty,
+                PropertyState = request.PropertyUnit?.Property?.State ?? string.Empty,
+                PropertyPostcode = request.PropertyUnit?.Property?.Postcode ?? string.Empty,
+                ResolvedDate = request.ResolvedDate,
                 History = request.StatusHistories
                     .OrderByDescending(history => history.PerformedAt)
                     .Select(ToHistory)

@@ -21,11 +21,24 @@ export class ChatService {
     return this.http.get<Message[]>(`${this.base}/${chatId}/messages`);
   }
 
-  sendMessage(chatId: number, content: string, attachmentPath?: string): Observable<Message> {
-    return this.http.post<Message>(`${this.base}/${chatId}/messages`, { content, attachmentPath });
+  sendMessage(chatId: number, content: string, file?: File): Observable<Message> {
+    const formData = new FormData();
+    formData.append('Content', content);
+    if (file) {
+      formData.append('Attachment', file);
+    }
+    return this.http.post<Message>(`${this.base}/${chatId}/messages`, formData);
   }
 
   getParticipants(chatId: number): Observable<ChatParticipant[]> {
     return this.http.get<ChatParticipant[]>(`${this.base}/${chatId}/participants`);
+  }
+
+  getAvailableUsers(chatId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.base}/${chatId}/available-users`);
+  }
+
+  addParticipant(chatId: number, accountId: number): Observable<void> {
+    return this.http.post<void>(`${this.base}/${chatId}/participants`, { accountId });
   }
 }

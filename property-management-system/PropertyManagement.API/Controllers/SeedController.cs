@@ -34,6 +34,30 @@ namespace PropertyManagement.API.Controllers
             }
         }
 
+        [HttpPost("fix-legacy-requests")]
+        public async Task<IActionResult> FixLegacyRequests([FromServices] PropertyManagement.API.Repositories.IMaintenanceRequestRepository repo)
+        {
+            try {
+                var legacyRequests = await _context.MaintenanceRequests
+                    .Where(r => string.IsNullOrEmpty(r.RequestNumber))
+                    .OrderBy(r => r.CreatedAt)
+                    .ToListAsync();
+                
+                int fixedCount = 0;
+                foreach (var req in legacyRequests)
+                {
+                    req.RequestNumber = await repo.GetNextRequestNumberAsync(req.CreatedAt.Year, CancellationToken.None);
+                    _context.MaintenanceRequests.Update(req);
+                    await _context.SaveChangesAsync();
+                    fixedCount++;
+                }
+
+                return Ok(new { message = $"Successfully generated Request IDs for {fixedCount} legacy requests." });
+            } catch (Exception ex) {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpGet("debug-users")]
         public async Task<IActionResult> DebugUsers()
         {

@@ -2,7 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
-  MaintenanceRequest, CreateMaintenanceRequestDto, DashboardStats
+  MaintenanceRequest, CreateMaintenanceRequestDto, DashboardStats,
+  MaintenanceRequestDetail, MaintenanceRequestFilter, MaintenanceRequester, PagedResponse
 } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -17,10 +18,10 @@ export class MaintenanceService {
   }
 
   // ── Maintenance Requests ────────────────────────────────────
-  getMyRequests(status?: string): Observable<MaintenanceRequest[]> {
+  getMyRequests(status?: string): Observable<PagedResponse<MaintenanceRequest>> {
     let params = new HttpParams();
     if (status && status !== 'All') params = params.set('status', status);
-    return this.http.get<MaintenanceRequest[]>(`${this.base}/MaintenanceRequests/my`, { params });
+    return this.http.get<PagedResponse<MaintenanceRequest>>(`${this.base}/MaintenanceRequests/my`, { params });
   }
 
   getAllRequests(status?: string, date?: string): Observable<MaintenanceRequest[]> {
@@ -30,12 +31,30 @@ export class MaintenanceService {
     return this.http.get<MaintenanceRequest[]>(`${this.base}/MaintenanceRequests`, { params });
   }
 
-  getRequestById(id: number): Observable<MaintenanceRequest> {
-    return this.http.get<MaintenanceRequest>(`${this.base}/MaintenanceRequests/${id}`);
+  getRequestPage(filter: MaintenanceRequestFilter): Observable<PagedResponse<MaintenanceRequest>> {
+    let params = new HttpParams();
+    Object.entries(filter).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params = params.set(key, value.toString());
+      }
+    });
+    return this.http.get<PagedResponse<MaintenanceRequest>>(`${this.base}/MaintenanceRequests/paged`, { params });
   }
 
-  createRequest(data: FormData | CreateMaintenanceRequestDto): Observable<MaintenanceRequest> {
-    return this.http.post<MaintenanceRequest>(`${this.base}/MaintenanceRequests`, data);
+  getRequesters(): Observable<MaintenanceRequester[]> {
+    return this.http.get<MaintenanceRequester[]>(`${this.base}/MaintenanceRequests/requesters`);
+  }
+
+  getRequestById(id: number): Observable<MaintenanceRequestDetail> {
+    return this.http.get<MaintenanceRequestDetail>(`${this.base}/MaintenanceRequests/${id}`);
+  }
+
+  createRequest(data: FormData | CreateMaintenanceRequestDto): Observable<MaintenanceRequestDetail> {
+    return this.http.post<MaintenanceRequestDetail>(`${this.base}/MaintenanceRequests`, data);
+  }
+
+  updateRequest(id: number, data: any): Observable<MaintenanceRequestDetail> {
+    return this.http.put<MaintenanceRequestDetail>(`${this.base}/MaintenanceRequests/${id}`, data);
   }
 
   updateRequestStatus(id: number, status: string): Observable<void> {
@@ -48,5 +67,17 @@ export class MaintenanceService {
 
   rejectRequest(id: number, reason: string): Observable<void> {
     return this.http.post<void>(`${this.base}/MaintenanceRequests/${id}/reject`, { reason });
+  }
+
+  cancelRequest(id: number, reason: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/MaintenanceRequests/${id}/cancel`, { reason });
+  }
+
+  scheduleRequest(id: number, scheduledDate: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/MaintenanceRequests/${id}/schedule`, { scheduledDate });
+  }
+
+  getCategories(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.base}/MaintenanceRequests/categories`);
   }
 }

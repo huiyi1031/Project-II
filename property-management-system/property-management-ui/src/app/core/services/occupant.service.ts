@@ -55,6 +55,7 @@ export class OccupantService {
 
   // Property Units (Manager)
   getAllUnits(): Observable<PropertyUnit[]>                   { return this.http.get<PropertyUnit[]>(`${this.base}/PropertyUnits`); }
+  getMyUnits(): Observable<PropertyUnit[]>                    { return this.http.get<PropertyUnit[]>(`${this.base}/PropertyUnits/my`); }
   getUnitById(id: number): Observable<PropertyUnit>          { return this.http.get<PropertyUnit>(`${this.base}/PropertyUnits/${id}`); }
   createUnit(dto: Partial<PropertyUnit>): Observable<PropertyUnit> { return this.http.post<PropertyUnit>(`${this.base}/PropertyUnits`, dto); }
   updateUnit(id: number, dto: Partial<PropertyUnit>): Observable<PropertyUnit> { return this.http.put<PropertyUnit>(`${this.base}/PropertyUnits/${id}`, dto); }

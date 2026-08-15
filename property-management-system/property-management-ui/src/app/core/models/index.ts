@@ -106,9 +106,69 @@ export interface MaintenanceRequest {
   occupantID: number;
   unitNumber?: string;
   occupantName?: string;
+  requestNumber: string;
+  location?: string;
   assignedTechnicianName?: string;
   scheduledDate?: string;
   workOrderID?: number;
+  rejectionReason?: string;
+  cancellationReason?: string;
+  propertyName?: string;
+  propertyAddress?: string;
+  propertyCity?: string;
+  propertyState?: string;
+  propertyPostcode?: string;
+  resolvedDate?: string;
+}
+
+export interface MaintenanceRequestHistory {
+  id: number;
+  previousStatus?: string;
+  newStatus: string;
+  action: string;
+  remarks?: string;
+  performedBy: string;
+  performedAt: string;
+}
+
+export interface MaintenanceRequestDetail extends MaintenanceRequest {
+  updatedAt?: string;
+  createdBy: string;
+  updatedBy?: string;
+  approvedAt?: string;
+  approvedBy?: string;
+  rejectedAt?: string;
+  rejectedBy?: string;
+  rejectionReason?: string;
+  cancelledAt?: string;
+  cancelledBy?: string;
+  cancellationReason?: string;
+  history: MaintenanceRequestHistory[];
+}
+
+export interface MaintenanceRequestFilter {
+  pageNumber?: number;
+  pageSize?: number;
+  search?: string;
+  status?: string;
+  priority?: string;
+  createdFrom?: string;
+  createdTo?: string;
+}
+
+export interface MaintenanceRequester {
+  occupantID: number;
+  fullName: string;
+  occupantType: string;
+  email?: string;
+}
+
+export interface PagedResponse<T> {
+  items: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
 }
 
 export interface WorkOrder {
@@ -187,6 +247,7 @@ export interface Chat {
   requestID: number;
   createdAt: string;
   requestTitle?: string;
+  requestNumber?: string;
   requestStatus?: string;
   lastMessage?: string;
   participantCount?: number;
@@ -196,6 +257,13 @@ export interface ChatParticipant {
   participantID: number;
   chatID: number;
   accountID: number;
+  fullName?: string;
+  role?: string;
+  isAdmin?: boolean;
+}
+
+export interface AvailableUser {
+  accountId: number;
   fullName?: string;
   role?: string;
 }
@@ -209,6 +277,7 @@ export interface Message {
   attachmentPath?: string;
   senderName?: string;
   isOwn?: boolean;
+  messageType?: string;
 }
 
 export interface Payment {
