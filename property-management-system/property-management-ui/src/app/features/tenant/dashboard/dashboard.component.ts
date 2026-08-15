@@ -16,10 +16,10 @@ export class TenantDashboardComponent implements OnInit {
   ngOnInit(): void {
     this.maintenanceSvc.getMyRequests().subscribe({
       next: (data) => {
-        this.recentCases = data.slice(0, 5);
-        this.stats.openRequests = data.filter(r => r.status === 'Pending').length;
-        this.stats.inProgress   = data.filter(r => r.status === 'InProgress').length;
-        this.stats.completed    = data.filter(r => r.status === 'Completed').length;
+        this.recentCases = data.items.slice(0, 5);
+        this.stats.openRequests = data.items.filter(r => r.status === 'Pending').length;
+        this.stats.inProgress   = data.items.filter(r => r.status === 'InProgress').length;
+        this.stats.completed    = data.items.filter(r => r.status === 'Completed').length;
       },
       error: () => { /* use mock fallback shown in template */ }
     });

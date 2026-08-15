@@ -1,4 +1,4 @@
-﻿<div class="fade-in space-y-4">
+<div class="fade-in space-y-4">
   <div class="pms-card">
     <div class="flex flex-wrap items-start gap-3 mb-3">
       <div class="flex-1">
@@ -16,9 +16,7 @@
     </div>
 
     <div *ngIf="!loadingNotifications && notifications.length > 0" class="space-y-2">
-      <button
-        *ngFor="let notification of notifications; trackBy: trackByNotification"
-        type="button"
+      <button *ngFor="let notification of notifications; trackBy: trackByNotification" type="button"
         class="w-full text-left border border-[#dbe7fb] rounded-lg bg-white px-3 py-2.5 hover:bg-light-blue transition-colors"
         (click)="openNotification(notification)">
         <div class="flex flex-wrap items-center gap-2">
@@ -65,11 +63,13 @@
           <th>Location</th>
           <th>Submitted</th>
           <th>Status</th>
+          <th>Payment</th>
           <th>Action</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let r of filteredRequests" (click)="selectRequest(r)" class="cursor-pointer" [class.bg-light-blue]="selected?.requestID === r.requestID">
+        <tr *ngFor="let r of filteredRequests" (click)="selectRequest(r)" class="cursor-pointer"
+          [class.bg-light-blue]="selected?.requestID === r.requestID">
           <td class="font-mono text-xs text-blue">{{ r.requestNumber }}</td>
           <td>
             <div class="font-medium">{{ r.requestTitle }}</div>
@@ -79,11 +79,30 @@
           <td class="text-muted text-xs">{{ r.submissionDate | date:'dd MMM yyyy, HH:mm' }}</td>
           <td><app-status-badge [status]="r.status"></app-status-badge></td>
           <td>
-            <button class="btn-outline text-xs px-2 py-1" type="button" (click)="selectRequest(r); $event.stopPropagation()">Details</button>
+            <button class="btn-outline text-xs px-2 py-1 text-blue border-blue hover:bg-light-blue"
+              *ngIf="r.status === 'Completed'" (click)="openInvoiceModal(r); $event.stopPropagation()">Details</button>
+            <span *ngIf="r.status !== 'Completed'" class="text-xs text-muted">—</span>
+          </td>
+          <td>
+            <div class="flex gap-2">
+              <button class="btn-outline text-xs px-2 py-1" type="button"
+                (click)="selectRequest(r); $event.stopPropagation()">Details</button>
+              <button class="btn-outline text-xs px-2 py-1 text-blue border-blue hover:bg-light-blue"
+                *ngIf="r.status === 'Pending' || r.status === 'Approved'" [routerLink]="['/tenant/create-request']" [queryParams]="{ edit: r.requestID }"
+                (click)="$event.stopPropagation()">Edit</button>
+              <button class="btn-outline text-xs px-2 py-1 text-red-500 border-red-200 hover:bg-red-50"
+                *ngIf="r.status === 'Pending' || r.status === 'Approved'" (click)="cancelRequestModal(r); $event.stopPropagation()">
+                Cancel
+              </button>
+            </div>
           </td>
         </tr>
         <tr *ngIf="filteredRequests.length === 0">
-          <td colspan="6" class="text-center text-muted py-6">No maintenance requests found.</td>
+          <td colspan="7" class="text-center text-muted py-6">
+            <p class="mb-2">No maintenance requests found.</p>
+            <button class="text-blue font-medium hover:underline cursor-pointer" (click)="clearFilters()">Clear
+              filters</button>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -91,22 +110,109 @@
 
   <div *ngIf="loadingDetail" class="pms-card text-sm text-muted py-6 text-center">Loading request details...</div>
 
-  <div *ngIf="selected && !loadingDetail" class="pms-card">
+  <!-- Progress Detail (shows when a row is selected) -->
+  <div *ngIf="showProgress && selected && !loadingDetail" class="pms-card">
     <div class="flex flex-wrap items-start gap-3 mb-3">
       <div class="flex-1">
-        <h4 class="section-title mb-1">{{ selected.requestTitle }}</h4>
-        <div class="font-mono text-xs text-blue">{{ selected.requestNumber }}</div>
+        <h4 class="section-title mb-1">Progress Detail — {{ selected.requestTitle }}</h4>
+        <div class="font-mono text-xs text-muted">{{ selected.requestNumber }}</div>
       </div>
-      <app-status-badge [status]="selected.status"></app-status-badge>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm mb-4">
-      <div><div class="pms-label">Issue Type</div><div>{{ selected.issueCategory }}</div></div>
-      <div><div class="pms-label">Location</div><div>{{ selected.location }}</div></div>
-      <div><div class="pms-label">Priority</div><app-status-badge [status]="selected.priorityLevel"></app-status-badge></div>
-      <div><div class="pms-label">Submitted</div><div>{{ selected.submissionDate | date:'dd MMM yyyy, HH:mm' }}</div></div>
-      <div><div class="pms-label">Preferred Access</div><div>{{ selected.preferredScheduleDate ? (selected.preferredScheduleDate | date:'dd MMM yyyy, HH:mm') : '-' }}</div></div>
-      <div><div class="pms-label">Current Status</div><div>{{ selected.status }}</div></div>
+    <!-- Rejection Banner -->
+    <div *ngIf="isRejected" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+      <div class="flex items-center gap-2 text-red-600 font-semibold mb-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+            clip-rule="evenodd" />
+        </svg>
+        Request Rejected
+      </div>
+      <p class="text-sm text-red-700">{{ rejectionReason }}</p>
+    </div>
+
+    <!-- Progress Bar -->
+    <ng-container>
+      <div class="relative max-w-4xl mx-auto mb-16 mt-8">
+        <!-- Progress Line Background -->
+        <div class="absolute top-5 left-[5%] right-[5%] h-1 bg-gray-200 rounded-full z-0"></div>
+
+        <!-- Progress Line Active -->
+        <div class="absolute top-5 left-[5%] h-1 rounded-full z-0 transition-all duration-700 ease-in-out"
+          [ngClass]="(isRejected || isCancelled) ? 'bg-red-500' : 'bg-blue'" [style.width]="progressWidth"></div>
+
+        <!-- Steps -->
+        <div class="relative z-10 flex justify-between">
+          <div *ngFor="let step of steps; let i = index" class="flex flex-col items-center w-24">
+            
+            <!-- Step Circle -->
+            <div class="w-10 h-10 rounded-full flex items-center justify-center border-2 bg-white transition-all duration-500"
+              [ngClass]="{
+                'border-red-500 bg-red-50 text-red-500': (isRejected || isCancelled) && step.done && i === 1,
+                'border-blue bg-blue text-white shadow-md shadow-blue/30': step.done && (!(isRejected || isCancelled) || i !== 1),
+                'border-gray-300 text-gray-400': !step.done
+              }">
+              <svg *ngIf="step.done && (!(isRejected || isCancelled) || i !== 1)" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+              </svg>
+              <svg *ngIf="(isRejected || isCancelled) && step.done && i === 1" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+
+            <!-- Step Label -->
+            <div class="mt-3 text-xs font-semibold text-center transition-colors duration-500"
+              [ngClass]="{
+                'text-red-500': (isRejected || isCancelled) && step.done && i === 1,
+                'text-navy': step.done && (!(isRejected || isCancelled) || i !== 1),
+                'text-gray-400': !step.done
+              }">
+              {{ step.label }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Billing Info Banner -->
+    <!-- <div class="bg-[#eff6ff] border border-[#dbe7fb] rounded-xl p-4 mb-5 flex gap-3 items-start">
+      <div class="bg-blue text-white rounded-full p-1 shrink-0 mt-0.5">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+        </svg>
+      </div>
+      <div>
+        <p class="text-[14px] text-navy font-medium">Once the payment is ready, you will be notified and can proceed with the payment.</p>
+        <p class="text-[13px] text-gray-500 mt-1">This payment will be handled by the billing team.</p>
+      </div>
+    </div> -->
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm mb-4 border-t border-[#e5edf8] pt-4">
+      <div>
+        <div class="pms-label">Issue Type</div>
+        <div>{{ selected.issueCategory }}</div>
+      </div>
+      <div>
+        <div class="pms-label">Location</div>
+        <div>{{ selected.location }}</div>
+      </div>
+      <div>
+        <div class="pms-label">Priority</div><app-status-badge [status]="selected.priorityLevel"></app-status-badge>
+      </div>
+      <div>
+        <div class="pms-label">Submitted</div>
+        <div>{{ selected.submissionDate | date:'dd MMM yyyy, HH:mm' }}</div>
+      </div>
+      <div>
+        <div class="pms-label">Preferred Access</div>
+        <div>{{ selected.preferredScheduleDate ? (selected.preferredScheduleDate | date:'dd MMM yyyy, HH:mm') : '-' }}
+        </div>
+      </div>
+      <div>
+        <div class="pms-label">Current Status</div>
+        <div>{{ selected.status }}</div>
+      </div>
     </div>
 
     <div class="mb-4">
@@ -123,9 +229,186 @@
       <div class="pms-label mb-2">Status History</div>
       <div *ngIf="selected.history.length === 0" class="text-sm text-muted">No history recorded.</div>
       <div *ngFor="let item of selected.history" class="border-t border-[#e5edf8] py-2 text-sm">
-        <div class="font-medium">{{ item.action }} <span class="text-muted font-normal">to</span> {{ item.newStatus }}</div>
-        <div class="text-xs text-muted">{{ item.performedAt | date:'dd MMM yyyy, HH:mm' }} by {{ item.performedBy }}</div>
+        <div class="font-medium">{{ item.action }} <span class="text-muted font-normal">to</span> {{ item.newStatus }}
+        </div>
+        <div class="text-xs text-muted">{{ item.performedAt | date:'dd MMM yyyy, HH:mm' }} by {{ item.performedBy }}
+        </div>
         <div *ngIf="item.remarks" class="text-xs text-muted mt-1">{{ item.remarks }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cancel Confirmation Modal -->
+  <div *ngIf="showCancelModal" class="absolute inset-0 z-50 flex items-center justify-center bg-black/40 fade-in">
+    <div class="bg-white rounded-[24px] shadow-2xl w-[420px] max-w-[90vw] p-8 text-center">
+
+      <!-- Trash/Cancel Icon -->
+      <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-50 mb-5">
+        <svg class="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </div>
+
+      <!-- Title -->
+      <h3 class="text-[19px] font-bold text-navy mb-3">Cancel Maintenance Request</h3>
+
+      <!-- Message -->
+      <div class="text-[15px] text-gray-600 mb-6 leading-relaxed">
+        <p>Are you sure you want to cancel this</p>
+        <p>maintenance request: {{ requestToCancel?.requestNumber }}?</p>
+        <p class="text-red-500 font-semibold mt-1">This action cannot be undone.</p>
+      </div>
+
+      <div class="text-left mb-6">
+        <label class="block text-sm font-semibold text-navy mb-2">Reason for Cancellation <span class="text-red-500">*</span></label>
+        <textarea [(ngModel)]="cancelReason" rows="3" placeholder="Please provide a reason..."
+                  class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:border-blue focus:ring-1 focus:ring-blue"></textarea>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-4">
+        <button
+          class="flex-1 py-2.5 px-4 rounded-xl font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+          (click)="closeCancelModal()" [disabled]="isCancelling">
+          Go Back
+        </button>
+        <button
+          class="flex-1 py-2.5 px-4 rounded-xl font-semibold text-white bg-[#ef4444] hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          (click)="confirmCancel()" [disabled]="isCancelling || !cancelReason.trim()">
+          <span *ngIf="isCancelling" class="mr-2">⏳</span>
+          {{ isCancelling ? 'Cancelling...' : 'Cancel Request' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Invoice Modal -->
+  <div *ngIf="showInvoiceModal && selectedInvoiceRequest" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-gray-100 flex flex-col max-h-[90vh]">
+      
+      <!-- Header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+        <h3 class="text-lg font-bold text-navy">Invoice Details</h3>
+        <button (click)="closeInvoiceModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-full hover:bg-gray-100">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Content -->
+      <div class="p-6 overflow-y-auto">
+        <!-- Company & Invoice Info -->
+        <div class="flex justify-between items-start mb-6">
+          <div class="flex gap-4 items-center">
+            <div class="text-blue">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L2 7l10 5 10-5-10-5zm0 18.5l-10-5V10l10 5 10-5v5.5l-10 5z"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="font-bold text-gray-800 text-lg">{{ selectedInvoiceRequest.propertyName || 'Property Management' }}</h2>
+              <p class="text-xs text-gray-500 mt-1">{{ selectedInvoiceRequest.propertyAddress || 'Address not available' }}<br>{{ selectedInvoiceRequest.propertyPostcode }} {{ selectedInvoiceRequest.propertyCity }}<br>{{ selectedInvoiceRequest.propertyState }}</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <h1 class="text-3xl font-bold text-navy tracking-wider mb-2">INVOICE</h1>
+            <p class="font-mono text-sm text-gray-600 font-semibold">INV-{{ selectedInvoiceRequest.requestID | number:'4.0' }}</p>
+            <div class="mt-4 text-xs text-gray-500 grid grid-cols-2 gap-x-2 text-right">
+              <span>Invoice Date</span> <span class="font-medium text-gray-800">{{ selectedInvoiceRequest.resolvedDate ? (selectedInvoiceRequest.resolvedDate | date:'dd/MM/yyyy') : 'Pending' }}</span>
+              <span>Due Date</span> <span class="font-medium text-gray-800">{{ selectedInvoiceRequest.resolvedDate ? (getInvoiceDueDate(selectedInvoiceRequest.resolvedDate) | date:'dd/MM/yyyy') : 'Pending' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bill To -->
+        <div class="flex justify-between items-start mb-6 bg-gray-50 p-5 rounded-lg border border-gray-100">
+          <div>
+            <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Bill To</h4>
+            <p class="font-bold text-gray-800">{{ selectedInvoiceRequest.occupantName }}</p>
+            <p class="text-sm text-gray-600 mt-1">Unit {{ selectedInvoiceRequest.location || selectedInvoiceRequest.unitNumber }}<br>{{ selectedInvoiceRequest.propertyName }}<br>{{ selectedInvoiceRequest.propertyPostcode }} {{ selectedInvoiceRequest.propertyCity }}</p>
+          </div>
+          <div class="text-xs grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+            <span class="text-gray-500">Case ID</span>
+            <span class="font-mono text-gray-800 font-medium">{{ selectedInvoiceRequest.requestNumber }}</span>
+            
+            <span class="text-gray-500">Issue</span>
+            <span class="text-gray-800">{{ selectedInvoiceRequest.requestTitle }}</span>
+            
+            <span class="text-gray-500">Status</span>
+            <span class="text-orange-500 font-medium">Pending Payment</span>
+          </div>
+        </div>
+
+        <!-- Invoice Items -->
+        <table class="w-full mb-6">
+          <thead>
+            <tr class="border-y border-gray-200">
+              <th class="text-left py-3 px-2 text-xs font-bold text-gray-500 uppercase">No.</th>
+              <th class="text-left py-3 px-2 text-xs font-bold text-gray-500 uppercase">Description</th>
+              <th class="text-left py-3 px-2 text-xs font-bold text-gray-500 uppercase">Service Date</th>
+              <th class="text-center py-3 px-2 text-xs font-bold text-gray-500 uppercase">Qty</th>
+              <th class="text-right py-3 px-2 text-xs font-bold text-gray-500 uppercase">Unit Price (RM)</th>
+              <th class="text-right py-3 px-2 text-xs font-bold text-gray-500 uppercase">Amount (RM)</th>
+            </tr>
+          </thead>
+          <tbody class="text-sm text-gray-700">
+            <tr class="border-b border-gray-100">
+              <td class="py-3 px-2">1</td>
+              <td class="py-3 px-2 font-medium text-gray-800">Inspection & Diagnosis</td>
+              <td class="py-3 px-2">{{ selectedInvoiceRequest.resolvedDate ? (selectedInvoiceRequest.resolvedDate | date:'dd/MM/yyyy') : 'Pending' }}</td>
+              <td class="py-3 px-2 text-center">1</td>
+              <td class="py-3 px-2 text-right">50.00</td>
+              <td class="py-3 px-2 text-right font-medium text-gray-800">50.00</td>
+            </tr>
+            <tr class="border-b border-gray-100 bg-gray-50/50">
+              <td class="py-3 px-2">2</td>
+              <td class="py-3 px-2 font-medium text-gray-800">Labour (Plumbing)</td>
+              <td class="py-3 px-2">{{ selectedInvoiceRequest.resolvedDate ? (selectedInvoiceRequest.resolvedDate | date:'dd/MM/yyyy') : 'Pending' }}</td>
+              <td class="py-3 px-2 text-center">1</td>
+              <td class="py-3 px-2 text-right">80.00</td>
+              <td class="py-3 px-2 text-right font-medium text-gray-800">80.00</td>
+            </tr>
+            <tr class="border-b border-gray-200">
+              <td class="py-3 px-2">3</td>
+              <td class="py-3 px-2 font-medium text-gray-800">Materials (Pipes & Fittings)</td>
+              <td class="py-3 px-2">{{ selectedInvoiceRequest.resolvedDate ? (selectedInvoiceRequest.resolvedDate | date:'dd/MM/yyyy') : 'Pending' }}</td>
+              <td class="py-3 px-2 text-center">1</td>
+              <td class="py-3 px-2 text-right">50.00</td>
+              <td class="py-3 px-2 text-right font-medium text-gray-800">50.00</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Totals -->
+        <div class="flex justify-end mb-6">
+          <div class="w-64 text-sm">
+            <div class="flex justify-between py-2 text-gray-600">
+              <span>Subtotal</span>
+              <span class="font-medium text-gray-800">RM 180.00</span>
+            </div>
+            <div class="flex justify-between py-2 text-gray-600 border-b border-gray-200">
+              <span>Tax (0%)</span>
+              <span class="font-medium text-gray-800">RM 0.00</span>
+            </div>
+            <div class="flex justify-between py-3">
+              <span class="font-bold text-navy">Total Amount</span>
+              <span class="font-bold text-blue text-lg">RM 180.00</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div>
+          <h4 class="text-xs font-bold text-gray-500 mb-1">Notes:</h4>
+          <p class="text-xs text-gray-400">Thank you for using our maintenance service.</p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+        <button class="px-6 py-2 bg-white border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50" (click)="closeInvoiceModal()">Close</button>
       </div>
     </div>
   </div>

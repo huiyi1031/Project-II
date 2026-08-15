@@ -20,6 +20,7 @@ export class CreateRequestComponent implements OnInit {
   errorMsg = '';
   editId: number | null = null;
   isEditing = false;
+  editStatus = '';
 
   constructor(
     private fb: FormBuilder,
@@ -69,12 +70,19 @@ export class CreateRequestComponent implements OnInit {
   loadEditData(id: number): void {
     this.maintenanceSvc.getRequestById(id).subscribe({
       next: (req) => {
+        this.editStatus = req.status;
         this.form.patchValue({
           requestTitle: req.requestTitle,
           issueCategory: req.issueCategory,
           description: req.description,
           unitId: req.unitID
         });
+        
+        if (this.editStatus === 'Approved') {
+          this.form.get('requestTitle')?.disable();
+          this.form.get('issueCategory')?.disable();
+          this.form.get('unitId')?.disable();
+        }
       },
       error: () => {
         this.errorMsg = 'Failed to load request for editing.';
@@ -104,10 +112,14 @@ export class CreateRequestComponent implements OnInit {
     this.errorMsg = '';
 
     const formData = new FormData();
-    formData.append('Title', this.form.value.requestTitle);
-    formData.append('IssueCategory', this.form.value.issueCategory);
-    formData.append('Description', this.form.value.description);
-    formData.append('UnitId', String(this.form.value.unitId));
+    
+    // When disabled, form.value omits the field, so we use form.getRawValue() to send the original values if needed.
+    const rawValue = this.form.getRawValue();
+    
+    formData.append('Title', rawValue.requestTitle);
+    formData.append('IssueType', rawValue.issueCategory);
+    formData.append('Description', rawValue.description);
+    formData.append('UnitId', String(rawValue.unitId));
 
     if (this.fileToUpload) {
       formData.append('Image', this.fileToUpload);
