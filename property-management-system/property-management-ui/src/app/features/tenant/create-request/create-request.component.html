@@ -1,7 +1,10 @@
 <!-- Create Maintenance Request -->
 <div class="fade-in max-w-4xl mx-auto">
   <div class="pms-card">
-    <h4 class="section-title">Create Maintenance Request</h4>
+    <div class="mb-4">
+      <h4 class="section-title mb-1">{{ isEditing ? 'Edit Maintenance Request' : 'Create Maintenance Request' }}</h4>
+      <p class="text-xs text-muted">{{ isEditing ? 'Update the details of your maintenance request.' : 'Please fill in the details of your maintenance request.' }}</p>
+    </div>
 
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
       <div class="form-grid">
@@ -19,12 +22,7 @@
           <label class="pms-label">Issue Category *</label>
           <select formControlName="issueCategory" class="pms-select">
             <option value="">Select category</option>
-            <option>HVAC</option>
-            <option>Plumbing</option>
-            <option>Electrical</option>
-            <option>Cleaning</option>
-            <option>Structural</option>
-            <option>General Maintenance</option>
+            <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
           </select>
         </div>
 
@@ -76,9 +74,9 @@
 
       <!-- Actions -->
       <div class="form-actions">
-        <button type="button" class="btn-outline" (click)="resetForm()">Save Draft</button>
         <button type="submit" class="btn-primary" [disabled]="form.invalid || isLoading">
-          {{ isLoading ? 'Submitting...' : '📤 Submit Request' }}
+          <span *ngIf="isLoading" class="mr-2">⏳</span>
+          {{ isEditing ? 'Update Request' : '📤 Submit Request' }}
         </button>
       </div>
     </form>

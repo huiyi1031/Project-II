@@ -21,7 +21,7 @@
     </div>
 
     <!-- Mock chat list when no data -->
-    <ng-container *ngIf="chats.length === 0">
+    <!-- <ng-container *ngIf="chats.length === 0">
       <div (click)="selectMockChat()" [class.bg-light-blue]="showMock"
            class="border border-border rounded-xl p-3 cursor-pointer hover:bg-light-blue transition-all">
         <div class="font-semibold text-sm text-navy">REQ-2026-0012</div>
@@ -33,7 +33,7 @@
         <div class="text-xs text-muted">Toilet clogging</div>
         <app-status-badge status="Completed"></app-status-badge>
       </div>
-    </ng-container>
+    </ng-container> -->
   </div>
 
   <!-- Chat Window -->
@@ -41,19 +41,31 @@
     <h4 class="section-title">
       Chat Room: {{ selectedChat ? 'REQ-' + (selectedChat.requestID | number:'4.0-0') : 'REQ-2026-0012' }}
     </h4>
-    <div class="text-xs text-muted mb-3">
-      Participants: Requestor · Property Manager · Technician
+    <div class="text-xs text-muted mb-3" *ngIf="participants.length > 0">
+      Participants: <span *ngFor="let p of participants; let last = last">{{ p.role }} ({{ p.fullName }}){{ !last ? ' · ' : '' }}</span>
     </div>
 
     <!-- Messages -->
     <div #chatContainer class="flex-1 overflow-y-auto space-y-3 max-h-[420px] pr-1 mb-3">
       <ng-container *ngIf="messages.length > 0; else mockMessages">
         <div *ngFor="let msg of messages"
-             [class]="msg.isOwn ? 'flex justify-end' : 'flex justify-start'">
-          <div>
+             [class]="msg.messageType === 'System' ? 'flex justify-center my-4' : (msg.isOwn ? 'flex justify-end' : 'flex justify-start')">
+          
+          <!-- System Message -->
+          <div *ngIf="msg.messageType === 'System'" class="bg-gray-100 text-gray-500 text-[10px] px-3 py-1.5 rounded-full text-center max-w-[80%] shadow-sm">
+            {{ msg.content }}
+          </div>
+
+          <!-- User/Agent Message -->
+          <div *ngIf="msg.messageType !== 'System'">
             <div class="text-[10px] text-muted mb-1 px-1" *ngIf="!msg.isOwn">{{ msg.senderName }}</div>
-            <div [class]="msg.isOwn ? 'bubble-mine' : 'bubble'">{{ msg.content }}</div>
-            <div class="text-[10px] text-muted mt-1 px-1 text-right">
+            <div [class]="msg.isOwn ? 'bubble-mine' : 'bubble'">
+              <!-- Image attachment -->
+              <img *ngIf="msg.attachmentPath" [src]="msg.attachmentPath" class="max-w-[200px] rounded mb-1 object-cover" alt="Attachment" />
+              <!-- Text content -->
+              <span *ngIf="msg.content">{{ msg.content }}</span>
+            </div>
+            <div class="text-[10px] text-muted mt-1 px-1" [class.text-right]="msg.isOwn">
               {{ msg.sentAt | date:'HH:mm' }}
             </div>
           </div>

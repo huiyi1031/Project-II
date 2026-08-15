@@ -11,6 +11,7 @@ import { AuthService } from '../../../core/services/auth.service';
 export class ChatComponent implements OnInit {
   chats:        Chat[]    = [];
   messages:     Message[] = [];
+  participants: any[]     = [];
   selectedChat: Chat | null = null;
   newMessage    = '';
   showMock      = false;
@@ -27,11 +28,19 @@ export class ChatComponent implements OnInit {
   selectChat(chat: Chat): void {
     this.selectedChat = chat;
     this.showMock     = false;
+    this.messages     = [];
+    this.participants = [];
+    
     this.chatSvc.getMessages(chat.chatID).subscribe({
       next: (msgs) => {
         const myId = this.authSvc.getCurrentUser()?.userId;
         this.messages = msgs.map(m => ({ ...m, isOwn: m.senderAccountID === myId }));
       },
+      error: () => {}
+    });
+
+    this.chatSvc.getParticipants(chat.chatID).subscribe({
+      next: (parts) => this.participants = parts,
       error: () => {}
     });
   }
@@ -40,6 +49,7 @@ export class ChatComponent implements OnInit {
     this.showMock     = true;
     this.selectedChat = null;
     this.messages     = [];
+    this.participants = [];
   }
 
   sendMessage(): void {
